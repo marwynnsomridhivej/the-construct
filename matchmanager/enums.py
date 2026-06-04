@@ -12,6 +12,7 @@ __all__ = (
 
 class R6Map(StrEnum):
     # fmt: off
+    CASINO: str     = "calypso_casino"
     BORDER: str     = "border"
     DISTRICT: str   = "district"
     BANK: str       = "bank"
@@ -48,6 +49,7 @@ class R6Side(StrEnum):
 
 
 R6_RANKED: List[R6Map] = sorted([
+    R6Map.CASINO,
     R6Map.CHALET,
     R6Map.BANK,
     R6Map.BORDER,
@@ -58,15 +60,12 @@ R6_RANKED: List[R6Map] = sorted([
     R6Map.COASTLINE,
     R6Map.CONSULATE,
     R6Map.FORTRESS,
-    R6Map.KANAL,
     R6Map.OREGON,
     R6Map.OUTBACK,
-    R6Map.SKYSCRAPER,
-    R6Map.THEMEPARK,
-    R6Map.VILLA,
 ])
 
 R6_QUICKMATCH: List[R6Map] = sorted([
+    R6Map.CASINO,
     R6Map.HOUSE,
     R6Map.OREGON,
     R6Map.CLUBHOUSE,
