@@ -100,7 +100,7 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         # Don't proceed if there are active matches in the current season
         if await self.bot.match_manager.has_running_match(guild_id):
-            return await interaction.response.send_message(Canned.ERR_SEASON_MIP, ephemeral=True)
+            return await interaction.followup.send(Canned.ERR_SEASON_MIP, ephemeral=True)
 
         # Get season object and ranked players before season stop
         season = await self.bot.stats_manager.get_season(guild_id=guild_id)
