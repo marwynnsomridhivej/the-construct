@@ -153,17 +153,17 @@ class StatsSeason(WrapperBase):
         self.archived = True
 
     def get_player(self, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
-        """Get a StatsPlayer with the specified name
+        """Get a StatsPlayer with the specified user ID
 
         Args:
-            name (str): The name of the desired StatsPlayer instance
+            user_id (int): The user ID of the desired StatsPlayer instance
             throw (bool): Whether or not to throw an exception if a StatsPlayer instance is not found
 
         Raises:
-            PlayerDoesNotExist: No StatsPlayer instance exists with the specified name
+            PlayerDoesNotExist: No StatsPlayer instance exists with the specified user ID
 
         Returns:
-            Union[StatsPlayer, None]: The StatsPlayer instance with the specified name
+            Union[StatsPlayer, None]: The StatsPlayer instance with the specified user ID
         """
         data = self.players.get(user_id)
         if data is None and throw:
