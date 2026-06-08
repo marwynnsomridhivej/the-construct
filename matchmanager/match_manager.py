@@ -100,12 +100,11 @@ class MatchManager(ManagerBase):
             mgc.team_b, captain_id, choice)
         await self.write(wrapper)
 
-    async def designate_mvp(self, guild_id: int, name: str, captain_id: int, mvp_id: int) -> None:
+    async def designate_mvp(self, guild_id: int, name: str, mvp_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get(guild_id, throw=True)\
             .get(name, throw=True)\
-            .get_team_of_user(captain_id)\
-            .designate(mvp_id)
+            .designate_mvp(mvp_id)
         await self.write(wrapper)
 
     async def set_winning_team(self, guild_id: int, name: str, captain_id: int) -> None:

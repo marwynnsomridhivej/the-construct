@@ -193,7 +193,7 @@ class MatchEntry(WrapperBase):
         self.team_a.win = self.team_a.captain_id == captain_id
         self.team_b.win = not self.team_a.win
 
-    def designate_exceptional(self, mvp_id: int) -> None:
+    def designate_mvp(self, mvp_id: int) -> None:
         """Designates a team's MVP
 
         Args:
