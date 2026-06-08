@@ -50,7 +50,6 @@ class R6MVPModal(discord.ui.Modal):
             await self._r6view._bot.match_manager.designate_mvp(
                 interaction.guild_id,
                 self._r6view._payload.match_name,
-                captain_id,
                 mvp_id,
             )
         except MVPAlreadyAssigned:
