@@ -5,6 +5,7 @@ import discord
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
 from queuemanager import QueueEntry, QueueType
+from settingsmanager import CustomMapPool
 from statsmanager import StatsPlayer, StatsSeason
 
 __all__ = (
@@ -23,7 +24,6 @@ __all__ = (
 
     # Stats
     "PlayerStatsResetPayload",
-    "PlayerStatsEditPayload",
 )
 
 
@@ -65,7 +65,7 @@ class PrematchPayload(WrapperBase):
         "__match_name",
         "__voice_channel_id",
         "__text_channel_id",
-        "__captain_select_option",
+        "__map_pool",
         "__captains",
         "__entry",
     )
@@ -75,6 +75,7 @@ class PrematchPayload(WrapperBase):
         self.__match_name: str = data["match_name"]
         self.__voice_channel_id: int = data["voice_channel_id"]
         self.__text_channel_id: int = data["text_channel_id"]
+        self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
         self.__captains: Tuple[int, int] = data["captains"]
         self.__entry: QueueEntry = data["entry"]
 
@@ -95,6 +96,10 @@ class PrematchPayload(WrapperBase):
         return self.__text_channel_id
 
     @property
+    def map_pool(self) -> CustomMapPool:
+        return self.__map_pool
+
+    @property
     def captains(self) -> Tuple[int, int]:
         return self.__captains
 
@@ -111,6 +116,7 @@ class PrematchPayload(WrapperBase):
             "match_name": self.__match_name,
             "voice_channel_id": self.__voice_channel_id,
             "text_channel_id": self.__text_channel_id,
+            "map_pool": self.__map_pool.serialise(),
             "captains": self.__captains,
             "entry": self.__entry,
         }
@@ -375,59 +381,4 @@ class PlayerStatsResetPayload(WrapperBase):
             "user_id": user_id,
             "guild_id": guild_id,
             "queue_type": queue_type,
-        })
-
-
-class PlayerStatsEditPayload(WrapperBase):
-    __slots__ = (
-        "__user_id",
-        "__guild_id",
-        "__queue_type",
-        "__previous",
-        "__new",
-    )
-
-    def __init__(self, data: dict):
-        self.__user_id: int = data["user_id"]
-        self.__guild_id: int = data["guild_id"]
-        self.__queue_type: QueueType = data["queue_type"]
-        self.__previous: StatsPlayer = data["previous"]
-        self.__new: StatsPlayer = data["new"]
-
-    @property
-    def user_id(self) -> int:
-        return self.__user_id
-
-    @property
-    def guild_id(self) -> int:
-        return self.__guild_id
-
-    @property
-    def queue_type(self) -> QueueType:
-        return self.__queue_type
-
-    @property
-    def previous(self) -> StatsPlayer:
-        return self.__previous
-
-    @property
-    def new(self) -> StatsPlayer:
-        return self.__new
-
-    def serialise(self) -> dict:
-        return {
-            "user_id": self.__user_id,
-            "guild_id": self.__guild_id,
-            "previous": self.__previous.serialise(),
-            "new": self.__new.serialise(),
-        }
-
-    @classmethod
-    def create(cls, *,  user_id: int, guild_id: int, queue_type: QueueType, previous: StatsPlayer, new: StatsPlayer) -> "PlayerStatsEditPayload":
-        return cls({
-            "user_id": user_id,
-            "guild_id": guild_id,
-            "queue_type": queue_type,
-            "previous": previous,
-            "new": new,
         })
