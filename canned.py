@@ -14,6 +14,9 @@ class Canned(StrEnum):
     (no prefix) - Used to designate a confirmation or success message
     """
 
+    # Deprecation Warnings
+    DEPR_V1X_POINTS = "Support for v1.x points rating has been deprecated. Use the v2.x+ OpenSkill ratings instead."
+
     # General
     ERR_PERMS = "ERROR - You do not have permission to run this command"
     ERR_BOT_USER = "ERROR - This operation cannot be done on bot users"
@@ -36,7 +39,9 @@ class Canned(StrEnum):
     ERR_QUEUE_NO_LIST_RESULTS = "ERROR - Could not find any queues matching the specified criteria"
 
     # Matches
-    ERR_MATCH_START = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
+    ERR_MATCH_START_QUEUES = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
+    ERR_MATCH_START_NO_TC_BOUND = "ERROR - Unable to start a match, as the text channel for creating the thread has not been bound"
+    ERR_MATCH_START_INVALID_TC = "ERROR - Unable to start a match, as the currently bound text channel was unable to be found"
     ERR_MATCH_IN_PROGRESS = "ERROR - This match is already in progress"
     ERR_MATCH_SEASON = "ERROR - There is no active season in this server. Create an active season with `/season start`"
     MATCH_DM_CONF = "Players will receive a match start notification in their DMs shortly"
@@ -58,6 +63,17 @@ class Canned(StrEnum):
     ERR_STATS_INVALID_SEASON_NAME = "ERROR - Could not find a season with the specified name"
     ERR_STATS_PLAYER_EDIT = "ERROR - All values must be integers"
 
+    # Settings
+    ERR_SETTINGS_SELECTION_GEN = "ERROR - Could not choose a setting"
+    ERR_SETTINGS_SET_ADMIN = "ERROR - Could not set bot administrators"
+    ERR_SETTINGS_BIND_CHANNEL = "ERROR - Could not bind a text channel"
+    ERR_SETTINGS_BIND_CHANNEL_PERMS = "ERROR - Bot does not have permission to create private threads in the selected text channel"
+    ERR_SETTINGS_CREATE_MAP_POOL = "ERROR - Could not create a custom map pool"
+    ERR_SETTINGS_CREATE_MAP_POOL_NAME = "ERROR - Please give the map pool a different name"
+    ERR_SETTINGS_MAP_POOL_MANAGE_NO_NAME = "ERROR - Please specify a map pool using the selector"
+    ERR_SETTINGS_MAP_POOL_NAME_TAKEN = "ERROR - The specified name is already in use"
+    ERR_SETTINGS_MAP_POOL_CAP = "ERROR - This server has reached the limit for the amount of custom map pools"
+
     # Feedback
     FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"
 
@@ -70,7 +86,7 @@ class Canned(StrEnum):
     ERR_R6PRE_GEN = "ERROR - An error has occurred. Unable to start match"
 
     # R6 Draft
-    ERR_R6DRAFT_OWNER = "ERROR - Only the queue owner can execute this"
+    ERR_R6DRAFT_OWNER_OR_ADMIN = "ERROR - Only the queue owner or admin can execute this"
     ERR_R6DRAFT_CAPTAIN = "ERROR - Only a team captain can execute this"
     ERR_R6DRAFT_NO_DRAFT = "ERROR - There are no players available to draft"
     ERR_R6DRAFT_DRAFT_TURN = "ERROR - It is not your turn to draft players"
@@ -78,6 +94,8 @@ class Canned(StrEnum):
     ERR_R6DRAFT_SIDE = "ERROR - Your team cannot select the starting sides"
     ERR_R6DRAFT_MVP_EXISTS = "ERROR - You have already designated an MVP for your team"
     ERR_R6DRAFT_FINAL = "ERROR - The match results have been finalised and cannot be modified"
+    ERR_R6DRAFT_ROUNDS_WON_TYPE = "ERROR - Rounds won must be two unique integers greater than or equal to zero"
+    ERR_R6DRAFT_ROUNDS_WON_MISMATCH = "ERROR - Please ensure the rounds won for the winning team is greater than that of the losing team"
     R6DRAFT_MATCH_CANCEL = "This match has been canceled by the queue owner. Your rankings remain unchanged"
     R6DRAFT_RESET_DEFAULT = "Player draft, map bans, and starting side selection have been reset"
     R6DRAFT_DISCLAIMER = "-# *Only team captains and the queue owner can interact with the buttons below*"
