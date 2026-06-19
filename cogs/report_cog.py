@@ -2,8 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ui import *
 from canned import Canned
+from ui import FeedbackModal
 
 
 class ReportsCog(commands.Cog):
