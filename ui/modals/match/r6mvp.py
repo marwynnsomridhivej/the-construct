@@ -8,7 +8,7 @@ from exceptions import *
 
 
 class R6MVPModal(discord.ui.Modal):
-    def __init__(self, *, view, captain_id: int):
+    def __init__(self, *, view, captain_id: int = None):
         super().__init__(title="Designate MVP")
 
         from ...views import R6View
@@ -18,11 +18,12 @@ class R6MVPModal(discord.ui.Modal):
             self.add_item(item)
 
     def _init_components(self, captain_id: int) -> List[discord.ui.Item]:
+        # Assemble a list of players that are on the team of the specified captain id
         players: List[discord.Member] = [
-            self._r6view._bot
-            .get_guild(self._r6view._payload.guild_id)
+            self._r6view.bot
+            .get_guild(self._r6view.payload.guild_id)
             .get_member(player_id)
-            for player_id in self._r6view._match.get_team_of_user(captain_id).players
+            for player_id in self._r6view.match.get_team_of_user(captain_id).players
         ]
 
         self.mvp_select = discord.ui.Label(
@@ -47,21 +48,21 @@ class R6MVPModal(discord.ui.Modal):
         mvp_id = int(self.mvp_select.component.value)
 
         try:
-            await self._r6view._bot.match_manager.designate_mvp(
+            await self._r6view.bot.match_manager.designate_mvp(
                 interaction.guild_id,
-                self._r6view._payload.match_name,
+                self._r6view.payload.match_name,
                 mvp_id,
             )
         except MVPAlreadyAssigned:
             return await interaction.response.send_message(Canned.ERR_R6DRAFT_MVP_EXISTS, ephemeral=True)
 
         # Update local MatchEntry instance attached to R6View
-        await self._r6view._update_match()
+        await self._r6view.update_match()
 
         await interaction.response.send_message(f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP", delete_after=10.0)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        self._r6view._bot.logger.error(
+        self._r6view.bot.logger.error(
             f"An exception occurred when trying to designate MVP: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
