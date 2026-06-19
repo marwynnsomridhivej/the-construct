@@ -21,13 +21,16 @@ class Event(StrEnum):
 
     # Dispatched after the reset button was pressed
     RESET_BUTTON_PRESSED = "reset_button_pressed"
+    
+    # Dispatched after the cancel button was pressed to destroy temporary voice channels
+    CANCEL_BUTTON_PRESSED = "cancel_button_pressed"
 
     # Dispatched after match has been finalised (win + mvp set for both teams)
     MATCH_FINALISED = "match_finalised"
 
     # Dispatched after match finalised to lock and close the thread
     THREAD_CLEANUP = "postmatch_thread_cleanup"
-    
+
     # Dispatched after a season has been stopped and rankings are finalised
     SEASON_STOP = "season_stop"
 
@@ -42,7 +45,9 @@ class Event(StrEnum):
 
 
 class Reason(StrEnum):
-    TEAM_VC = "Automatically moved into team voice channel."
-    VIEW_RESET_STATE = "Reset button was pressed on a match. Moved back to lobby voice channel."
+    MATCH_CANCELED_LOBBY_MOVE = "Match was canceled, moved back to lobby voice channel."
     MATCH_FINALISED_DEL_TEMP = "Match was finalised, temp channel no longer needed."
     MATCH_FINALISED_LOBBY_MOVE = "Match was finalised, moved back to lobby voice channel."
+    TEAM_VC = "Automatically moved into team voice channel."
+    VIEW_RESET_STATE = "Reset or cancel button was pressed on a match. Moved back to lobby voice channel."
+    VC_DECONSTRUCT = "Temporary voice channel no longer needed."
