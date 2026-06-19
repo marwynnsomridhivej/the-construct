@@ -7,7 +7,6 @@ from discord.ext import commands
 from canned import Canned
 from event import *
 from exceptions import *
-from matchmanager import MatchTeam
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 
 
@@ -19,13 +18,14 @@ class MonitoringCog(commands.Cog):
     async def cog_load(self):
         _handlers: Dict[Coroutine, Event] = {
             # Custom Events
-            self.reset_button_vc_move: Event.RESET_BUTTON_PRESSED,
             self.queue_match_cleanup: Event.MATCH_FINALISED,
             self.delete_vcs: Event.MATCH_FINALISED,
             self.delete_dms: Event.MATCH_FINALISED,
             self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
             self.increment_match_count: Event.MATCH_FINALISED,
             self.thread_cleanup: Event.THREAD_CLEANUP,
+            self.reset_move_back: Event.RESET_BUTTON_PRESSED,
+            self.vc_delete_reset_cancel: Event.CANCEL_BUTTON_PRESSED,
 
             # DPY Events
             self._on_raw_member_remove: "raw_member_remove",
@@ -39,17 +39,15 @@ class MonitoringCog(commands.Cog):
     # ================CUSTOM EVENTS================
     # =============================================
 
-    async def _move_team_to_lobby_vc(self, guild_id: int, lobby_vc_id: int, team: MatchTeam, reason: Reason) -> None:
-        lobby_vc_channel = self.bot.get_channel(lobby_vc_id)
+    async def _move_everyone_to_lobby_vc(self, temp_vc_id: int, lobby_vc_id: int, reason: Reason) -> None:
+        temp_vc = self.bot.get_channel(temp_vc_id)
+        lobby_vc = self.bot.get_channel(lobby_vc_id)
 
-        # Try to move all the players in the team back to the "lobby VC"
-        for player_id in team.players:
-            member = self.bot\
-                .get_guild(guild_id)\
-                .get_member(player_id)
-            if not isinstance(member, discord.Member):
-                continue
-            await member.move_to(lobby_vc_channel, reason=reason)
+        if temp_vc is None or lobby_vc is None:
+            return
+
+        for member in temp_vc.members:
+            await member.move_to(lobby_vc, reason=reason)
 
     async def _delete_dms(self, guild_id: int, players: List[int]) -> None:
         for player in players:
@@ -76,22 +74,6 @@ class MonitoringCog(commands.Cog):
                 )
                 traceback.print_exception(type(e), e, e.__traceback__)
 
-    async def reset_button_vc_move(self, payload: VCResetPayload) -> None:
-        # Don't do anything if it is a 1v1, since no separate VCs were created
-        if payload.queue_type == QueueType.R6_1V1:
-            return
-
-        for team in payload.teams:
-            try:
-                await self._move_team_to_lobby_vc(
-                    payload.guild_id,
-                    payload.lobby_vc_id,
-                    team,
-                    Reason.MATCH_FINALISED_LOBBY_MOVE
-                )
-            except discord.HTTPException:
-                pass
-
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
         # Don't do anything if it is a 1v1, since no separate VCs were created
         if payload.queue_type == QueueType.R6_1V1:
@@ -99,10 +81,9 @@ class MonitoringCog(commands.Cog):
 
         for team in payload.teams:
             try:
-                await self._move_team_to_lobby_vc(
-                    payload.guild_id,
+                await self._move_everyone_to_lobby_vc(
+                    team.voice_channel_id,
                     payload.lobby_vc_id,
-                    team,
                     Reason.MATCH_FINALISED_LOBBY_MOVE
                 )
             except discord.HTTPException:
@@ -144,6 +125,27 @@ class MonitoringCog(commands.Cog):
             locked=True,
             reason=Canned.R6DRAFT_THREAD_CLEANUP,
         )
+
+    async def reset_move_back(self, payload: VCResetPayload) -> None:
+        for team in payload.teams:
+            await self._move_everyone_to_lobby_vc(
+                team.voice_channel_id,
+                payload.lobby_vc_id,
+                Reason.VIEW_RESET_STATE,
+            )
+
+    async def vc_delete_reset_cancel(self, payload: VCResetPayload) -> None:
+        for team in payload.teams:
+            await self._move_everyone_to_lobby_vc(
+                team.voice_channel_id,
+                payload.lobby_vc_id,
+                Reason.VIEW_RESET_STATE,
+            )
+
+            team_voice_channel = self.bot.get_channel(team.voice_channel_id)
+            if team_voice_channel is None:
+                continue
+            await team_voice_channel.delete(reason=Reason.VC_DECONSTRUCT)
 
     # =============================================
     # =================DPY EVENTS==================
