@@ -114,6 +114,13 @@ class MatchManager(ManagerBase):
             .designate_winner(captain_id)
         await self.write(wrapper)
 
+    async def set_team_rounds_won(self, guild_id: int, name: str, captain_id: int, rounds_won: int) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .set_rounds_won(captain_id, rounds_won)
+        await self.write(wrapper)
+
     async def set_team_vc(self, guild_id: int, name: str, captain_id: int, vc_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get(guild_id, throw=True)\

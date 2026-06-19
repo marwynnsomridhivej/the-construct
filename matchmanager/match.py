@@ -245,6 +245,9 @@ class MatchEntry(WrapperBase):
             team.reset_map_bans()
             team.reset_starting_side()
 
+    def set_rounds_won(self, captain_id: int, rounds_won: int) -> None:
+        self.get_team_of_user(captain_id).set_rounds_won(rounds_won)
+
     @property
     def captains(self) -> List[int]:
         return [self.team_a.captain_id, self.team_b.captain_id]
@@ -314,6 +317,7 @@ class MatchTeam(WrapperBase):
         "starting_side",
         "win",
         "mvp_id",
+        "rounds_won",
     )
 
     def __init__(self, data: dict):
@@ -327,6 +331,7 @@ class MatchTeam(WrapperBase):
         self.starting_side: Union[R6Side, None] = data["starting_side"]
         self.win: Union[bool, None] = data["win"]
         self.mvp_id: Union[int, None] = data["mvp_id"]
+        self.rounds_won: Union[int, None] = data["rounds_won"]
 
     def assign_captain(self, user_id: int) -> None:
         """Designates a captain by user ID
@@ -394,6 +399,14 @@ class MatchTeam(WrapperBase):
         """
         self.starting_side = None
 
+    def set_rounds_won(self, rounds_won: int) -> None:
+        """Set the amount of rounds won by this team
+
+        Args:
+            score (int): The amount of rounds this team won in total
+        """
+        self.rounds_won = rounds_won
+
     def serialise(self) -> dict:
         """Convert MatchTeam instance representation into a dict
 
@@ -409,6 +422,7 @@ class MatchTeam(WrapperBase):
             "starting_side":    self.starting_side,
             "win":              self.win,
             "mvp_id":           self.mvp_id,
+            "rounds_won":       self.rounds_won,
         }
 
     @classmethod
@@ -427,4 +441,5 @@ class MatchTeam(WrapperBase):
             "starting_side":  None,
             "win": None,
             "mvp_id": None,
+            "rounds_won": None,
         })
