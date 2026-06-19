@@ -239,12 +239,13 @@ class QueueEntry(WrapperBase):
 
         self.players.remove(user_id)
 
-    def set_lock(self, user_id: int, state: bool) -> None:
+    def set_lock(self, user_id: int, state: bool, admin: bool = False) -> None:
         """Set the queue's lock state
 
         Args:
             user_id (int): The ID of the user attempting to modify this queue
             state (bool): The state to set the queue's lock
+            admin (bool, optional): Whether or not the user is a bot administrator. Defaults to False.
 
         Raises:
             QueueProgressStateError: The queue is currently in progress and cannot be modified
@@ -254,7 +255,7 @@ class QueueEntry(WrapperBase):
         if self.in_progress:
             raise QueueProgressStateError
 
-        if user_id != self.owner_id:
+        if user_id != self.owner_id and not admin:
             raise NotQueueOwner(real=self.owner_id, provided=user_id)
 
         if self.locked == state:
