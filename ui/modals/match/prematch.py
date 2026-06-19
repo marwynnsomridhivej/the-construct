@@ -6,13 +6,15 @@ import discord
 from canned import Canned
 from exceptions import *
 from queuemanager import *
+from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
 
 
 class PreMatchModal(discord.ui.Modal):
-    def __init__(self, bot, options: Dict[str, QueueEntry]):
+    def __init__(self, bot, queues: Dict[str, QueueEntry], pools: List[CustomMapPool]):
         super().__init__(title="Match Configuration")
         self.is_valid: bool = True
-        self.options = options
+        self.queues = queues
+        self.pools = pools
 
         from bot import Bot
         self.__bot: Bot = bot
@@ -22,16 +24,19 @@ class PreMatchModal(discord.ui.Modal):
             self.add_item(item)
 
     def _init_components(self) -> List[discord.ui.Item]:
+        # Queue select by name
         self.queue = discord.ui.Label(
             text="Select Queue",
             description="For which queue would you like to start a match?",
             component=discord.ui.Select(
                 options=[
-                    discord.SelectOption(label=name, value=name) for name in self.options.keys()
+                    discord.SelectOption(label=name, value=name) for name in self.queues.keys()
                 ],
                 required=True,
             ),
         )
+
+        # Voice channel select
         self.vc = discord.ui.Label(
             text="Voice Channel",
             description="What voice channel should players connect to BEFORE team draft occurs?",
@@ -40,14 +45,24 @@ class PreMatchModal(discord.ui.Modal):
                 required=True,
             ),
         )
-        self.tc = discord.ui.Label(
-            text="Text/Thread Channel",
-            description="Which text channel should a thread be created in to house all messages related to this match?",
-            component=discord.ui.ChannelSelect(
-                channel_types=[discord.ChannelType.text],
+
+        # Map pool select by name
+        self.map_pool = discord.ui.Label(
+            text="Map Pool",
+            description="What map pool should this match select maps from?",
+            component=discord.ui.Select(
+                options=[
+                    discord.SelectOption(
+                        label=pool.name.title(),
+                        value=pool.name,
+                        default=pool.name == DEFAULT_MAP_POOL_NAMES[0],
+                    ) for pool in self.pools
+                ],
                 required=True,
             )
         )
+
+        # Captain selection mode select
         self.captain_select = discord.ui.Label(
             text="Captain Selection",
             description="How should captain selection occur?",
@@ -63,6 +78,8 @@ class PreMatchModal(discord.ui.Modal):
                 required=True,
             ),
         )
+
+        # Manual captain select
         self.manual_select = discord.ui.Label(
             text="Manual Selection",
             description=f"Select two captains if \"{CaptSelect.MANUAL.title()}\" was chosen as the captain selection method.",
@@ -72,26 +89,20 @@ class PreMatchModal(discord.ui.Modal):
                 max_values=2,
             ),
         )
-        return (self.queue, self.vc, self.tc, self.captain_select, self.manual_select)
+        return (self.queue, self.vc, self.map_pool, self.captain_select, self.manual_select)
 
     async def _ensure_perms(self, interaction: discord.Interaction) -> None:
         # Bot as member
         _member = interaction.guild.get_member(self.__bot.user.id)
 
         assert isinstance(self.vc.component, discord.ui.ChannelSelect)
-        assert isinstance(self.tc.component, discord.ui.ChannelSelect)
 
         vc = await self.vc.component.values[0].fetch()
         vc_perms = vc.permissions_for(_member)
         assert vc_perms.move_members
 
-        tc = await self.tc.component.values[0].fetch()
-        tc_perms = tc.permissions_for(_member)
-        assert tc_perms.send_messages
-        assert tc_perms.add_reactions
-
     async def on_submit(self, interaction: discord.Interaction):
-        # Ensure bot has correct permissions for specified channels
+        # Ensure bot has correct permissions for specified voice channel
         await self._ensure_perms(interaction)
 
         # Ensure captain select values are OK
@@ -107,7 +118,7 @@ class PreMatchModal(discord.ui.Modal):
                 if user.bot:
                     raise UserIsBot(user)
 
-                if not user.id in self.options[self.queue.component.values[0]].players:
+                if not user.id in self.queues[self.queue.component.values[0]].players:
                     raise InvalidUserSelected(user)
 
         await interaction.response.defer()

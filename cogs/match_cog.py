@@ -8,8 +8,10 @@ from discord.ext import commands
 from canned import Canned
 from event import *
 from exceptions import *
+from matchmanager import R6_QUICKMATCH, R6_RANKED
 from queuemanager import CaptSelect, QueueType
-from ui import *
+from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
+from ui import MatchStartDMView, PreMatchModal, R6View
 
 
 @app_commands.guild_only()
@@ -58,12 +60,33 @@ class MatchCog(commands.GroupCog, name="match"):
             name=f"{payload.match_name} - {payload.entry.type}",
         )
 
+        # Add all bot admins and server owner to the thread
+        guild = self.bot.get_guild(payload.guild_id)
+        owner_id = guild.owner_id if guild is not None else None
+        admin_ids = await self.bot.settings_manager.get_admins(payload.guild_id, owner_id=owner_id)
+        for admin_id in admin_ids:
+            user = self.bot.get_user(admin_id)
+            if user is None:
+                continue
+            try:
+                # Don't force add an admin if they are already a player
+                if user.id in payload.entry.players:
+                    continue
+                await thread_channel.add_user(user)
+            except discord.HTTPException:
+                pass
+            except discord.Forbidden:
+                self.bot.logger.error(
+                    f"Unable to add admin id {user.id} to thread_channel " +
+                    f"{thread_channel.name} (id={thread_channel.id})"
+                )
+
         # Edit in place payload text channel ID to be thread channel now
         payload.switch_to_thread_channel(thread_channel.id)
 
         # Initialise R6View
         r6view = R6View(payload=payload, match=match, bot=self.bot)
-        await r6view._set_order()
+        await r6view.set_order()
         r6view.init_components()
 
         # Send R6View to thread channel
@@ -71,18 +94,26 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot.dispatch(Event.PREMATCH_DM_READY_SEND,
                           PrematchDMPayload.from_prematch_payload(payload, message))
 
-    async def _select_captains(self, *, guild_id: int, queue_type: QueueType, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
+    async def is_admin_including_owner(self, interaction: discord.Interaction) -> bool:
+        guild = self.bot.get_guild(interaction.guild_id)
+        owner_id = guild.owner_id if guild is not None else None
+        return owner_id == interaction.user.id or await self.bot.settings_manager.is_admin(
+            interaction.guild_id,
+            interaction.user.id,
+        )
+
+    async def _select_captains(self, *, guild_id: int, queue_type: QueueType, player_ids: List[int], mode: CaptSelect) -> Tuple[int, int]:
         match mode:
             case CaptSelect.RANDOM:
-                return tuple(random.sample(players, 2))
+                return tuple(random.sample(player_ids, 2))
             case CaptSelect.RATING:
                 captains = sorted([
                     await self.bot.stats_manager.get_or_create_player(
                         guild_id=guild_id,
                         queue_type=queue_type,
                         user_id=_id
-                    ) for _id in players
-                ], key=lambda p: p.points, reverse=True)
+                    ) for _id in player_ids
+                ], key=lambda p: p.ordinal if not p.is_legacy else p.points, reverse=True)
                 return (captains[0].id, captains[1].id)
             case _:
                 raise ValueError(mode)
@@ -98,23 +129,49 @@ class MatchCog(commands.GroupCog, name="match"):
         except ValueError:
             return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
 
+        # Check if user is bot admin or server owner
+        admin_or_owner = await self.is_admin_including_owner(interaction)
+
         # See if the person starting the match has any queues they can start from
-        owned_queues = await self.bot.queue_manager.get_queues_owned_by(guild_id, owner_id)
+        owned_queues = await self.bot.queue_manager.get_queues_owned_by(
+            guild_id,
+            owner_id,
+            admin=admin_or_owner,
+        )
         valid_owned_queues = {
             name: entry for name, entry in owned_queues.items()
             if len(entry.players) >= 2
             and not entry.in_progress
         }
         if not valid_owned_queues:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START, ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_MATCH_START_QUEUES, ephemeral=True)
 
-        prematch_modal = PreMatchModal(self.bot, valid_owned_queues)
+        # Check if a text channel has been bound
+        bound_text_channel_id = await self.bot.settings_manager.get_bound_text_channel_id(interaction.guild_id)
+        if bound_text_channel_id is None:
+            return await interaction.response.send_message(Canned.ERR_MATCH_START_NO_TC_BOUND, ephemeral=True)
+
+        # Check if the bound text channel is still valid
+        tc = interaction.guild.get_channel(bound_text_channel_id)
+        if tc is None:
+            return await interaction.response.send_message(Canned.ERR_MATCH_START_INVALID_TC, ephemeral=True)
+
+        # Get all map pools created in the guild, custom and default
+        ranked_name, qm_name = DEFAULT_MAP_POOL_NAMES
+        ranked_pool = CustomMapPool.create(
+            self.bot.user.id, ranked_name, R6_RANKED)
+        qm_pool = CustomMapPool.create(
+            self.bot.user.id, qm_name, R6_QUICKMATCH)
+        all_pools = [ranked_pool, qm_pool] + await self.bot.settings_manager.get_all_map_pools(interaction.guild_id)
+
+        # If previous checks succeed, display the prematch modal
+        prematch_modal = PreMatchModal(self.bot, valid_owned_queues, all_pools)
         await interaction.response.send_modal(prematch_modal)
 
         # Ensure we don't access any attributes until user has submitted
         await prematch_modal.wait()
 
-        # Don't do anything if we get an invalid answer or the modal errorred out
+        # Don't do anything if we get an invalid answer or the modal errored out
         if not prematch_modal.is_valid:
             return
 
@@ -122,25 +179,29 @@ class MatchCog(commands.GroupCog, name="match"):
         assert isinstance(prematch_modal.queue.component, discord.ui.Select)
         name: str = prematch_modal.queue.component.values[0]
         try:
-            entry = await self.bot.queue_manager.start_match(guild_id, owner_id, name)
+            entry = await self.bot.queue_manager.start_match(guild_id, owner_id, name, admin=admin_or_owner)
         except QueueProgressStateError:
             await interaction.followup.send(Canned.ERR_MATCH_IN_PROGRESS, ephemeral=True)
 
         # For type hints
         assert isinstance(prematch_modal.vc.component,
                           discord.ui.ChannelSelect)
-        assert isinstance(prematch_modal.tc.component,
-                          discord.ui.ChannelSelect)
-        assert isinstance(prematch_modal.captain_select.component,
-                          discord.ui.RadioGroup)
-        assert isinstance(prematch_modal.manual_select.component,
-                          discord.ui.UserSelect)
+        assert isinstance(prematch_modal.map_pool.component, discord.ui.Select)
+        assert isinstance(
+            prematch_modal.captain_select.component, discord.ui.RadioGroup)
+        assert isinstance(
+            prematch_modal.manual_select.component, discord.ui.UserSelect)
 
         vc = prematch_modal.vc.component.values[0]
-        tc = prematch_modal.tc.component.values[0]
-        mode = prematch_modal.captain_select.component.value
+
+        # Get map pool instance from name
+        pool_name = prematch_modal.map_pool.component.values[0]
+        map_pool = ranked_pool if pool_name == ranked_name else \
+            qm_pool if pool_name == qm_name else \
+            await self.bot.settings_manager.get_map_pool(guild_id, pool_name)
 
         # Craft payload to be dispatched on event
+        mode = prematch_modal.captain_select.component.value
         if mode == CaptSelect.MANUAL:
             captains = tuple(
                 userlike.id for userlike in prematch_modal.manual_select.component.values
@@ -149,7 +210,7 @@ class MatchCog(commands.GroupCog, name="match"):
             captains = await self._select_captains(
                 guild_id=guild_id,
                 queue_type=entry.type,
-                players=entry.players,
+                player_ids=entry.players,
                 mode=mode
             )
         payload = PrematchPayload.parse({
@@ -157,6 +218,7 @@ class MatchCog(commands.GroupCog, name="match"):
             "match_name": name,
             "voice_channel_id": vc.id,
             "text_channel_id": tc.id,
+            "map_pool": map_pool.serialise(),
             "captains": captains,
             "entry": entry,
         })
