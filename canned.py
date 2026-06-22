@@ -37,6 +37,13 @@ class Canned(StrEnum):
     ERR_QUEUE_LOCKSTATE_U = "ERROR - The specified queue is already unlocked"
     ERR_QUEUE_PROGSTATE = "ERROR - The specified queue currently has a match in progress and cannot be modified"
     ERR_QUEUE_NO_LIST_RESULTS = "ERROR - Could not find any queues matching the specified criteria"
+    
+    # R6 Prematch
+    ERR_PREMATCH_NO_QUEUE = "ERROR - Please specify a queue"
+    ERR_PREMATCH_NO_VC = "ERROR - Please specify a voice channel"
+    ERR_PREMATCH_MANUAL_CAPTAIN = "ERROR - Please specify two captains when the captain selection mode is set to manual"
+    ERR_PREMATCH_BOT_USER = "ERROR - Cannot designate a bot user as captain"
+    ERR_PREMATCH_INVALID_USER = "ERROR - Cannot designate a user as captain is they are not in the player list"
 
     # Matches
     ERR_MATCH_START_QUEUES = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
@@ -76,11 +83,6 @@ class Canned(StrEnum):
 
     # Feedback
     FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"
-
-    # R6 Prematch
-    ERR_R6PRE_BOT_USER = "ERROR - Cannot designate a bot user as captain"
-    ERR_R6PRE_INVALID_USER = "ERROR - Cannot designate a user as captain is they are not in the player list"
-    ERR_R6PRE_INVALID_MANUAL = "ERROR - An invalid amount of captains were selected"
 
     # R6 Prematch - General Errors
     ERR_R6PRE_GEN = "ERROR - An error has occurred. Unable to start match"
