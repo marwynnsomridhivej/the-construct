@@ -316,6 +316,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             "voice_channel_id": self.parent_view.voice_channel_id,
             "text_channel_id": bound_text_channel_id,
             "map_pool": map_pool.serialise(),
+            "auto_draft": self.parent_view.auto_draft,
             "captains": captains,
             "entry": entry,
         })

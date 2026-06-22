@@ -66,6 +66,7 @@ class PrematchPayload(WrapperBase):
         "__voice_channel_id",
         "__text_channel_id",
         "__map_pool",
+        "__auto_draft",
         "__captains",
         "__entry",
     )
@@ -76,6 +77,7 @@ class PrematchPayload(WrapperBase):
         self.__voice_channel_id: int = data["voice_channel_id"]
         self.__text_channel_id: int = data["text_channel_id"]
         self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
+        self.__auto_draft: bool = data["autodraft"]
         self.__captains: Tuple[int, int] = data["captains"]
         self.__entry: QueueEntry = data["entry"]
 
@@ -100,6 +102,10 @@ class PrematchPayload(WrapperBase):
         return self.__map_pool
 
     @property
+    def auto_draft(self) -> bool:
+        return self.__auto_draft
+
+    @property
     def captains(self) -> Tuple[int, int]:
         return self.__captains
 
@@ -117,6 +123,7 @@ class PrematchPayload(WrapperBase):
             "voice_channel_id": self.__voice_channel_id,
             "text_channel_id": self.__text_channel_id,
             "map_pool": self.__map_pool.serialise(),
+            "auto_draft": self.__auto_draft,
             "captains": self.__captains,
             "entry": self.__entry,
         }
