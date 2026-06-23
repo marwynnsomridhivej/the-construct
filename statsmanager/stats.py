@@ -399,11 +399,15 @@ class StatsPlayer(WrapperBase):
             "wins",
             "losses",
             "times_mvp",
+
+            # OpenSkill v2.x+
             "mu",
             "sigma",
             "max_ordinal",
-            "__points",
-            "__max_points",
+
+            # Legacy v1.x
+            "points",
+            "max_points",
         ]])
 
     def __ne__(self, other: "StatsPlayer") -> bool:
