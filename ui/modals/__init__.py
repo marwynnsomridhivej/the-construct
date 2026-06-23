@@ -1,9 +1,5 @@
-from .confirmation import *
-from .feedback import *
-from .match.r6draft import *
-from .match.r6mapban import *
-from .match.r6mvp import *
-from .match.r6result import *
-from .match.r6side import *
-from .season_start import *
-from .settings import *
+from .confirmation import *  # noqa: F403
+from .feedback import *  # noqa: F403
+from .match import *  # noqa: F403
+from .season_start import *  # noqa: F403
+from .settings import *  # noqa: F403

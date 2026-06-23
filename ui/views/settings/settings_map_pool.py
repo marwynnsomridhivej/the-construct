@@ -7,8 +7,17 @@ from settingsmanager import PER_GUILD_MAP_POOL_LIMIT
 
 
 class SettingsMapPoolView(SettingsBaseView):
-    def __init__(self, *, guild_id: int, user_id: int, source_interaction: discord.Interaction, parent_view: discord.ui.LayoutView, bot):
+    def __init__(
+        self,
+        *,
+        guild_id: int,
+        user_id: int,
+        source_interaction: discord.Interaction,
+        parent_view: discord.ui.LayoutView,
+        bot,
+    ):
         from .settings_buttons import SettingsMapPoolButtons
+
         super().__init__(
             guild_id=guild_id,
             user_id=user_id,
@@ -31,6 +40,7 @@ class SettingsMapPoolView(SettingsBaseView):
             # If the server has custom map pools, show pool selector
             if pool_names:
                 from .settings_buttons import SettingsMapPoolSelectRow
+
                 self.map_pool_name_select = SettingsMapPoolSelectRow(
                     view=self,
                     names=pool_names,
@@ -49,29 +59,40 @@ class SettingsMapPoolView(SettingsBaseView):
         items = []
 
         # View header
-        header = "\n".join([
-            "## Map Pool Configuration",
-            "Custom map pools can be created and used to customise what maps the bot will " +
-            "curate for drafts. Any map pools created in this server will appear here. " +
-            f"Each server can have up to `{PER_GUILD_MAP_POOL_LIMIT}` custom map pools.",
-        ])
+        header = "\n".join(
+            [
+                "## Map Pool Configuration",
+                "Custom map pools can be created and used to customise what maps the bot will "
+                + "curate for drafts. Any map pools created in this server will appear here. "
+                + f"Each server can have up to `{PER_GUILD_MAP_POOL_LIMIT}` custom map pools.",
+            ]
+        )
         items.append(header)
 
         # Show map pool details
         map_pools = await self.bot.settings_manager.get_all_map_pools(self.guild_id)
-        map_pool_details_text = "\n".join([
-            "\n".join([
-                f"### {pool.name.title()}",
-                f"> Owner: <@{pool.owner_id}>",
-                f"> Created: <t:{pool.created_timestamp}:f>",
-                f"> Modified: <t:{pool.modified_timestamp}:f>",
-                f"> Maps: `{len(pool)}`",
-            ]) for pool in map_pools
-        ])
-        map_pools_text = "\n".join([
-            "## Custom Map Pools",
-            map_pool_details_text if map_pool_details_text else "*No custom map pools have been created yet*",
-        ])
+        map_pool_details_text = "\n".join(
+            [
+                "\n".join(
+                    [
+                        f"### {pool.name.title()}",
+                        f"> Owner: <@{pool.owner_id}>",
+                        f"> Created: <t:{pool.created_timestamp}:f>",
+                        f"> Modified: <t:{pool.modified_timestamp}:f>",
+                        f"> Maps: `{len(pool)}`",
+                    ]
+                )
+                for pool in map_pools
+            ]
+        )
+        map_pools_text = "\n".join(
+            [
+                "## Custom Map Pools",
+                map_pool_details_text
+                if map_pool_details_text
+                else "*No custom map pools have been created yet*",
+            ]
+        )
         items.append(map_pools_text)
 
         return "\n".join(items)

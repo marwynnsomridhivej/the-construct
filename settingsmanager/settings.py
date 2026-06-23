@@ -4,8 +4,7 @@ from typing import Any, Dict, Generator, List, Union
 import discord
 
 from base import WrapperBase
-from exceptions import (InvalidGuildID, MapPoolAlreadyExists, MapPoolNotFound,
-                        MapPoolNotOwner)
+from exceptions import InvalidGuildID, MapPoolAlreadyExists, MapPoolNotFound
 from matchmanager import R6Map
 
 __all__ = (
@@ -16,13 +15,12 @@ __all__ = (
 
 
 class SettingsWrapper(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
 
     def __init__(self, data: dict):
         self.__data: Dict[int, SettingsEntry] = {
-            int(guild_id): SettingsEntry.parse(entry) for guild_id, entry in data.items()
+            int(guild_id): SettingsEntry.parse(entry)
+            for guild_id, entry in data.items()
         }
 
     def get(self, guild_id: int, throw: bool = False) -> Union["SettingsEntry", None]:
@@ -43,9 +41,7 @@ class SettingsWrapper(WrapperBase):
         return self.__data
 
     def serialise(self) -> dict:
-        return {
-            guild_id: entry.serialise() for guild_id, entry in self.__data.items()
-        }
+        return {guild_id: entry.serialise() for guild_id, entry in self.__data.items()}
 
 
 class SettingsEntry(WrapperBase):
@@ -63,7 +59,8 @@ class SettingsEntry(WrapperBase):
         except TypeError:
             self.__text_channel_id = None
         self.__map_pools: List[CustomMapPool] = [
-            CustomMapPool.parse(pool) for pool in data["map_pools"]]
+            CustomMapPool.parse(pool) for pool in data["map_pools"]
+        ]
 
     @property
     def admins(self) -> List[int]:
@@ -83,7 +80,9 @@ class SettingsEntry(WrapperBase):
     def bind_text_channel_id(self, _id: int) -> None:
         self.__text_channel_id = _id
 
-    def create_map_pool(self, owner_id: int, name: str, maps: List[R6Map] = []) -> "CustomMapPool":
+    def create_map_pool(
+        self, owner_id: int, name: str, maps: List[R6Map] = []
+    ) -> "CustomMapPool":
         name_taken = any([pool.name == name for pool in self.__map_pools])
         if name_taken:
             raise MapPoolAlreadyExists(name)
@@ -118,16 +117,18 @@ class SettingsEntry(WrapperBase):
         return {
             "admins": self.__admins,
             "text_channel_id": self.__text_channel_id,
-            "map_pools": [pool.serialise() for pool in self.__map_pools]
+            "map_pools": [pool.serialise() for pool in self.__map_pools],
         }
 
     @classmethod
     def create_blank(cls) -> "SettingsEntry":
-        return cls({
-            "admins": [],
-            "text_channel_id": None,
-            "map_pools": [],
-        })
+        return cls(
+            {
+                "admins": [],
+                "text_channel_id": None,
+                "map_pools": [],
+            }
+        )
 
 
 class CustomMapPool(WrapperBase):
@@ -199,10 +200,12 @@ class CustomMapPool(WrapperBase):
     @classmethod
     def create(cls, owner_id: int, name: str, maps: List[R6Map]) -> "CustomMapPool":
         timestamp = int(datetime.now().timestamp())
-        return cls({
-            "owner_id": owner_id,
-            "name": name,
-            "maps": maps,
-            "created_timestamp": timestamp,
-            "modified_timestamp": timestamp,
-        })
+        return cls(
+            {
+                "owner_id": owner_id,
+                "name": name,
+                "maps": maps,
+                "created_timestamp": timestamp,
+                "modified_timestamp": timestamp,
+            }
+        )

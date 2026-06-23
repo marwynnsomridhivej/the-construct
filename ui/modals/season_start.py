@@ -5,9 +5,7 @@ import discord
 
 from canned import Canned
 
-__all__ = (
-    "SeasonStartModal",
-)
+__all__ = ("SeasonStartModal",)
 
 
 class SeasonStartModal(discord.ui.Modal):
@@ -15,6 +13,7 @@ class SeasonStartModal(discord.ui.Modal):
         super().__init__(title="Start Season")
 
         from bot import Bot
+
         self.bot: Bot = bot
 
         # Check this for the finalised name
@@ -30,7 +29,7 @@ class SeasonStartModal(discord.ui.Modal):
                 style=discord.TextStyle.short,
                 min_length=4,
                 max_length=50,
-            )
+            ),
         )
 
         self.add_item(self.season_name)

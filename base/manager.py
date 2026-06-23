@@ -7,9 +7,7 @@ from aiofile import async_open
 
 from .wrapper import WrapperBase
 
-__all__ = (
-    "ManagerBase",
-)
+__all__ = ("ManagerBase",)
 
 
 class ManagerBase(ABC):
@@ -59,7 +57,9 @@ class ManagerBase(ABC):
             await afile.write(json.dumps(data, indent=4))
 
     @abstractmethod
-    async def _get_or_create_wrapper(self, *, cls: WrapperBase.__class__) -> WrapperBase:
+    async def _get_or_create_wrapper(
+        self, *, cls: WrapperBase.__class__
+    ) -> WrapperBase:
         """Get wrapper from data, or create datafile if it doesn't exist. Must be overridden
 
         Args:

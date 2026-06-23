@@ -3,7 +3,18 @@ from typing import Dict, List, Union
 import discord
 
 from base import WrapperBase
-from exceptions import *
+from exceptions import (
+    AlreadyInQueue,
+    InvalidGuildID,
+    NotInQueue,
+    NotQueueOwner,
+    QueueAlreadyExists,
+    QueueDoesNotExist,
+    QueueIsFull,
+    QueueIsLocked,
+    QueueLockStateError,
+    QueueProgressStateError,
+)
 
 from .enums import QueueType
 
@@ -15,18 +26,19 @@ __all__ = (
 
 
 class QueueWrapper(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
     # Queue object:
     # {guild_id: QueueGuildContainer}
 
     def __init__(self, data: dict):
         self.__data: Dict[int, QueueGuildContainer] = {
-            int(guild_id): QueueGuildContainer.parse(queues) for guild_id, queues in data.items()
+            int(guild_id): QueueGuildContainer.parse(queues)
+            for guild_id, queues in data.items()
         }
 
-    def get(self, guild_id: int, throw: bool = False) -> Union["QueueGuildContainer", None]:
+    def get(
+        self, guild_id: int, throw: bool = False
+    ) -> Union["QueueGuildContainer", None]:
         """Get a QueueGuildContainer (QGC) of the specified guild
 
         Args:
@@ -69,22 +81,16 @@ class QueueWrapper(WrapperBase):
         Returns:
             dict: Dictionary representation of the Queue instance
         """
-        return {
-            guild_id: qgc.serialise() for guild_id, qgc in self.__data.items()
-        }
+        return {guild_id: qgc.serialise() for guild_id, qgc in self.__data.items()}
 
 
 class QueueGuildContainer(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
     # QueueGuildContainer object:
     # {name: QueueEntry}
 
     def __init__(self, data: dict):
-        self.__data = {
-            name: QueueEntry.parse(entry) for name, entry in data.items()
-        }
+        self.__data = {name: QueueEntry.parse(entry) for name, entry in data.items()}
 
     def get(self, name: str, throw: bool = False) -> Union["QueueEntry", None]:
         """Get a QueueEntry with the specified name
@@ -141,7 +147,9 @@ class QueueGuildContainer(WrapperBase):
 
         return self.__data.pop(name)
 
-    def filter(self, *, member: Union[discord.Member, None], queue_type: QueueType = None) -> Dict[str, "QueueEntry"]:
+    def filter(
+        self, *, member: Union[discord.Member, None], queue_type: QueueType = None
+    ) -> Dict[str, "QueueEntry"]:
         """Filter all stored QueueEntry by user presence or queue type
 
         Args:
@@ -153,9 +161,10 @@ class QueueGuildContainer(WrapperBase):
         """
         user_id = member.id if hasattr(member, "id") else None
         return {
-            name: entry for name, entry in self.__data.items() if
-            (user_id is None or user_id in entry.players) and
-            (queue_type is None or queue_type == entry.type)
+            name: entry
+            for name, entry in self.__data.items()
+            if (user_id is None or user_id in entry.players)
+            and (queue_type is None or queue_type == entry.type)
         }
 
     @property
@@ -168,9 +177,7 @@ class QueueGuildContainer(WrapperBase):
         Returns:
             dict: Dictionary representation of the QGC instance
         """
-        return {
-            name: entry.serialise() for name, entry in self.__data.items()
-        }
+        return {name: entry.serialise() for name, entry in self.__data.items()}
 
 
 class QueueEntry(WrapperBase):
@@ -288,11 +295,11 @@ class QueueEntry(WrapperBase):
             dict: Dictionary representation of the QueueEntry instance
         """
         return {
-            "owner_id":             self.owner_id,
-            "created_timestamp":    self.created_timestamp,
-            "type":                 self.type,
-            "players":              self.players,
-            "max_players":          self.max_players,
-            "locked":               self.locked,
-            "in_progress":          self.in_progress,
+            "owner_id": self.owner_id,
+            "created_timestamp": self.created_timestamp,
+            "type": self.type,
+            "players": self.players,
+            "max_players": self.max_players,
+            "locked": self.locked,
+            "in_progress": self.in_progress,
         }

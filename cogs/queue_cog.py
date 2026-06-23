@@ -6,16 +6,29 @@ from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from event import *
-from exceptions import *
-from queuemanager import *
-from ui import QueueListView, QueueFilledDMView
+from event import Event, QueueFilledPayload
+from exceptions import (
+    AlreadyInQueue,
+    NoListResults,
+    NotInQueue,
+    NotQueueOwner,
+    QueueAlreadyExists,
+    QueueDoesNotExist,
+    QueueIsFull,
+    QueueIsLocked,
+    QueueLimitReached,
+    QueueLockStateError,
+    QueueProgressStateError,
+)
+from queuemanager import QueueEntry, QueueType
+from ui import QueueFilledDMView, QueueListView
 
 
 @app_commands.guild_only()
 class QueueCog(commands.GroupCog, name="queue"):
     def __init__(self, bot):
         from bot import Bot
+
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -33,28 +46,34 @@ class QueueCog(commands.GroupCog, name="queue"):
             return self.bot.logger.info(
                 f"Could not send queue full DM to user {payload.entry.owner_id} (not found)"
             )
-        await user.send(view=QueueFilledDMView(
-            guild=self.bot.get_guild(payload.guild_id),
-            name=payload.name,
-            entry=payload.entry,
-        ))
+        await user.send(
+            view=QueueFilledDMView(
+                guild=self.bot.get_guild(payload.guild_id),
+                name=payload.name,
+                entry=payload.entry,
+            )
+        )
 
-    @app_commands.command(name="create", description="Creates a new queue for a custom match")
+    @app_commands.command(
+        name="create", description="Creates a new queue for a custom match"
+    )
     @app_commands.rename(queue_type="type")
     @app_commands.describe(
         queue_type="The ruleset used for this queue",
         name="The name given to this queue instance",
     )
-    async def _create_queue(self, interaction: discord.Interaction, queue_type: QueueType, name: str):
+    async def _create_queue(
+        self, interaction: discord.Interaction, queue_type: QueueType, name: str
+    ):
         ephemeral = True
         try:
             await self.bot.queue_manager.create_queue(
                 guild_id=interaction.guild_id,
                 owner_id=interaction.user.id,
                 name=name,
-                queue_type=queue_type
+                queue_type=queue_type,
             )
-            msg = f"The queue \"{name}\" has been created for {queue_type}"
+            msg = f'The queue "{name}" has been created for {queue_type}'
             ephemeral = False
         except QueueLimitReached:
             msg = Canned.ERR_QUEUE_LIMIT
@@ -73,8 +92,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _delete_queue(self, interaction: discord.Interaction, name: str):
         ephemeral = True
         try:
-            await self.bot.queue_manager.delete_queue(interaction.guild_id, name, interaction.user.id)
-            msg = f"Successfully deleted the queue \"{name}\""
+            await self.bot.queue_manager.delete_queue(
+                interaction.guild_id, name, interaction.user.id
+            )
+            msg = f'Successfully deleted the queue "{name}"'
             ephemeral = False
         except QueueDoesNotExist:
             msg = Canned.ERR_QUEUE_NO_EXISTS
@@ -87,10 +108,14 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @_delete_queue.autocomplete("name")
-    async def _delete_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _delete_queue_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         owned_queues = [
-            name for name, entry in queues.items() if entry.owner_id == interaction.user.id
+            name
+            for name, entry in queues.items()
+            if entry.owner_id == interaction.user.id
         ]
         return self.get_sorted_choices(owned_queues, current)
 
@@ -99,8 +124,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _join_queue(self, interaction: discord.Interaction, name: str):
         ephemeral = True
         try:
-            q = await self.bot.queue_manager.join_user_to_queue(interaction.guild_id, interaction.user.id, name)
-            msg = f"You successfully joined the queue \"{name}\""
+            q = await self.bot.queue_manager.join_user_to_queue(
+                interaction.guild_id, interaction.user.id, name
+            )
+            msg = f'You successfully joined the queue "{name}"'
         except QueueDoesNotExist:
             msg = Canned.ERR_QUEUE_NO_EXISTS
         except AlreadyInQueue:
@@ -115,19 +142,29 @@ class QueueCog(commands.GroupCog, name="queue"):
         else:
             if q.full:
                 # Notify the queue owner that their queue has been filled
-                self.bot.dispatch(Event.QUEUE_FILLED, QueueFilledPayload({
-                    "guild_id": interaction.guild_id,
-                    "name": name,
-                    "entry": q,
-                }))
+                self.bot.dispatch(
+                    Event.QUEUE_FILLED,
+                    QueueFilledPayload(
+                        {
+                            "guild_id": interaction.guild_id,
+                            "name": name,
+                            "entry": q,
+                        }
+                    ),
+                )
         finally:
             await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @_join_queue.autocomplete("name")
-    async def _join_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _join_queue_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         joinable_queues = [
-            name for name, entry in queues.items() if len(entry.players) < entry.max_players and interaction.user.id not in entry.players
+            name
+            for name, entry in queues.items()
+            if len(entry.players) < entry.max_players
+            and interaction.user.id not in entry.players
         ]
         return self.get_sorted_choices(joinable_queues, current)
 
@@ -136,8 +173,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _leave_queue(self, interaction: discord.Interaction, name: str):
         ephemeral = True
         try:
-            await self.bot.queue_manager.leave_user_from_queue(interaction.guild_id, interaction.user.id, name)
-            msg = f"You successfully left the queue \"{name}\""
+            await self.bot.queue_manager.leave_user_from_queue(
+                interaction.guild_id, interaction.user.id, name
+            )
+            msg = f'You successfully left the queue "{name}"'
         except QueueDoesNotExist:
             msg = Canned.ERR_QUEUE_NO_EXISTS
         except NotInQueue:
@@ -151,10 +190,14 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @_leave_queue.autocomplete("name")
-    async def _leave_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _leave_queue_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         leaveable_queues = [
-            name for name, entry in queues.items() if interaction.user.id in entry.players
+            name
+            for name, entry in queues.items()
+            if interaction.user.id in entry.players
         ]
         return self.get_sorted_choices(leaveable_queues, current)
 
@@ -163,8 +206,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _lock_queue(self, interaction: discord.Interaction, name: str):
         ephemeral = True
         try:
-            await self.bot.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, True)
-            msg = f"Queue \"{name}\" has been locked"
+            await self.bot.queue_manager.set_queue_lock_state(
+                interaction.guild_id, interaction.user.id, name, True
+            )
+            msg = f'Queue "{name}" has been locked'
             ephemeral = False
         except QueueDoesNotExist:
             msg = Canned.ERR_QUEUE_NO_EXISTS
@@ -181,10 +226,14 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @_lock_queue.autocomplete("name")
-    async def _lock_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _lock_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         lockable_queues = [
-            name for name, entry in queues.items() if entry.locked == False and interaction.user.id == entry.owner_id
+            name
+            for name, entry in queues.items()
+            if entry.locked == False and interaction.user.id == entry.owner_id
         ]
         return self.get_sorted_choices(lockable_queues, current)
 
@@ -193,8 +242,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _unlock_queue(self, interaction: discord.Interaction, name: str):
         ephemeral = True
         try:
-            await self.bot.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, False)
-            msg = f"Queue \"{name}\" has been unlocked"
+            await self.bot.queue_manager.set_queue_lock_state(
+                interaction.guild_id, interaction.user.id, name, False
+            )
+            msg = f'Queue "{name}" has been unlocked'
             ephemeral = False
         except QueueDoesNotExist:
             msg = Canned.ERR_QUEUE_NO_EXISTS
@@ -211,10 +262,14 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @_unlock_queue.autocomplete("name")
-    async def _unlock_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _unlock_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         unlockable_queues = [
-            name for name, entry in queues.items() if entry.locked == True and interaction.user.id == entry.owner_id
+            name
+            for name, entry in queues.items()
+            if entry.locked == True and interaction.user.id == entry.owner_id
         ]
         return self.get_sorted_choices(unlockable_queues, current)
 
@@ -222,9 +277,14 @@ class QueueCog(commands.GroupCog, name="queue"):
     @app_commands.rename(queue_type="type")
     @app_commands.describe(
         member="Filter only queues this member is a part of",
-        queue_type="Filter only queues of this type"
+        queue_type="Filter only queues of this type",
     )
-    async def _list_queue(self, interaction: discord.Interaction, member: Optional[discord.Member] = None, queue_type: Optional[QueueType] = None):
+    async def _list_queue(
+        self,
+        interaction: discord.Interaction,
+        member: Optional[discord.Member] = None,
+        queue_type: Optional[QueueType] = None,
+    ):
         msg = None
         ephemeral = True
         try:
@@ -236,7 +296,9 @@ class QueueCog(commands.GroupCog, name="queue"):
                 criteria.append(f"Type {queue_type}")
 
             # Filter results by submitted criteria and convert to list
-            results: Dict[str, QueueEntry] = await self.bot.queue_manager.list_queues(interaction.guild_id, member=member, queue_type=queue_type)
+            results: Dict[str, QueueEntry] = await self.bot.queue_manager.list_queues(
+                interaction.guild_id, member=member, queue_type=queue_type
+            )
             results = [(name, entry) for name, entry in results.items()]
 
             # Initialise QueueListView
@@ -251,14 +313,15 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(
                 view=qlview,
                 allowed_mentions=discord.AllowedMentions.none(),
-                ephemeral=ephemeral
+                ephemeral=ephemeral,
             )
         except NoListResults:
             msg = Canned.ERR_QUEUE_NO_LIST_RESULTS
         except Exception as e:
             msg = f"An error has occurred: {e}"
             self.bot.logger.error(
-                f"An exception occurred when trying to list queue: {e}")
+                f"An exception occurred when trying to list queue: {e}"
+            )
             traceback.print_exception(type(e), e, e.__traceback__)
             ephemeral = False
         finally:
@@ -266,10 +329,13 @@ class QueueCog(commands.GroupCog, name="queue"):
                 await interaction.response.send_message(msg, ephemeral=ephemeral)
 
     @staticmethod
-    def get_sorted_choices(entries: List[str], current: str) -> List[app_commands.Choice[str]]:
+    def get_sorted_choices(
+        entries: List[str], current: str
+    ) -> List[app_commands.Choice[str]]:
         choices = [
             app_commands.Choice(name=choice, value=choice)
-            for choice in entries if current.lower() in choice.lower()
+            for choice in entries
+            if current.lower() in choice.lower()
         ]
         return sorted(choices, key=lambda x: x.name)
 

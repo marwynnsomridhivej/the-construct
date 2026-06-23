@@ -2,25 +2,30 @@ from typing import List, Tuple
 
 import discord
 
-from ..urls import R6URL
-from .paginator import *
+from .paginator import Paginator, PaginatorButtonRow
 
-__all__ = (
-    "QueueListView",
-)
+__all__ = ("QueueListView",)
 
 
 class QueueListView(Paginator):
-    def __init__(self, *, source_interaction: discord.Interaction, data, criteria: List[str], per_page: int = 3):
+    def __init__(
+        self,
+        *,
+        source_interaction: discord.Interaction,
+        data,
+        criteria: List[str],
+        per_page: int = 3,
+    ):
         super().__init__(
             source_interaction=source_interaction,
             data=data,
             per_page=per_page,
-            timeout=None
+            timeout=None,
         )
 
         # Type hints
         from queuemanager import QueueEntry
+
         self._data: List[Tuple[str, QueueEntry]] = data
 
         self.criteria = criteria
@@ -34,19 +39,23 @@ class QueueListView(Paginator):
                 name, entry = self._data[index]
                 players = f"- Players: `{len(entry.players)}/{entry.max_players}`"
                 if entry.players:
-                    players += "\n" + "\n".join([
-                        f"  - <@{_id}>" for _id in entry.players
-                    ])
-                items.append(discord.ui.TextDisplay(
-                    "\n".join([
-                        f"### {index + 1}. {name.title()} [{entry.type}]",
-                        f"- Created On: <t:{entry.created_timestamp}:f>",
-                        f"- Owner: <@{entry.owner_id}>",
-                        players,
-                        f"- Locked: `{"Yes" if entry.locked else "No"}`",
-                        f"- In Progress: `{"Yes" if entry.in_progress else "No"}`",
-                    ])
-                ))
+                    players += "\n" + "\n".join(
+                        [f"  - <@{_id}>" for _id in entry.players]
+                    )
+                items.append(
+                    discord.ui.TextDisplay(
+                        "\n".join(
+                            [
+                                f"### {index + 1}. {name.title()} [{entry.type}]",
+                                f"- Created On: <t:{entry.created_timestamp}:f>",
+                                f"- Owner: <@{entry.owner_id}>",
+                                players,
+                                f"- Locked: `{'Yes' if entry.locked else 'No'}`",
+                                f"- In Progress: `{'Yes' if entry.in_progress else 'No'}`",
+                            ]
+                        )
+                    )
+                )
                 items.append(discord.ui.Separator())
             except IndexError:
                 break
@@ -56,15 +65,14 @@ class QueueListView(Paginator):
         container = discord.ui.Container(
             # Header section, name type and page
             discord.ui.TextDisplay(
-                f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]"),
-
+                f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]"
+            ),
             # Actual part that displays the queue details
             *self.paginate_text_display(),
-
             # Separator is padded at the end in *text_displays
             discord.ui.TextDisplay(
-                f"-# Matched criteria:  {"All Open Queues" if not self.criteria else " | ".join(self.criteria)}"),
-
+                f"-# Matched criteria:  {'All Open Queues' if not self.criteria else ' | '.join(self.criteria)}"
+            ),
             # Accent color
             accent_color=discord.Color.blurple(),
         )

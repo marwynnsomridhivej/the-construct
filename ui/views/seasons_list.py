@@ -6,9 +6,7 @@ from queuemanager import QueueType
 
 from .paginator import Paginator, PaginatorButtonRow
 
-__all__ = (
-    "SeasonsListView",
-)
+__all__ = ("SeasonsListView",)
 
 
 class SeasonsListView(Paginator):
@@ -20,6 +18,7 @@ class SeasonsListView(Paginator):
         )
 
         from statsmanager import StatsSeason
+
         self._seasons: List[StatsSeason] = seasons
 
     def paginate_text_display(self) -> List[discord.ui.Item]:
@@ -31,19 +30,23 @@ class SeasonsListView(Paginator):
                 season = self._seasons[index]
                 info_r6_5v5 = season.get_data_by_queue_type(QueueType.R6_5V5)
                 info_r6_1v1 = season.get_data_by_queue_type(QueueType.R6_1V1)
-                items.append(discord.ui.TextDisplay(
-                    "\n".join([
-                        f"### {season.name.title()}{" (Current)" if season.is_current else ""}",
-                        f"> - Started: <t:{season.start_timestamp}:f>",
-                        f"> - Ended: {f"<t:{season.end_timestamp}:f>" if season.end_timestamp is not None else "`ONGOING`"}",
-                        f"> - Ranked Players",
-                        f">   - 5v5: `{info_r6_5v5.player_count}`",
-                        f">   - 1v1: `{info_r6_1v1.player_count}`",
-                        f"> - Matches Played",
-                        f">   - 5v5: `{info_r6_5v5.match_count}`",
-                        f">   - 1v1: `{info_r6_1v1.match_count}`",
-                    ])
-                ))
+                items.append(
+                    discord.ui.TextDisplay(
+                        "\n".join(
+                            [
+                                f"### {season.name.title()}{' (Current)' if season.is_current else ''}",
+                                f"> - Started: <t:{season.start_timestamp}:f>",
+                                f"> - Ended: {f'<t:{season.end_timestamp}:f>' if season.end_timestamp is not None else '`ONGOING`'}",
+                                "> - Ranked Players",
+                                f">   - 5v5: `{info_r6_5v5.player_count}`",
+                                f">   - 1v1: `{info_r6_1v1.player_count}`",
+                                "> - Matches Played",
+                                f">   - 5v5: `{info_r6_5v5.match_count}`",
+                                f">   - 1v1: `{info_r6_1v1.match_count}`",
+                            ]
+                        )
+                    )
+                )
                 items.append(discord.ui.Separator())
             except IndexError:
                 items.pop()

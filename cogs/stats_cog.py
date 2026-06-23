@@ -14,6 +14,7 @@ from ui import LeaderboardView
 class StatsCog(commands.Cog):
     def __init__(self, bot):
         from bot import Bot
+
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -25,13 +26,17 @@ class StatsCog(commands.Cog):
 
         self.bot.logger.info("[StatsCog] Successfully loaded")
 
-    async def _create_openskill_rating_object(self, guild_id: int, user_id: int, queue_type: QueueType) -> PlackettLuceRating:
+    async def _create_openskill_rating_object(
+        self, guild_id: int, user_id: int, queue_type: QueueType
+    ) -> PlackettLuceRating:
         player = await self.bot.stats_manager.get_or_create_player(
             guild_id=guild_id,
             queue_type=queue_type,
             user_id=user_id,
         )
-        return self.bot.stats_manager.model.create_rating([player.mu, player.sigma], name=f"{user_id}")
+        return self.bot.stats_manager.model.create_rating(
+            [player.mu, player.sigma], name=f"{user_id}"
+        )
 
     async def calc_stats(self, payload: MatchFinalisedPayload):
         # Create rating objects from StatsPlayer mu and sigma for both teams
@@ -40,30 +45,44 @@ class StatsCog(commands.Cog):
                 payload.guild_id,
                 player_id,
                 payload.queue_type,
-            ) for player_id in payload.winning_team.players
+            )
+            for player_id in payload.winning_team.players
         ]
         losing_team: List[PlackettLuceRating] = [
             await self._create_openskill_rating_object(
                 payload.guild_id,
                 player_id,
                 payload.queue_type,
-            ) for player_id in payload.losing_team.players
+            )
+            for player_id in payload.losing_team.players
         ]
 
         # Create weights to designate MVP performance
         winning_weights = [
-            10 if payload.winning_team.mvp_id is None or player_id != payload.winning_team.mvp_id else 11.625 for player_id in payload.winning_team.players
+            10
+            if payload.winning_team.mvp_id is None
+            or player_id != payload.winning_team.mvp_id
+            else 11.625
+            for player_id in payload.winning_team.players
         ]
         losing_weights = [
-            10 if payload.losing_team.mvp_id is None or player_id != payload.losing_team.mvp_id else 11.625 for player_id in payload.losing_team.players
+            10
+            if payload.losing_team.mvp_id is None
+            or player_id != payload.losing_team.mvp_id
+            else 11.625
+            for player_id in payload.losing_team.players
         ]
 
         # Rate all players in the match
-        new_winning_team_rating, new_losing_team_rating = self.bot.stats_manager.model.rate(
-            [winning_team, losing_team],
-            scores=[payload.winning_team.rounds_won,
-                    payload.losing_team.rounds_won],
-            weights=[winning_weights, losing_weights],
+        new_winning_team_rating, new_losing_team_rating = (
+            self.bot.stats_manager.model.rate(
+                [winning_team, losing_team],
+                scores=[
+                    payload.winning_team.rounds_won,
+                    payload.losing_team.rounds_won,
+                ],
+                weights=[winning_weights, losing_weights],
+            )
         )
 
         # Update stats
@@ -83,10 +102,17 @@ class StatsCog(commands.Cog):
         )
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")
-    @app_commands.describe(name="The name of the season you would like to view rankings for")
+    @app_commands.describe(
+        name="The name of the season you would like to view rankings for"
+    )
     @app_commands.rename(queue_type="type")
     @app_commands.guild_only()
-    async def _leaderboard_command(self, interaction: discord.Interaction, name: Optional[str] = None, queue_type: Optional[QueueType] = QueueType.R6_5V5):
+    async def _leaderboard_command(
+        self,
+        interaction: discord.Interaction,
+        name: Optional[str] = None,
+        queue_type: Optional[QueueType] = QueueType.R6_5V5,
+    ):
         guild_id = interaction.guild_id
 
         # Ensure an active season exists if not named
@@ -94,40 +120,52 @@ class StatsCog(commands.Cog):
             if name is None:
                 await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
-            return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+            )
 
         # Ensure we have rankings and the season isn't empty (aka stats exist)
         try:
-            ranked_players = await self.bot.stats_manager.get_season_rankings(guild_id=guild_id, queue_type=queue_type, name=name)
+            ranked_players = await self.bot.stats_manager.get_season_rankings(
+                guild_id=guild_id, queue_type=queue_type, name=name
+            )
         except ValueError:
-            return await interaction.response.send_message(Canned.ERR_STATS_INVALID_SEASON_NAME, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_STATS_INVALID_SEASON_NAME, ephemeral=True
+            )
         else:
             if not ranked_players:
-                return await interaction.response.send_message(Canned.ERR_STATS_NO_PLAYERS, ephemeral=True)
+                return await interaction.response.send_message(
+                    Canned.ERR_STATS_NO_PLAYERS, ephemeral=True
+                )
 
         lbview = LeaderboardView(
             source_interaction=interaction,
             queue_type=queue_type,
             season=await self.bot.stats_manager.get_season(
-                guild_id=guild_id,
-                name=name.lower() if name else None
+                guild_id=guild_id, name=name.lower() if name else None
             ),
-            rankings=ranked_players
+            rankings=ranked_players,
         )
         lbview.init_components()
 
         await interaction.response.send_message(
-            view=lbview,
-            allowed_mentions=discord.AllowedMentions.none(),
-            ephemeral=True
+            view=lbview, allowed_mentions=discord.AllowedMentions.none(), ephemeral=True
         )
 
     @_leaderboard_command.autocomplete("name")
-    async def _leaderboard_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def _leaderboard_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
-        return sorted([
-            app_commands.Choice(name=s.name.title(), value=s.name) for s in seasons if current.lower() in s.name
-        ], key=lambda c: c.name)
+        return sorted(
+            [
+                app_commands.Choice(name=s.name.title(), value=s.name)
+                for s in seasons
+                if current.lower() in s.name
+            ],
+            key=lambda c: c.name,
+        )
 
 
 async def setup(bot):

@@ -6,13 +6,13 @@ from queuemanager import QueueType
 
 from ..urls import R6URL
 
-__all__ = (
-    "PlayerStatsDeleteDMView",
-)
+__all__ = ("PlayerStatsDeleteDMView",)
 
 
 class PlayerStatsDeleteDMView(discord.ui.LayoutView):
-    def __init__(self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType):
+    def __init__(
+        self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType
+    ):
         super().__init__(timeout=None)
 
         self.user = user
@@ -26,22 +26,30 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
         items = []
 
         # Header
-        header = discord.ui.TextDisplay("\n".join([
-            f"## Alert - Stats Deleted ({self.queue_type})",
-            f"An administrator for the server `{self.guild.name}` deleted your stats for the current active season.",
-        ]))
+        header = discord.ui.TextDisplay(
+            "\n".join(
+                [
+                    f"## Alert - Stats Deleted ({self.queue_type})",
+                    f"An administrator for the server `{self.guild.name}` deleted your stats for the current active season.",
+                ]
+            )
+        )
         items.append(header)
 
         # Body
-        body = discord.ui.TextDisplay("\n".join([
-            "### How Does This Affect You?",
-            "- You have been removed from the server leaderboard for the current active season",
-            "- You must participate in at least one match in order to obtain a ranking for the current season",
-            "- You are still eligible to participate in matches and can earn points normally",
-            "### Disclaimer",
-            "Although stat deletions may be used as a disciplinary measure, having your stats deleted is not always " +
-            "an indicator that disciplinary action has been taken against you."
-        ]))
+        body = discord.ui.TextDisplay(
+            "\n".join(
+                [
+                    "### How Does This Affect You?",
+                    "- You have been removed from the server leaderboard for the current active season",
+                    "- You must participate in at least one match in order to obtain a ranking for the current season",
+                    "- You are still eligible to participate in matches and can earn points normally",
+                    "### Disclaimer",
+                    "Although stat deletions may be used as a disciplinary measure, having your stats deleted is not always "
+                    + "an indicator that disciplinary action has been taken against you.",
+                ]
+            )
+        )
         items.append(body)
 
         return items
@@ -52,7 +60,7 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
                 self.text_display[0],
                 accessory=discord.ui.Thumbnail(
                     self.guild.icon.url if self.guild.icon is not None else R6URL.ICON
-                )
+                ),
             ),
             self.text_display[1],
             discord.ui.Separator(),

@@ -4,11 +4,9 @@ from base import ManagerBase
 from matchmanager import R6Map
 
 from .enums import PER_GUILD_MAP_POOL_LIMIT
-from .settings import *
+from .settings import CustomMapPool, SettingsWrapper
 
-__all__ = (
-    "SettingsManager",
-)
+__all__ = ("SettingsManager",)
 
 
 class SettingsManager(ManagerBase):
@@ -21,7 +19,9 @@ class SettingsManager(ManagerBase):
     async def _get_or_create_wrapper(self) -> SettingsWrapper:
         return await super()._get_or_create_wrapper(cls=SettingsWrapper)
 
-    async def create_guild_settings(self, guild_id: int, new_only: bool = False) -> None:
+    async def create_guild_settings(
+        self, guild_id: int, new_only: bool = False
+    ) -> None:
         wrapper = await self._get_or_create_wrapper()
         if not new_only or wrapper.get(guild_id) is None:
             wrapper.get_or_create(guild_id)
@@ -56,10 +56,13 @@ class SettingsManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         return len(wrapper.get_or_create(guild_id).map_pools) < PER_GUILD_MAP_POOL_LIMIT
 
-    async def create_map_pool(self, guild_id: int, owner_id: int, name: str, maps: List[R6Map]) -> CustomMapPool:
+    async def create_map_pool(
+        self, guild_id: int, owner_id: int, name: str, maps: List[R6Map]
+    ) -> CustomMapPool:
         wrapper = await self._get_or_create_wrapper()
-        pool = wrapper.get_or_create(
-            guild_id).create_map_pool(owner_id, name.lower(), maps)
+        pool = wrapper.get_or_create(guild_id).create_map_pool(
+            owner_id, name.lower(), maps
+        )
         await self.write(wrapper)
         return pool
 
@@ -81,7 +84,9 @@ class SettingsManager(ManagerBase):
         wrapper.get_or_create(guild_id).name_map_pool(old_name, new_name)
         await self.write(wrapper)
 
-    async def modify_map_pool_maps(self, guild_id: int, name: int, maps: List[R6Map]) -> None:
+    async def modify_map_pool_maps(
+        self, guild_id: int, name: int, maps: List[R6Map]
+    ) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get_or_create(guild_id).modify_map_pool_maps(name, maps)
         await self.write(wrapper)

@@ -3,7 +3,6 @@ from enum import StrEnum
 __all__ = (
     "CaptSelect",
     "QueueType",
-
     "ALL_R6_QUEUE_TYPES",
     "ALL_CAPT_SELECT_MODES",
 )

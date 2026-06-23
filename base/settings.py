@@ -9,7 +9,16 @@ __all__ = (
 
 
 class SettingsBaseView(discord.ui.LayoutView, ABC):
-    def __init__(self, *, guild_id: int, user_id: int, source_interaction: discord.Interaction, button_cls: type["SettingsBaseButtons"], parent_view: discord.ui.LayoutView, bot):
+    def __init__(
+        self,
+        *,
+        guild_id: int,
+        user_id: int,
+        source_interaction: discord.Interaction,
+        button_cls: type["SettingsBaseButtons"],
+        parent_view: discord.ui.LayoutView,
+        bot,
+    ):
         super().__init__(timeout=None)
         self.guild_id = guild_id
         self.user_id = user_id
@@ -18,6 +27,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         self.parent_view = parent_view
 
         from bot import Bot
+
         self.bot: Bot = bot
 
         # Will be changed in init_components
@@ -29,6 +39,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
     async def init_components(self) -> None:
         # Prep section with text and thumbnail
         from ui import R6URL
+
         guild_icon = self.bot.get_guild(self.guild_id).icon
         section = discord.ui.Section(
             discord.ui.TextDisplay(await self.get_text_content()),
@@ -47,10 +58,12 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         # Show admin message if user is server owner or bot admin
         guild = self.bot.get_guild(self.guild_id)
         self.is_guild_owner = guild is not None and guild.owner_id == self.user_id
-        self.is_bot_admin = await self.bot.settings_manager.is_admin(self.guild_id, self.user_id)
+        self.is_bot_admin = await self.bot.settings_manager.is_admin(
+            self.guild_id, self.user_id
+        )
         admin_check = self.is_guild_owner or self.is_bot_admin
         if admin_check:
-            admin_message = f"-# *As {"the server owner" if self.is_guild_owner else "a bot administrator"}, you may modify settings using the buttons below*"
+            admin_message = f"-# *As {'the server owner' if self.is_guild_owner else 'a bot administrator'}, you may modify settings using the buttons below*"
             container.add_item(discord.ui.Separator())
             container.add_item(discord.ui.TextDisplay(admin_message))
 

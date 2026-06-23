@@ -1,12 +1,10 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 
 from base import WrapperBase
 
 
 class DMWrapper(WrapperBase):
-    __slots__ = (
-        "data",
-    )
+    __slots__ = ("data",)
 
     def __init__(self, data: Dict[str, int]):
         self.data = data

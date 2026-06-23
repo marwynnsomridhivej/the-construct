@@ -1,6 +1,4 @@
-__all__ = (
-    "InvalidGuildID",
-)
+__all__ = ("InvalidGuildID",)
 
 
 class InvalidGuildID(KeyError):

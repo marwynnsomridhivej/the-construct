@@ -5,13 +5,13 @@ import discord
 
 from .paginator import Paginator, PaginatorButtonRow
 
-__all__ = (
-    "LeaderboardView",
-)
+__all__ = ("LeaderboardView",)
 
 
 class LeaderboardView(Paginator):
-    def __init__(self, *, source_interaction: discord.Interaction, queue_type, season, rankings):
+    def __init__(
+        self, *, source_interaction: discord.Interaction, queue_type, season, rankings
+    ):
         super().__init__(
             source_interaction=source_interaction,
             data=rankings,
@@ -20,6 +20,7 @@ class LeaderboardView(Paginator):
 
         from queuemanager import QueueType
         from statsmanager import StatsPlayer, StatsSeason
+
         self._season: StatsSeason = season
         self._data: List[Tuple[int, StatsPlayer]] = rankings
         self.queue_type: QueueType = queue_type
@@ -28,11 +29,15 @@ class LeaderboardView(Paginator):
     def _get_rating_text(self, player) -> str:
         # Typehints
         from statsmanager import StatsPlayer
+
         assert isinstance(player, StatsPlayer)
 
         # Refer to appropriate rating metrics
-        _current, _max = (player.rating, player.max_rating) if not player.is_legacy else (
-            player.points, player.max_points)
+        _current, _max = (
+            (player.rating, player.max_rating)
+            if not player.is_legacy
+            else (player.points, player.max_points)
+        )
         _type = " rating" if not player.is_legacy else "pts"
 
         # Return final formatted string
@@ -45,15 +50,19 @@ class LeaderboardView(Paginator):
         for index in range(index_base, index_base + self.per_page):
             try:
                 rank, player = self._data[index]
-                items.append(discord.ui.TextDisplay(
-                    "\n".join([
-                        f"### {rank}. <@{player.id}>",
-                        self._get_rating_text(player),
-                        f"> - `{player.matches_played}` Match{"es" if player.matches_played != 1 else ""} Played",
-                        f"> - `{player.wins}`W/`{player.losses}`L (`{player.wl_ratio * 100}%` W/L)",
-                        f"> - `{player.times_mvp}` time{"s" if player.times_mvp != 1 else ""} MVP",
-                    ])
-                ))
+                items.append(
+                    discord.ui.TextDisplay(
+                        "\n".join(
+                            [
+                                f"### {rank}. <@{player.id}>",
+                                self._get_rating_text(player),
+                                f"> - `{player.matches_played}` Match{'es' if player.matches_played != 1 else ''} Played",
+                                f"> - `{player.wins}`W/`{player.losses}`L (`{player.wl_ratio * 100}%` W/L)",
+                                f"> - `{player.times_mvp}` time{'s' if player.times_mvp != 1 else ''} MVP",
+                            ]
+                        )
+                    )
+                )
             except IndexError:
                 break
         return items
@@ -61,20 +70,22 @@ class LeaderboardView(Paginator):
     def init_components(self) -> None:
         container = discord.ui.Container(
             # Header, name type and page
-            discord.ui.TextDisplay("\n".join([
-                f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]",
-                f"Queue Type: *{self.queue_type}*"
-            ])),
+            discord.ui.TextDisplay(
+                "\n".join(
+                    [
+                        f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]",
+                        f"Queue Type: *{self.queue_type}*",
+                    ]
+                )
+            ),
             discord.ui.Separator(),
-
             # Actual part that displays leaderboard
             *self.paginate_text_display(),
             discord.ui.Separator(),
-
             # Tell user when these stats were tabulated and if they are finalised
             discord.ui.TextDisplay(
-                f"-# Statistics tabulated {"" if self._season.is_current else "and finalised "}as of {self.created_time}"),
-
+                f"-# Statistics tabulated {'' if self._season.is_current else 'and finalised '}as of {self.created_time}"
+            ),
             # Accent color
             accent_color=discord.Color.blurple(),
         )

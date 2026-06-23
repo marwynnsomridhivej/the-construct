@@ -11,7 +11,6 @@ from statsmanager import StatsPlayer, StatsSeason
 __all__ = (
     # Queue
     "QueueFilledPayload",
-
     # R6 Match
     "PrematchPayload",
     "PrematchDMPayload",
@@ -19,10 +18,8 @@ __all__ = (
     "DMDeletePayload",
     "VCResetPayload",
     "MatchFinalisedPayload",
-
     # Seasons
     "SeasonEndPayload",
-
     # Stats
     "PlayerStatsResetPayload",
 )
@@ -82,8 +79,9 @@ class PrematchPayload(WrapperBase):
         self.__auto_draft: bool = data["auto_draft"]
         self.__captains: Tuple[int, int] = data["captains"]
         self.__queue_entry: QueueEntry = QueueEntry(data["queue_entry"])
-        self.__match_entry: Union[MatchEntry, None] = MatchEntry(
-            data.get("match_entry")) if data.get("match_entry") else None
+        self.__match_entry: Union[MatchEntry, None] = (
+            MatchEntry(data.get("match_entry")) if data.get("match_entry") else None
+        )
 
     @property
     def guild_id(self) -> int:
@@ -145,9 +143,7 @@ class PrematchPayload(WrapperBase):
 
 
 class PrematchDMPayload(PrematchPayload):
-    __slots__ = (
-        "__message",
-    )
+    __slots__ = ("__message",)
 
     def __init__(self, data: dict):
         super().__init__(data)
@@ -163,7 +159,9 @@ class PrematchDMPayload(PrematchPayload):
         return data
 
     @classmethod
-    def from_prematch_payload(cls, payload: PrematchPayload, message: discord.Message) -> "PrematchDMPayload":
+    def from_prematch_payload(
+        cls, payload: PrematchPayload, message: discord.Message
+    ) -> "PrematchDMPayload":
         data = payload.serialise()
         data["message"] = message
         return cls(data)
@@ -200,13 +198,17 @@ class AutoDraftPayload(WrapperBase):
         return self.__team_b_players
 
     @classmethod
-    def create(cls, captains: Tuple[int, int], players: Tuple[List[int], List[int]]) -> "AutoDraftPayload":
-        return cls({
-            "team_a_captain": captains[0],
-            "team_b_captain": captains[1],
-            "team_a_players": players[0],
-            "team_b_players": players[1],
-        })
+    def create(
+        cls, captains: Tuple[int, int], players: Tuple[List[int], List[int]]
+    ) -> "AutoDraftPayload":
+        return cls(
+            {
+                "team_a_captain": captains[0],
+                "team_b_captain": captains[1],
+                "team_a_players": players[0],
+                "team_b_players": players[1],
+            }
+        )
 
     def serialise(self) -> dict:
         return {
@@ -243,10 +245,12 @@ class DMDeletePayload(WrapperBase):
 
     @classmethod
     def create(cls, *, guild_id: int, players: List[int]) -> "DMDeletePayload":
-        return cls({
-            "guild_id": guild_id,
-            "players": players,
-        })
+        return cls(
+            {
+                "guild_id": guild_id,
+                "players": players,
+            }
+        )
 
 
 class VCResetPayload(WrapperBase):
@@ -288,13 +292,21 @@ class VCResetPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, guild_id: int, lobby_vc_id: int, teams: List[MatchTeam], queue_type: QueueType) -> "VCResetPayload":
-        return cls({
-            "guild_id": guild_id,
-            "lobby_vc_id": lobby_vc_id,
-            "teams": teams,
-            "queue_type": queue_type,
-        })
+    def create(
+        cls,
+        guild_id: int,
+        lobby_vc_id: int,
+        teams: List[MatchTeam],
+        queue_type: QueueType,
+    ) -> "VCResetPayload":
+        return cls(
+            {
+                "guild_id": guild_id,
+                "lobby_vc_id": lobby_vc_id,
+                "teams": teams,
+                "queue_type": queue_type,
+            }
+        )
 
 
 class MatchFinalisedPayload(WrapperBase):
@@ -361,16 +373,26 @@ class MatchFinalisedPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, name: str, queue_type: QueueType, owner_id: int, match_entry: MatchEntry) -> "MatchFinalisedPayload":
-        return cls({
-            "guild_id": guild_id,
-            "name": name,
-            "queue_type": queue_type,
-            "owner_id": owner_id,
-            "lobby_vc_id": match_entry.voice_channel_id,
-            "winning_team": match_entry.winning_team,
-            "losing_team": match_entry.losing_team,
-        })
+    def create(
+        cls,
+        *,
+        guild_id: int,
+        name: str,
+        queue_type: QueueType,
+        owner_id: int,
+        match_entry: MatchEntry,
+    ) -> "MatchFinalisedPayload":
+        return cls(
+            {
+                "guild_id": guild_id,
+                "name": name,
+                "queue_type": queue_type,
+                "owner_id": owner_id,
+                "lobby_vc_id": match_entry.voice_channel_id,
+                "winning_team": match_entry.winning_team,
+                "losing_team": match_entry.losing_team,
+            }
+        )
 
 
 class SeasonEndPayload(WrapperBase):
@@ -383,8 +405,9 @@ class SeasonEndPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__season: StatsSeason = data["season"]
-        self.__ranked_players: Dict[QueueType,
-                                    List[Tuple[int, StatsPlayer]]] = data["ranked_players"]
+        self.__ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]] = data[
+            "ranked_players"
+        ]
 
     @property
     def guild_id(self) -> int:
@@ -406,12 +429,20 @@ class SeasonEndPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, season: StatsSeason, ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]]) -> "SeasonEndPayload":
-        return cls({
-            "guild_id": guild_id,
-            "season": season,
-            "ranked_players": ranked_players,
-        })
+    def create(
+        cls,
+        *,
+        guild_id: int,
+        season: StatsSeason,
+        ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]],
+    ) -> "SeasonEndPayload":
+        return cls(
+            {
+                "guild_id": guild_id,
+                "season": season,
+                "ranked_players": ranked_players,
+            }
+        )
 
 
 class PlayerStatsResetPayload(WrapperBase):
@@ -446,9 +477,13 @@ class PlayerStatsResetPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *, user_id: int, guild_id: int, queue_type: QueueType) -> "PlayerStatsResetPayload":
-        return cls({
-            "user_id": user_id,
-            "guild_id": guild_id,
-            "queue_type": queue_type,
-        })
+    def create(
+        cls, *, user_id: int, guild_id: int, queue_type: QueueType
+    ) -> "PlayerStatsResetPayload":
+        return cls(
+            {
+                "user_id": user_id,
+                "guild_id": guild_id,
+                "queue_type": queue_type,
+            }
+        )

@@ -11,6 +11,7 @@ from ui import SettingsSelectView
 class SettingsCog(commands.Cog):
     def __init__(self, bot):
         from bot import Bot
+
         self.bot: Bot = bot
 
     async def cog_load(self):

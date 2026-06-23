@@ -1,17 +1,31 @@
-from decimal import Decimal
 import random
 import traceback
+from decimal import Decimal
 from typing import Dict, List, Tuple, Union
 
 import discord
 
 from canned import Canned
-from event import *
+from event import (
+    DMDeletePayload,
+    Event,
+    MatchFinalisedPayload,
+    PrematchPayload,
+    Reason,
+    VCResetPayload,
+)
 from matchmanager import MatchEntry, MatchTeam, R6Map
 from queuemanager import QueueType
 from statsmanager import StatsPlayer
 
-from ..modals import *
+from ..modals import (
+    ConfirmationModal,
+    R6DraftModal,
+    R6MapBanModal,
+    R6MVPModal,
+    R6ResultModal,
+    R6SideModal,
+)
 from ..urls import R6URL
 
 __all__ = (
@@ -49,10 +63,12 @@ class R6ViewButtons(discord.ui.ActionRow):
         self.index[index] += 1
         self.index[index] %= 2
 
-    async def disable_button(self, interaction: discord.Interaction, *, label: str, disabled: bool) -> None:
+    async def disable_button(
+        self, interaction: discord.Interaction, *, label: str, disabled: bool
+    ) -> None:
         button = None
         for child in self.children:
-            if type(child) == discord.ui.Button and child.label == label:
+            if isinstance(child, discord.ui.Button) and child.label == label:
                 button = child
                 break
         else:
@@ -68,11 +84,11 @@ class R6ViewButtons(discord.ui.ActionRow):
         Note: This does NOT automatically update the view.
         """
         items = INIT_DISABLED_1V1 if self.r6view.should_reset_draft else INIT_DISABLED
-        for item in self.children:
-            if type(item) == discord.ui.Button and item.label in items:
-                item.disabled = True
+        for child in self.children:
+            if isinstance(child, discord.ui.Button) and child.label in items:
+                child.disabled = True
             else:
-                item.disabled = False
+                child.disabled = False
 
         # Initialise draft and ban indices to zero
         self.index = {
@@ -88,9 +104,13 @@ class R6ViewButtons(discord.ui.ActionRow):
         #   - A captain of a team
         #   - A designated bot admin
         #   - The server owner
-        return self.is_captain(interaction) or \
-            await self.r6view.bot.settings_manager.is_admin(interaction.guild_id, interaction.user.id) or \
-            interaction.guild.owner_id == interaction.user.id
+        return (
+            self.is_captain(interaction)
+            or await self.r6view.bot.settings_manager.is_admin(
+                interaction.guild_id, interaction.user.id
+            )
+            or interaction.guild.owner_id == interaction.user.id
+        )
 
     async def can_admin_interact(self, interaction: discord.Interaction) -> bool:
         # Let the user interact if they are:
@@ -99,19 +119,25 @@ class R6ViewButtons(discord.ui.ActionRow):
         #   - The server owner
         #
         # Captainship is not a sufficient criteria for actions with elevated permission
-        return self.is_queue_owner(interaction) or \
-            await self.r6view.bot.settings_manager.is_admin(interaction.guild_id, interaction.user.id) or \
-            interaction.guild.owner_id == interaction.user.id
+        return (
+            self.is_queue_owner(interaction)
+            or await self.r6view.bot.settings_manager.is_admin(
+                interaction.guild_id, interaction.user.id
+            )
+            or interaction.guild.owner_id == interaction.user.id
+        )
 
     def is_queue_owner(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.r6view.payload.queue_entry.owner_id
 
     async def reset_to_default(self, interaction: discord.Interaction) -> None:
-        await self.r6view.bot.match_manager.reset_draft(interaction.guild_id, self.r6view.payload)
+        await self.r6view.bot.match_manager.reset_draft(
+            interaction.guild_id, self.r6view.payload
+        )
         await self.r6view.update_match()
         await interaction.channel.send(
             content="Player draft, map bans, and starting side selection have been reset",
-            delete_after=10.0
+            delete_after=10.0,
         )
 
         # Set view buttons to default state
@@ -120,7 +146,9 @@ class R6ViewButtons(discord.ui.ActionRow):
 
     async def cancel(self, interaction: discord.Interaction) -> None:
         # Delete match entry
-        await self.r6view.bot.match_manager.delete_match(interaction.guild_id, self.r6view.payload.match_name)
+        await self.r6view.bot.match_manager.delete_match(
+            interaction.guild_id, self.r6view.payload.match_name
+        )
 
         # Set in_progress to False
         await self.r6view.bot.queue_manager.set_progress_state(
@@ -143,20 +171,29 @@ class R6ViewButtons(discord.ui.ActionRow):
         self.r6view.stop()
 
         # Dispatch DM_DELETE event
-        self.r6view.bot.dispatch(Event.PREMATCH_DM_DELETE, DMDeletePayload.create(
-            guild_id=interaction.guild_id,
-            players=self.r6view.payload.queue_entry.players,
-        ))
+        self.r6view.bot.dispatch(
+            Event.PREMATCH_DM_DELETE,
+            DMDeletePayload.create(
+                guild_id=interaction.guild_id,
+                players=self.r6view.payload.queue_entry.players,
+            ),
+        )
 
     @discord.ui.button(label="Draft Player", style=discord.ButtonStyle.green)
-    async def _draft_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _draft_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+            )
 
         # Check to ensure the player interacting with this button is the one that should be drafting
         if self.r6view.current_drafting_captain.id != interaction.user.id:
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_DRAFT_TURN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_DRAFT_TURN, ephemeral=True, delete_after=5
+            )
 
         draft_modal = R6DraftModal(view=self.r6view)
         await interaction.response.send_modal(draft_modal)
@@ -190,14 +227,20 @@ class R6ViewButtons(discord.ui.ActionRow):
             await self.r6view.update_text_content(interaction)
 
     @discord.ui.button(label="Ban Map", style=discord.ButtonStyle.red)
-    async def _ban_map_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _ban_map_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+            )
 
         # Draft order already initialised, can jump right in
         if self.r6view.current_map_banning_captain.id != interaction.user.id:
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_BAN_TURN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_BAN_TURN, ephemeral=True, delete_after=5
+            )
 
         map_ban_modal = R6MapBanModal(view=self.r6view)
         await interaction.response.send_modal(map_ban_modal)
@@ -213,36 +256,42 @@ class R6ViewButtons(discord.ui.ActionRow):
         if self.r6view.finished_map_bans:
             # Disable ban map button
             button.disabled = True
-            
+
             # Enable side select button
             await self.disable_button(interaction, label="Side Select", disabled=False)
-            
+
             # Edit the view immediately
             await self.r6view.update_text_content(interaction)
-            
+
             # Announce the selected map
             await self.r6view.bot.get_channel(self.r6view.payload.text_channel_id).send(
-                f"The selected map is: **{self.r6view.match.map.replace("_", " ").title()}**",
-                delete_after=10.0
+                f"The selected map is: **{self.r6view.match.map.replace('_', ' ').title()}**",
+                delete_after=10.0,
             )
 
             # Notify captain responsible for side select
             await interaction.channel.send(
                 content=f"*It is now <@{self.r6view.current_map_banning_captain.id}>'s turn to choose what side their team starts on*",
-                delete_after=10.0
+                delete_after=10.0,
             )
         else:
             # Only update the text on the R6View
             await self.r6view.update_text_content(interaction)
 
     @discord.ui.button(label="Side Select", style=discord.ButtonStyle.blurple)
-    async def _side_select_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _side_select_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+            )
 
         if self.r6view.current_map_banning_captain.id != interaction.user.id:
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_SIDE, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_SIDE, ephemeral=True, delete_after=5
+            )
 
         side_modal = R6SideModal(view=self.r6view)
         await interaction.response.send_modal(side_modal)
@@ -253,19 +302,27 @@ class R6ViewButtons(discord.ui.ActionRow):
 
             # Only enable MVP designation if it is not a 1v1
             if self.r6view.playercount > 2:
-                await self.disable_button(interaction, label="Designate MVP", disabled=False)
+                await self.disable_button(
+                    interaction, label="Designate MVP", disabled=False
+                )
 
             # Enable report results regardless
-            await self.disable_button(interaction, label="Report Results", disabled=False)
+            await self.disable_button(
+                interaction, label="Report Results", disabled=False
+            )
 
         # Update the text on the R6View
         await self.r6view.update_text_content(interaction)
 
     @discord.ui.button(label="Designate MVP", style=discord.ButtonStyle.blurple)
-    async def _designate_mvp_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _designate_mvp_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # Allow bot admins and team captains to interact
         if not await self.can_interact(interaction):
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+            )
 
         captain_id = None
 
@@ -278,8 +335,14 @@ class R6ViewButtons(discord.ui.ActionRow):
         #   - They are not a captain (captain_id will still be None)
         #   - They are a captain AND their team already
         #     has an MVP designation (captain_id will be overwritten to the other team's captain ID)
-        if await self.r6view.bot.settings_manager.is_admin(interaction.guild_id, interaction.user.id):
-            if captain_id is None or self.r6view.match.get_team_of_user(interaction.user.id).mvp_id is not None:
+        if await self.r6view.bot.settings_manager.is_admin(
+            interaction.guild_id, interaction.user.id
+        ):
+            if (
+                captain_id is None
+                or self.r6view.match.get_team_of_user(interaction.user.id).mvp_id
+                is not None
+            ):
                 captain_id = self.r6view.get_team_awaiting_mvp().captain_id
 
         mvp_modal = R6MVPModal(
@@ -301,11 +364,12 @@ class R6ViewButtons(discord.ui.ActionRow):
             await self.r6view.disable_reset_buttons(interaction)
 
             # Dispatch thread cleanup to close and lock threads
-            self.r6view.bot.dispatch(
-                Event.THREAD_CLEANUP, self.r6view.payload)
+            self.r6view.bot.dispatch(Event.THREAD_CLEANUP, self.r6view.payload)
 
     @discord.ui.button(label="Report Results", style=discord.ButtonStyle.grey)
-    async def _report_results_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _report_results_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         if not await self.can_admin_interact(interaction):
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
@@ -323,7 +387,9 @@ class R6ViewButtons(discord.ui.ActionRow):
 
         if self.r6view.match.wins_set:
             # Similar to Designate MVP, disable this button once winner/loser is set
-            await self.disable_button(interaction, label="Report Results", disabled=True)
+            await self.disable_button(
+                interaction, label="Report Results", disabled=True
+            )
 
         # Update the text on the R6View
         await self.r6view.update_text_content(interaction)
@@ -333,8 +399,7 @@ class R6ViewButtons(discord.ui.ActionRow):
             await self.r6view.disable_reset_buttons(interaction)
 
             # Dispatch thread cleanup to close and lock threads
-            self.r6view.bot.dispatch(
-                Event.THREAD_CLEANUP, self.r6view.payload)
+            self.r6view.bot.dispatch(Event.THREAD_CLEANUP, self.r6view.payload)
 
 
 class R6ViewAdminButtons(discord.ui.ActionRow):
@@ -345,7 +410,9 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
         self.draft_row: R6ViewButtons = draft_row
 
     @discord.ui.button(label="Reset", style=discord.ButtonStyle.grey)
-    async def _reset_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _reset_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
@@ -363,21 +430,28 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
         if self.draft_row.r6view.match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self.draft_row.r6view)
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5
+            )
 
         await self.draft_row.reset_to_default(interaction)
         await self.r6view.update_text_content(interaction)
 
         # Dispatch event to move users back to the main vc
-        self.r6view.bot.dispatch(Event.RESET_BUTTON_PRESSED, VCResetPayload.create(
-            interaction.guild_id,
-            self.r6view.match.voice_channel_id,
-            [self.r6view.match.team_a, self.r6view.match.team_b],
-            self.r6view.match.type,
-        ))
+        self.r6view.bot.dispatch(
+            Event.RESET_BUTTON_PRESSED,
+            VCResetPayload.create(
+                interaction.guild_id,
+                self.r6view.match.voice_channel_id,
+                [self.r6view.match.team_a, self.r6view.match.team_b],
+                self.r6view.match.type,
+            ),
+        )
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
-    async def _cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _cancel_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
@@ -396,15 +470,23 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
         if self.draft_row.r6view.match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self.draft_row.r6view)
-            return await interaction.response.send_message(Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5)
+            return await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5
+            )
 
         # Disable all buttons in R6ViewButtons
-        for label in ["Draft Player", "Ban Map", "Side Select", "Designate MVP", "Report Results"]:
+        for label in [
+            "Draft Player",
+            "Ban Map",
+            "Side Select",
+            "Designate MVP",
+            "Report Results",
+        ]:
             await self.draft_row.disable_button(interaction, label=label, disabled=True)
 
         # Disable all buttons in R6ViewOwnerButtons
         for item in self.children:
-            if type(item) == discord.ui.Button:
+            if isinstance(item, discord.ui.Button):
                 item.disabled = True
 
         # Perform cancel
@@ -415,17 +497,20 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
 
         # Send additional message with no pings
         await interaction.followup.send(
-            f"This match `{self.r6view.payload.match_name}` has been canceled. " +
-            "The queue has not been deleted and can be started again."
+            f"This match `{self.r6view.payload.match_name}` has been canceled. "
+            + "The queue has not been deleted and can be started again."
         )
 
         # Dispatch event to move users back to the main vc and delet temp ones
-        self.r6view.bot.dispatch(Event.CANCEL_BUTTON_PRESSED, VCResetPayload.create(
-            interaction.guild_id,
-            self.r6view.match.voice_channel_id,
-            [self.r6view.match.team_a, self.r6view.match.team_b],
-            self.r6view.match.type,
-        ))
+        self.r6view.bot.dispatch(
+            Event.CANCEL_BUTTON_PRESSED,
+            VCResetPayload.create(
+                interaction.guild_id,
+                self.r6view.match.voice_channel_id,
+                [self.r6view.match.team_a, self.r6view.match.team_b],
+                self.r6view.match.type,
+            ),
+        )
 
         # Dispatch THREAD_CLEANUP event
         self.r6view.bot.dispatch(Event.THREAD_CLEANUP, self.r6view.payload)
@@ -438,6 +523,7 @@ class R6View(discord.ui.LayoutView):
         self.match = match
 
         from bot import Bot
+
         self.bot: Bot = bot
 
         self.match_canceled = False
@@ -493,12 +579,13 @@ class R6View(discord.ui.LayoutView):
 
         # [(player displayname, str(player id)), ...]
         return [
-            (self.bot.get_guild(self.payload.guild_id).get_member(
-                _id).display_name, str(_id))
-
-            for _id in self.payload.queue_entry.players if
-            _id not in self.match.team_a.players and
-            _id not in self.match.team_b.players
+            (
+                self.bot.get_guild(self.payload.guild_id).get_member(_id).display_name,
+                str(_id),
+            )
+            for _id in self.payload.queue_entry.players
+            if _id not in self.match.team_a.players
+            and _id not in self.match.team_b.players
         ]
 
     @property
@@ -507,10 +594,11 @@ class R6View(discord.ui.LayoutView):
 
     async def init_components(self) -> None:
         # Pick up to 7 maps from the given map pool
-        self.map_pool = sorted(random.sample(
-            self.payload.map_pool.maps,
-            k=min(len(self.payload.map_pool), 7)
-        ))
+        self.map_pool = sorted(
+            random.sample(
+                self.payload.map_pool.maps, k=min(len(self.payload.map_pool), 7)
+            )
+        )
 
         # Save map pool name for display
         self.map_pool_name = self.payload.map_pool.name.title()
@@ -519,18 +607,21 @@ class R6View(discord.ui.LayoutView):
         # the class index attribute
         self.view_buttons = R6ViewButtons(view=self)
         self.r6_view_admin_buttons = R6ViewAdminButtons(
-            view=self,
-            draft_row=self.view_buttons)
+            view=self, draft_row=self.view_buttons
+        )
 
         # Initialise main text section with thumbnail
         self.about_text = discord.ui.TextDisplay(await self.get_text_content())
         self.thumbnail = discord.ui.Thumbnail(media=R6URL.ICON)
-        self.section = discord.ui.Section(
-            self.about_text, accessory=self.thumbnail)
+        self.section = discord.ui.Section(self.about_text, accessory=self.thumbnail)
 
         # Initialise container and put everything inside in order
         container = discord.ui.Container(
-            self.section, self.view_buttons, self.r6_view_admin_buttons, accent_color=discord.Color.blurple())
+            self.section,
+            self.view_buttons,
+            self.r6_view_admin_buttons,
+            accent_color=discord.Color.blurple(),
+        )
         self.add_item(container)
 
     async def set_order(self) -> None:
@@ -547,38 +638,60 @@ class R6View(discord.ui.LayoutView):
         #       Player Draft    --> -1 goes first (HIGHEST points)
         #       Map Ban         --> -1 goes first (HIGHEST points)
         #       Starting Side   --> -1 goes first (HIGHEST points)
-        self.draft_order = sorted([
-            await self.bot.stats_manager.get_or_create_player(
-                guild_id=self.payload.guild_id,
-                queue_type=self.payload.queue_entry.type,
-                user_id=_id,
-            ) for _id in self.match.captains
-        ], key=lambda p: p.ordinal if not p.is_legacy else p.points, reverse=bool(self.playercount % 2))
+        self.draft_order = sorted(
+            [
+                await self.bot.stats_manager.get_or_create_player(
+                    guild_id=self.payload.guild_id,
+                    queue_type=self.payload.queue_entry.type,
+                    user_id=_id,
+                )
+                for _id in self.match.captains
+            ],
+            key=lambda p: p.ordinal if not p.is_legacy else p.points,
+            reverse=bool(self.playercount % 2),
+        )
 
         # Reverse the draft order IF there is an EVEN number of players (true opposite)
         # Otherwise, keep it same as draft order.
         #
         # If it is a 1v1, also keep it the same as draft order
-        self.op_draft_order = [
-            self.draft_order[1], self.draft_order[0]
-        ] if (self.playercount % 2 == 0 and self.playercount > 2) else self.draft_order
+        self.op_draft_order = (
+            [self.draft_order[1], self.draft_order[0]]
+            if (self.playercount % 2 == 0 and self.playercount > 2)
+            else self.draft_order
+        )
 
     async def get_win_chance(self, name: str) -> Decimal:
         # Convert player IDs to StatsPlayer instances
-        teams: List[List[StatsPlayer]] = [[await self.bot.stats_manager.get_or_create_player(
-            guild_id=self.payload.guild_id,
-            queue_type=self.payload.match_entry.type,
-            user_id=player_id,
-        ) for player_id in team.players] for team in self.teams]
+        teams: List[List[StatsPlayer]] = [
+            [
+                await self.bot.stats_manager.get_or_create_player(
+                    guild_id=self.payload.guild_id,
+                    queue_type=self.payload.match_entry.type,
+                    user_id=player_id,
+                )
+                for player_id in team.players
+            ]
+            for team in self.teams
+        ]
 
         # Convert teams to PlacketLuce ratings
-        ratings = [[self.bot.stats_manager.model.create_rating(
-            [player.mu, player.sigma], name=str(player.id)) for player in team] for team in teams]
+        ratings = [
+            [
+                self.bot.stats_manager.model.create_rating(
+                    [player.mu, player.sigma], name=str(player.id)
+                )
+                for player in team
+            ]
+            for team in teams
+        ]
 
         # Return win prediction for the team name
         return Decimal(
-            self.bot.stats_manager.model.predict_win(
-                ratings)[0 if name == self.match.team_a.name else 1] * 100
+            self.bot.stats_manager.model.predict_win(ratings)[
+                0 if name == self.match.team_a.name else 1
+            ]
+            * 100
         ).quantize(Decimal("0.01"))
 
     async def get_team_players_text(self, team: MatchTeam) -> List[int]:
@@ -587,10 +700,13 @@ class R6View(discord.ui.LayoutView):
             txt += " (Win)" if team.win else " (Lose)"
         else:
             txt += f"\n-# *`{await self.get_win_chance(team.name)}%` Projected Win Probability*"
-        txt += "\n" + "\n".join([
-            # - @Player *(captain?)* *(mvp?)*
-            f"- <@{_id}>{" *(captain)*" if _id == team.captain_id else ""}{" *(mvp)*" if team.mvp_id is not None and _id == team.mvp_id else ""}" for _id in team.players
-        ])
+        txt += "\n" + "\n".join(
+            [
+                # - @Player *(captain?)* *(mvp?)*
+                f"- <@{_id}>{' *(captain)*' if _id == team.captain_id else ''}{' *(mvp)*' if team.mvp_id is not None and _id == team.mvp_id else ''}"
+                for _id in team.players
+            ]
+        )
         return txt
 
     async def get_text_content(self) -> str:
@@ -606,69 +722,103 @@ class R6View(discord.ui.LayoutView):
             return "\n".join(items)
 
         # Put team roster
-        team_draft = "\n".join([
-            await self.get_team_players_text(self.match.team_a),
-            await self.get_team_players_text(self.match.team_b),
-        ])
+        team_draft = "\n".join(
+            [
+                await self.get_team_players_text(self.match.team_a),
+                await self.get_team_players_text(self.match.team_b),
+            ]
+        )
         items.append(team_draft)
 
         # Show draft pool and pick order if not done
         if not self.finished_draft:
             # Display draft pool header with any undrafted players listed below
-            draft_pool = "### Player Draft Pool\n" + "\n".join([
-                f"- <@{player_id}>" for (_, player_id) in self.draftable_players
-            ])
+            draft_pool = "### Player Draft Pool\n" + "\n".join(
+                [f"- <@{player_id}>" for (_, player_id) in self.draftable_players]
+            )
             items.append(draft_pool)
 
             # Display draft pick order, with *(drafting...)* next to name of
             # the captain that is currently drafting
-            draft_order = "\n".join([
-                "### Player Draft Order",
-                f"1. <@{self.draft_order[0].id}>" + (
-                    " *(drafting...)*" if self.draft_order[0].id == self.current_drafting_captain.id else ""),
-                f"2. <@{self.draft_order[1].id}>" + (
-                    " *(drafting...)*" if self.draft_order[1].id == self.current_drafting_captain.id else ""),
-            ])
+            draft_order = "\n".join(
+                [
+                    "### Player Draft Order",
+                    f"1. <@{self.draft_order[0].id}>"
+                    + (
+                        " *(drafting...)*"
+                        if self.draft_order[0].id == self.current_drafting_captain.id
+                        else ""
+                    ),
+                    f"2. <@{self.draft_order[1].id}>"
+                    + (
+                        " *(drafting...)*"
+                        if self.draft_order[1].id == self.current_drafting_captain.id
+                        else ""
+                    ),
+                ]
+            )
             items.append(draft_order)
 
         # Show map ban order if not done, otherwise show selected map
         if not self.finished_map_bans:
             # Display map ban order, with *(banning...)* next to the name of
             # the captain that is currently map banning
-            ban_order = "\n".join([
-                "### Map Ban Order",
-                f"1. <@{self.op_draft_order[0].id}>" + (
-                    " *(banning)*" if self.finished_draft and self.op_draft_order[0].id == self.current_map_banning_captain.id else ""),
-                f"2. <@{self.op_draft_order[1].id}>" + (
-                    " *(banning)*" if self.finished_draft and self.op_draft_order[1].id == self.current_map_banning_captain.id else ""),
-            ])
+            ban_order = "\n".join(
+                [
+                    "### Map Ban Order",
+                    f"1. <@{self.op_draft_order[0].id}>"
+                    + (
+                        " *(banning)*"
+                        if self.finished_draft
+                        and self.op_draft_order[0].id
+                        == self.current_map_banning_captain.id
+                        else ""
+                    ),
+                    f"2. <@{self.op_draft_order[1].id}>"
+                    + (
+                        " *(banning)*"
+                        if self.finished_draft
+                        and self.op_draft_order[1].id
+                        == self.current_map_banning_captain.id
+                        else ""
+                    ),
+                ]
+            )
 
             # Display the 5-7 maps randomly selected from the larger map pool
             # where banned maps are denoted by strikethrough
-            pool = f"### Map Pool [{self.map_pool_name}]\n" + "\n".join([
-                f"- {"~~" if r6map in self.match.banned_maps else ""}{r6map.replace("_", " ").title()}{"~~" if r6map in self.match.banned_maps else ""}" for r6map in self.map_pool
-            ])
+            pool = f"### Map Pool [{self.map_pool_name}]\n" + "\n".join(
+                [
+                    f"- {'~~' if r6map in self.match.banned_maps else ''}{r6map.replace('_', ' ').title()}{'~~' if r6map in self.match.banned_maps else ''}"
+                    for r6map in self.map_pool
+                ]
+            )
             items.append(ban_order)
             items.append(pool)
         else:
             # Display final selected map once bans are done
-            selected_map = "### Selected Map\n" + \
-                f"{self.match.map.replace("_", " ").title()}"
+            selected_map = (
+                "### Selected Map\n" + f"{self.match.map.replace('_', ' ').title()}"
+            )
             items.append(selected_map)
 
         # Show who gets to select the starting side if not done, otherwise show side assignments
         if not self.finished_side_select:
-            side_select = "\n".join([
-                "### Starting Side Selection",
-                f"- Performed by: <@{self.op_draft_order[0].id}>",
-            ])
+            side_select = "\n".join(
+                [
+                    "### Starting Side Selection",
+                    f"- Performed by: <@{self.op_draft_order[0].id}>",
+                ]
+            )
             items.append(side_select)
         else:
-            starting_sides = "\n".join([
-                "### Starting Sides",
-                f"Team A: {self.match.team_a.starting_side.title()}s",
-                f"Team B: {self.match.team_b.starting_side.title()}s",
-            ])
+            starting_sides = "\n".join(
+                [
+                    "### Starting Sides",
+                    f"Team A: {self.match.team_a.starting_side.title()}s",
+                    f"Team B: {self.match.team_b.starting_side.title()}s",
+                ]
+            )
             items.append(starting_sides)
 
         # Always put disclaimer
@@ -682,20 +832,21 @@ class R6View(discord.ui.LayoutView):
         await interaction.message.edit(view=self)
 
     async def create_team_vcs(self) -> None:
-        parent_vc = self.bot.get_channel(
-            self.payload.voice_channel_id)
+        parent_vc = self.bot.get_channel(self.payload.voice_channel_id)
         exclude_ids = self.match.captains + [self.payload.queue_entry.owner_id]
         for offset, team in enumerate(self.teams):
             # Create and set team voice channel if it isn't already set
             # This should not be redone after a reset
             if team.voice_channel_id is None:
-                coro = parent_vc.category.create_voice_channel\
-                    if isinstance(parent_vc.category, discord.CategoryChannel)\
+                coro = (
+                    parent_vc.category.create_voice_channel
+                    if isinstance(parent_vc.category, discord.CategoryChannel)
                     else self.bot.get_guild(self.payload.guild_id).create_voice_channel
+                )
                 vc = await coro(
                     name=f"{self.payload.match_name} - Team {team.name}",
                     reason=f"Automated team voice channel creation for match {self.payload.match_name}",
-                    position=parent_vc.position + offset
+                    position=parent_vc.position + offset,
                 )
 
                 # Set @everyone perms to no speaking
@@ -717,7 +868,7 @@ class R6View(discord.ui.LayoutView):
                     self.payload.guild_id,
                     self.payload.match_name,
                     team.captain_id,
-                    vc.id
+                    vc.id,
                 )
                 await self.update_match()
 
@@ -727,10 +878,11 @@ class R6View(discord.ui.LayoutView):
             team_vc = self.bot.get_channel(team.voice_channel_id)
             for player_id in team.players:
                 try:
-                    await self.bot\
-                        .get_guild(self.payload.guild_id)\
-                        .get_member(player_id)\
+                    await (
+                        self.bot.get_guild(self.payload.guild_id)
+                        .get_member(player_id)
                         .move_to(team_vc, reason=Reason.TEAM_VC)
+                    )
                 except discord.HTTPException:
                     pass
                 except Exception as e:
@@ -744,7 +896,9 @@ class R6View(discord.ui.LayoutView):
             return None
 
     async def update_match(self) -> MatchEntry:
-        self.match = await self.bot.match_manager.get_match(self.payload.guild_id, self.payload.match_name)
+        self.match = await self.bot.match_manager.get_match(
+            self.payload.guild_id, self.payload.match_name
+        )
 
     def check_finalised(self) -> bool:
         finalised_1v1 = self.playercount == 2 and self.match.wins_set
@@ -753,19 +907,22 @@ class R6View(discord.ui.LayoutView):
             self.stop()
 
             # Dispatch match finalised to teardown VCs
-            self.bot.dispatch(Event.MATCH_FINALISED, MatchFinalisedPayload.create(
-                guild_id=self.payload.guild_id,
-                name=self.payload.match_name,
-                queue_type=self.match.type,
-                owner_id=self.payload.queue_entry.owner_id,
-                match_entry=self.match,
-            ))
+            self.bot.dispatch(
+                Event.MATCH_FINALISED,
+                MatchFinalisedPayload.create(
+                    guild_id=self.payload.guild_id,
+                    name=self.payload.match_name,
+                    queue_type=self.match.type,
+                    owner_id=self.payload.queue_entry.owner_id,
+                    match_entry=self.match,
+                ),
+            )
             return True
         return False
 
     async def disable_reset_buttons(self, interaction: discord.Interaction) -> None:
         for child in self.r6_view_admin_buttons.children:
-            if type(child) == discord.ui.Button:
+            if isinstance(child, discord.ui.Button):
                 child.disabled = True
         await interaction.message.edit(view=self)
 

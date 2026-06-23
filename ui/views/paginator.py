@@ -9,7 +9,14 @@ __all__ = (
 
 
 class Paginator(discord.ui.LayoutView, ABC):
-    def __init__(self, *, source_interaction: discord.Interaction, data: dict, per_page: int, timeout: float = None):
+    def __init__(
+        self,
+        *,
+        source_interaction: discord.Interaction,
+        data: dict,
+        per_page: int,
+        timeout: float = None,
+    ):
         super().__init__(timeout=timeout)
 
         # Original interaction, so we can edit ephemeral messages
@@ -45,7 +52,9 @@ class Paginator(discord.ui.LayoutView, ABC):
     async def update_view(self) -> None:
         self.clear_items()
         self.init_components()
-        await self.source_interaction.edit_original_response(view=self, allowed_mentions=discord.AllowedMentions.none())
+        await self.source_interaction.edit_original_response(
+            view=self, allowed_mentions=discord.AllowedMentions.none()
+        )
 
 
 class PaginatorButtonRow(discord.ui.ActionRow):
@@ -55,25 +64,31 @@ class PaginatorButtonRow(discord.ui.ActionRow):
 
     def init_components(self) -> None:
         for item in self.children:
-            if type(item) == discord.ui.Button:
+            if isinstance(item, discord.ui.Button):
                 match item.label:
                     case "Previous":
                         # If we can paginate, DON'T DISABLE
                         item.disabled = not self._pview.can_paginate(
-                            self._pview.current_page - 1)
+                            self._pview.current_page - 1
+                        )
                     case "Next":
                         # If we can paginate, DON'T DISABLE
                         item.disabled = not self._pview.can_paginate(
-                            self._pview.current_page + 1)
+                            self._pview.current_page + 1
+                        )
                     case _:
                         pass
 
     @discord.ui.button(label="Previous", emoji="◀️")
-    async def _go_previous_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _go_previous_page_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self._pview.decrement_page()
         await interaction.response.defer()
 
     @discord.ui.button(label="Next", emoji="▶️")
-    async def _go_next_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def _go_next_page_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self._pview.increment_page()
         await interaction.response.defer()

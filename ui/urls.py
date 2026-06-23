@@ -1,8 +1,6 @@
 from enum import StrEnum
 
-__all__ = (
-    "R6URL",
-)
+__all__ = ("R6URL",)
 
 
 class R6URL(StrEnum):

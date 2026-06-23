@@ -5,8 +5,8 @@ import discord
 
 from canned import Canned
 from event import Event, PrematchPayload
-from exceptions import *
-from queuemanager import *
+from exceptions import QueueProgressStateError
+from queuemanager import ALL_CAPT_SELECT_MODES, CaptSelect, QueueEntry, QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool, MapPoolName
 from statsmanager import StatsPlayer
 
@@ -24,6 +24,7 @@ class PrematchView(discord.ui.LayoutView):
         self.pools = pools
 
         from bot import Bot
+
         self.bot: Bot = bot
 
         # Component attributes
@@ -48,15 +49,27 @@ class PrematchView(discord.ui.LayoutView):
 
     @property
     def map_pool_name(self) -> Union[str, None]:
-        return self.map_pool_select.values[0] if self.map_pool_select.values else DEFAULT_MAP_POOL_NAMES[0]
+        return (
+            self.map_pool_select.values[0]
+            if self.map_pool_select.values
+            else DEFAULT_MAP_POOL_NAMES[0]
+        )
 
     @property
     def auto_draft(self) -> bool:
-        return self.auto_draft_select.values[0] == "yes" if self.auto_draft_select.values else False
+        return (
+            self.auto_draft_select.values[0] == "yes"
+            if self.auto_draft_select.values
+            else False
+        )
 
     @property
     def captain_mode(self) -> Union[str, None]:
-        return self.captain_mode_select.values[0] if self.captain_mode_select.values else ALL_CAPT_SELECT_MODES[0]
+        return (
+            self.captain_mode_select.values[0]
+            if self.captain_mode_select.values
+            else ALL_CAPT_SELECT_MODES[0]
+        )
 
     @property
     def manual_captain(self) -> List[Union[discord.Member, discord.User]]:
@@ -79,26 +92,31 @@ class PrematchView(discord.ui.LayoutView):
         # Queue select
         self.queue_select = discord.ui.Select(
             options=[
-                discord.SelectOption(label=name, value=name) for name in self.queues.keys()
+                discord.SelectOption(label=name, value=name)
+                for name in self.queues.keys()
             ],
             placeholder="Select queue",
         )
-        items.append({
-            "text": "Select Queue",
-            "description": "For which queue would you like to start a match?",
-            "component": self.queue_select,
-        })
+        items.append(
+            {
+                "text": "Select Queue",
+                "description": "For which queue would you like to start a match?",
+                "component": self.queue_select,
+            }
+        )
 
         # VC select
         self.vc_select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.voice],
             placeholder="Select voice channel",
         )
-        items.append({
-            "text": "Voice Channel",
-            "description": "What voice channel should players connec to BEFORE team draft occurs?",
-            "component": self.vc_select,
-        })
+        items.append(
+            {
+                "text": "Voice Channel",
+                "description": "What voice channel should players connec to BEFORE team draft occurs?",
+                "component": self.vc_select,
+            }
+        )
 
         # Map pool select
         self.map_pool_select = discord.ui.Select(
@@ -107,14 +125,17 @@ class PrematchView(discord.ui.LayoutView):
                     label=pool.name.title(),
                     value=pool.name,
                     default=pool.name == DEFAULT_MAP_POOL_NAMES[0],
-                ) for pool in self.pools
+                )
+                for pool in self.pools
             ],
         )
-        items.append({
-            "text": "Map Pool",
-            "description": "What map pool should this match select maps from?",
-            "component": self.map_pool_select,
-        })
+        items.append(
+            {
+                "text": "Map Pool",
+                "description": "What map pool should this match select maps from?",
+                "component": self.map_pool_select,
+            }
+        )
 
         # Autodraft toggle
         self.auto_draft_select = discord.ui.Select(
@@ -123,14 +144,17 @@ class PrematchView(discord.ui.LayoutView):
                     label=choice.title(),
                     value=choice,
                     default=choice == "no",
-                ) for choice in ["yes", "no"]
+                )
+                for choice in ["yes", "no"]
             ],
         )
-        items.append({
-            "text": "Auto Draft",
-            "description": "Should the bot automatically find the most balanced teams based on rating?",
-            "component": self.auto_draft_select,
-        })
+        items.append(
+            {
+                "text": "Auto Draft",
+                "description": "Should the bot automatically find the most balanced teams based on rating?",
+                "component": self.auto_draft_select,
+            }
+        )
 
         # Captain selection mode select
         self.captain_mode_select = discord.ui.Select(
@@ -139,14 +163,17 @@ class PrematchView(discord.ui.LayoutView):
                     label=mode.title(),
                     value=mode,
                     default=mode == ALL_CAPT_SELECT_MODES[0],
-                ) for mode in ALL_CAPT_SELECT_MODES
+                )
+                for mode in ALL_CAPT_SELECT_MODES
             ],
         )
-        items.append({
-            "text": "Captain Selection Mode",
-            "description": "How should captain selection occur?",
-            "component": self.captain_mode_select,
-        })
+        items.append(
+            {
+                "text": "Captain Selection Mode",
+                "description": "How should captain selection occur?",
+                "component": self.captain_mode_select,
+            }
+        )
 
         # Manual captain select
         self.captain_manual_select = discord.ui.UserSelect(
@@ -154,21 +181,29 @@ class PrematchView(discord.ui.LayoutView):
             max_values=2,
             placeholder="Select users if manually selection captains",
         )
-        items.append({
-            "text": "Manual Captain Selection",
-            "description": "If the captain selection mode is manual, which two players should be team captains?",
-            "component": self.captain_manual_select,
-        })
+        items.append(
+            {
+                "text": "Manual Captain Selection",
+                "description": "If the captain selection mode is manual, which two players should be team captains?",
+                "component": self.captain_manual_select,
+            }
+        )
 
         # Add fixed header section
-        container.add_item(discord.ui.Section(
-            discord.ui.TextDisplay("\n".join([
-                "## Match Configuration",
-                "You are able to configure certain aspects of the match here. " +
-                "Once finished, please click the *`Submit`* button below.",
-            ])),
-            accessory=discord.ui.Thumbnail(self.bot.user.avatar.url),
-        ))
+        container.add_item(
+            discord.ui.Section(
+                discord.ui.TextDisplay(
+                    "\n".join(
+                        [
+                            "## Match Configuration",
+                            "You are able to configure certain aspects of the match here. "
+                            + "Once finished, please click the *`Submit`* button below.",
+                        ]
+                    )
+                ),
+                accessory=discord.ui.Thumbnail(self.bot.user.avatar.url),
+            )
+        )
         container.add_item(discord.ui.Separator(visible=False))
 
         # Add the rest of the items to container according to data provided
@@ -178,8 +213,11 @@ class PrematchView(discord.ui.LayoutView):
                     container.add_item(item)
                 else:
                     container.add_item(discord.ui.ActionRow(item))
-            container.add_item(discord.ui.Separator(
-                visible=False, spacing=discord.SeparatorSpacing.large))
+            container.add_item(
+                discord.ui.Separator(
+                    visible=False, spacing=discord.SeparatorSpacing.large
+                )
+            )
 
         # Add the submit button
         container.add_item(self.submit_button)
@@ -187,13 +225,19 @@ class PrematchView(discord.ui.LayoutView):
         # Add container to the view
         self.add_item(container)
 
-    def generate_label(self, *, text: str, description: str, component: discord.ui.Item) -> List[type[discord.ui.Item]]:
+    def generate_label(
+        self, *, text: str, description: str, component: discord.ui.Item
+    ) -> List[type[discord.ui.Item]]:
         component.callback = self.generic_callback
         return [
-            discord.ui.TextDisplay("\n".join([
-                f"### {text}",
-                description,
-            ])),
+            discord.ui.TextDisplay(
+                "\n".join(
+                    [
+                        f"### {text}",
+                        description,
+                    ]
+                )
+            ),
             component,
         ]
 
@@ -202,34 +246,52 @@ class PrematchView(discord.ui.LayoutView):
 
 
 class PrematchViewButtons(discord.ui.ActionRow):
-    def __init__(self, *, view: PrematchView, original_interaction: discord.Interaction, admin_or_owner: bool):
+    def __init__(
+        self,
+        *,
+        view: PrematchView,
+        original_interaction: discord.Interaction,
+        admin_or_owner: bool,
+    ):
         super().__init__()
         self.parent_view = view
         self.original_interaction = original_interaction
         self.admin_or_owner = admin_or_owner
 
         self.submit_button = discord.ui.Button(
-            label="Submit", style=discord.ButtonStyle.blurple)
+            label="Submit", style=discord.ButtonStyle.blurple
+        )
         self.submit_button.callback = self.submit_button_callback
         self.add_item(self.submit_button)
 
         self.cancel_button = discord.ui.Button(
-            label="Cancel", style=discord.ButtonStyle.danger)
+            label="Cancel", style=discord.ButtonStyle.danger
+        )
         self.cancel_button.callback = self.cancel_button_callback
         self.add_item(self.cancel_button)
 
-    async def select_captains(self, *, guild_id: int, queue_type: QueueType, player_ids: List[int], mode: CaptSelect) -> Tuple[int, int]:
+    async def select_captains(
+        self,
+        *,
+        guild_id: int,
+        queue_type: QueueType,
+        player_ids: List[int],
+        mode: CaptSelect,
+    ) -> Tuple[int, int]:
         match mode:
             case CaptSelect.RANDOM:
                 return tuple(random.sample(player_ids, 2))
             case CaptSelect.RATING:
-                captains: List[StatsPlayer] = sorted([
-                    await self.parent_view.bot.stats_manager.get_or_create_player(
-                        guild_id=guild_id,
-                        queue_type=queue_type,
-                        user_id=_id
-                    ) for _id in player_ids
-                ], key=lambda p: p.ordinal if not p.is_legacy else p.points, reverse=True)
+                captains: List[StatsPlayer] = sorted(
+                    [
+                        await self.parent_view.bot.stats_manager.get_or_create_player(
+                            guild_id=guild_id, queue_type=queue_type, user_id=_id
+                        )
+                        for _id in player_ids
+                    ],
+                    key=lambda p: p.ordinal if not p.is_legacy else p.points,
+                    reverse=True,
+                )
                 return (captains[0].id, captains[1].id)
             case _:
                 raise ValueError(mode)
@@ -242,37 +304,56 @@ class PrematchViewButtons(discord.ui.ActionRow):
 
         # Check if a queue has been specified
         if self.parent_view.queue is None:
-            return await interaction.response.send_message(Canned.ERR_PREMATCH_NO_QUEUE, **kwargs)
+            return await interaction.response.send_message(
+                Canned.ERR_PREMATCH_NO_QUEUE, **kwargs
+            )
 
         # Check if a voice channel has been selected
         if self.parent_view.voice_channel_id is None:
-            return await interaction.response.send_message(Canned.ERR_PREMATCH_NO_VC, **kwargs)
+            return await interaction.response.send_message(
+                Canned.ERR_PREMATCH_NO_VC, **kwargs
+            )
 
         # Check if manual captain select was filled correctly
         if self.parent_view.captain_mode == CaptSelect.MANUAL:
             # Ensure only two users were selected
             if len(self.parent_view.manual_captain) != 2:
-                return await interaction.response.send_message(Canned.ERR_PREMATCH_MANUAL_CAPTAIN, **kwargs)
+                return await interaction.response.send_message(
+                    Canned.ERR_PREMATCH_MANUAL_CAPTAIN, **kwargs
+                )
 
             # Ensure no bots in selected users
             if any([user.bot for user in self.parent_view.manual_captain]):
-                return await interaction.response.send_message(Canned.ERR_PREMATCH_BOT_USER, **kwargs)
+                return await interaction.response.send_message(
+                    Canned.ERR_PREMATCH_BOT_USER, **kwargs
+                )
 
             # Ensure the users selected are in the player pool
             player_ids = self.parent_view.queues[self.parent_view.queue].players
-            if not all([user.id in player_ids for user in self.parent_view.manual_captain]):
-                return await interaction.response.send_message(Canned.ERR_PREMATCH_INVALID_USER, **kwargs)
+            if not all(
+                [user.id in player_ids for user in self.parent_view.manual_captain]
+            ):
+                return await interaction.response.send_message(
+                    Canned.ERR_PREMATCH_INVALID_USER, **kwargs
+                )
 
         # Check if a text channel has been bound
-        bound_text_channel_id = await self.parent_view.bot.settings_manager.get_bound_text_channel_id(interaction.guild_id)
+        bound_text_channel_id = (
+            await self.parent_view.bot.settings_manager.get_bound_text_channel_id(
+                interaction.guild_id
+            )
+        )
         if bound_text_channel_id is None:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START_NO_TC_BOUND, **kwargs)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_NO_TC_BOUND, **kwargs
+            )
 
         # Check if the bound text channel is still valid
-        bound_text_channel = interaction.guild.get_channel(
-            bound_text_channel_id)
+        bound_text_channel = interaction.guild.get_channel(bound_text_channel_id)
         if bound_text_channel is None:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START_INVALID_TC, **kwargs)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_INVALID_TC, **kwargs
+            )
 
         # Check if the queue entry can be started
         try:
@@ -284,7 +365,9 @@ class PrematchViewButtons(discord.ui.ActionRow):
                     admin=self.admin_or_owner,
                 )
         except QueueProgressStateError:
-            return await interaction.response.send_message(Canned.ERR_MATCH_IN_PROGRESS, **kwargs)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_IN_PROGRESS, **kwargs
+            )
 
         # Delete the original message if all checks passed
         await self.original_interaction.delete_original_response()
@@ -296,12 +379,13 @@ class PrematchViewButtons(discord.ui.ActionRow):
             case MapPoolName.QUICKMATCH:
                 map_pool = self.parent_view.pools[1]
             case _:
-                map_pool = await self.parent_view.bot.settings_manager.get_map_pool(interaction.guild_id, self.parent_view.map_pool_name)
+                map_pool = await self.parent_view.bot.settings_manager.get_map_pool(
+                    interaction.guild_id, self.parent_view.map_pool_name
+                )
 
         # Get captains based on select mode
         if self.parent_view.captain_mode == CaptSelect.MANUAL:
-            captains = tuple(
-                user.id for user in self.parent_view.manual_captain)
+            captains = tuple(user.id for user in self.parent_view.manual_captain)
         else:
             captains = await self.select_captains(
                 guild_id=interaction.guild_id,
@@ -311,20 +395,24 @@ class PrematchViewButtons(discord.ui.ActionRow):
             )
 
         # Craft PrematchPayload
-        payload = PrematchPayload.parse({
-            "guild_id": interaction.guild_id,
-            "match_name": self.parent_view.queue,
-            "voice_channel_id": self.parent_view.voice_channel_id,
-            "text_channel_id": bound_text_channel_id,
-            "map_pool": map_pool.serialise(),
-            "auto_draft": self.parent_view.auto_draft,
-            "captains": captains,
-            "queue_entry": queue_entry.serialise(),
-            "match_entry": None,
-        })
+        payload = PrematchPayload.parse(
+            {
+                "guild_id": interaction.guild_id,
+                "match_name": self.parent_view.queue,
+                "voice_channel_id": self.parent_view.voice_channel_id,
+                "text_channel_id": bound_text_channel_id,
+                "map_pool": map_pool.serialise(),
+                "auto_draft": self.parent_view.auto_draft,
+                "captains": captains,
+                "queue_entry": queue_entry.serialise(),
+                "match_entry": None,
+            }
+        )
 
         # Dispatch PREMATCH_MODAL_DONE and send confirmation message
-        await interaction.response.send_message(Canned.MATCH_DM_CONF, ephemeral=True, delete_after=10)
+        await interaction.response.send_message(
+            Canned.MATCH_DM_CONF, ephemeral=True, delete_after=10
+        )
         self.parent_view.bot.dispatch(Event.PREMATCH_MODAL_DONE, payload)
 
     async def cancel_button_callback(self, interaction: discord.Interaction) -> None:

@@ -10,6 +10,7 @@ class DMManager(ManagerBase):
         super().__init__(dm_loc, "dms")
 
         from bot import Bot
+
         self.bot: Bot = bot
 
     async def load(self):
@@ -29,17 +30,20 @@ class DMManager(ManagerBase):
             try:
                 await dm_channel.get_partial_message(message_id).delete()
                 self.bot.logger.info(
-                    f"Deleted message ID {message_id} for user {user_id}")
+                    f"Deleted message ID {message_id} for user {user_id}"
+                )
             except discord.NotFound:
                 self.bot.logger.info(
-                    f"Message ID {message_id} for user {user_id} was already deleted")
+                    f"Message ID {message_id} for user {user_id} was already deleted"
+                )
             except discord.HTTPException as e:
                 self.bot.logger.error(
-                    f"HTTPException when trying to delete message ID {message_id} for user {user_id}: {e}")
+                    f"HTTPException when trying to delete message ID {message_id} for user {user_id}: {e}"
+                )
             except Exception as e:
                 self.bot.logger.error(
-                    "An exception occurred when trying to delete " +
-                    f"message ID {message_id} for user {user_id}: {e}"
+                    "An exception occurred when trying to delete "
+                    + f"message ID {message_id} for user {user_id}: {e}"
                 )
         wrapper.data = {}
         await self.write(wrapper)
@@ -48,7 +52,8 @@ class DMManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         if wrapper.get(guild_id, user_id) is not None:
             raise KeyError(
-                f"Entry already exists for guild_id {guild_id} and user_id {user_id}")
+                f"Entry already exists for guild_id {guild_id} and user_id {user_id}"
+            )
         wrapper.create(guild_id, user_id, message_id)
         await self.write(wrapper)
 

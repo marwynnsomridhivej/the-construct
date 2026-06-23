@@ -11,14 +11,17 @@ from config import Config
 from dmmanager import DMManager
 from matchmanager import MatchManager
 from queuemanager import QueueManager
-from statsmanager import StatsManager
 from settingsmanager import SettingsManager
+from statsmanager import StatsManager
 
 
 class Bot(commands.Bot):
     __version__ = "2.1.0-beta"
-    __commit__ = subprocess.check_output(
-        ["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
+    __commit__ = (
+        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
 
     def __init__(self, config: Config, **kwargs):
         super().__init__(
@@ -28,7 +31,7 @@ class Bot(commands.Bot):
                 type=discord.ActivityType.playing,
             ),
             owner_ids=config.owner_ids,
-            **kwargs
+            **kwargs,
         )
 
         # Configuration from config.json
@@ -75,7 +78,8 @@ class Bot(commands.Bot):
             await self.tree.sync()
 
         self.logger.info(
-            f"[BOT] v{self.__version__} ({self.__commit__}) successfully loaded")
+            f"[BOT] v{self.__version__} ({self.__commit__}) successfully loaded"
+        )
 
     async def on_ready(self):
         await self.wait_until_ready()
@@ -102,11 +106,13 @@ class Bot(commands.Bot):
                 await message.delete()
                 deleted_ids.append(message.id)
                 self.logger.info(
-                    f"Deleted message ID {message.id} for user {user.display_name} ({user.id}) in DMs")
+                    f"Deleted message ID {message.id} for user {user.display_name} ({user.id}) in DMs"
+                )
 
             if not deleted_ids:
                 self.logger.info(
-                    f"Did not find any deletable DMs with user {user.display_name} ({user.id})")
+                    f"Did not find any deletable DMs with user {user.display_name} ({user.id})"
+                )
 
 
 if __name__ == "__main__":
@@ -124,7 +130,7 @@ if __name__ == "__main__":
 
     # Create rotating file and stream handler
     file_handler = logging.handlers.RotatingFileHandler(
-        filename=f"{config.log_dir}/{datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}.log",
+        filename=f"{config.log_dir}/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}.log",
         maxBytes=16 * 1024 * 1024,  # 16 MiB
         backupCount=10,
         encoding="utf-8",
@@ -136,14 +142,15 @@ if __name__ == "__main__":
     for handler in [file_handler, stdout_handler]:
         # For type hint
         assert isinstance(handler, logging.Handler)
-        handler.setFormatter(logging.Formatter(
-            "[{asctime}] [{levelname}] {name}: {message}",
-            r"%Y-%m-%d %H:%M:%S",
-            style="{"
-        ))
+        handler.setFormatter(
+            logging.Formatter(
+                "[{asctime}] [{levelname}] {name}: {message}",
+                r"%Y-%m-%d %H:%M:%S",
+                style="{",
+            )
+        )
         logger.addHandler(handler)
 
     # Run bot
-    bot = Bot(config, intents=discord.Intents.all(),
-              dm_wipe=dm_wipe, prod=prod)
+    bot = Bot(config, intents=discord.Intents.all(), dm_wipe=dm_wipe, prod=prod)
     bot.run(config.token, log_handler=None)

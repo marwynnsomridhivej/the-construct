@@ -6,8 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from event import *
-from exceptions import *
+from event import AutoDraftPayload, Event, PrematchDMPayload, PrematchPayload
 from matchmanager import R6_QUICKMATCH, R6_RANKED
 from queuemanager import QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
@@ -18,6 +17,7 @@ from ui import MatchStartDMView, PrematchView, PrematchViewButtons, R6View
 class MatchCog(commands.GroupCog, name="match"):
     def __init__(self, bot):
         from bot import Bot
+
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -36,23 +36,28 @@ class MatchCog(commands.GroupCog, name="match"):
             if user is None:
                 continue
             try:
-                message = await user.send(view=MatchStartDMView(
-                    guild=self.bot.get_guild(payload.guild_id),
-                    payload=payload,
-                ))
+                message = await user.send(
+                    view=MatchStartDMView(
+                        guild=self.bot.get_guild(payload.guild_id),
+                        payload=payload,
+                    )
+                )
                 await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
             except discord.Forbidden:
                 continue
             except discord.HTTPException:
                 continue
 
-    async def _perform_auto_draft(self, payload: PrematchPayload) -> Tuple[Tuple[int, int], Tuple[List[int], List[int]]]:
+    async def _perform_auto_draft(
+        self, payload: PrematchPayload
+    ) -> Tuple[Tuple[int, int], Tuple[List[int], List[int]]]:
         players = [
             await self.bot.stats_manager.get_or_create_player(
                 guild_id=payload.guild_id,
                 queue_type=payload.queue_entry.type,
                 user_id=player_id,
-            ) for player_id in payload.queue_entry.players
+            )
+            for player_id in payload.queue_entry.players
         ]
 
         best_delta = 1
@@ -64,10 +69,13 @@ class MatchCog(commands.GroupCog, name="match"):
                 player for player in players if player not in team_a_players
             ]
             teams = [
-                [self.bot.stats_manager.model.create_rating(
-                    [player.mu, player.sigma],
-                    name=str(player.id),
-                ) for player in team_players]
+                [
+                    self.bot.stats_manager.model.create_rating(
+                        [player.mu, player.sigma],
+                        name=str(player.id),
+                    )
+                    for player in team_players
+                ]
                 for team_players in (team_a_players, team_b_players)
             ]
 
@@ -80,11 +88,14 @@ class MatchCog(commands.GroupCog, name="match"):
                 best_delta = delta
                 most_balanced_teams = [
                     [
-                        int(player.name) for player in sorted(
+                        int(player.name)
+                        for player in sorted(
                             team,
                             key=lambda p: p.ordinal(),
                             reverse=True,
-                        )] for team in teams
+                        )
+                    ]
+                    for team in teams
                 ]
 
         # Isolate captains and non-captains
@@ -101,11 +112,17 @@ class MatchCog(commands.GroupCog, name="match"):
         # Create autodraft payload if autodraft is enabled
         auto_draft = None
         if payload.auto_draft and len(payload.queue_entry.players) > 2:
-            auto_draft = AutoDraftPayload.create(*await self._perform_auto_draft(payload))
+            auto_draft = AutoDraftPayload.create(
+                *await self._perform_auto_draft(payload)
+            )
 
         # Create match instance and attach it to the PrematchPayload
-        await self.bot.match_manager.create_match(payload=payload, auto_draft=auto_draft)
-        match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
+        await self.bot.match_manager.create_match(
+            payload=payload, auto_draft=auto_draft
+        )
+        match = await self.bot.match_manager.get_match(
+            payload.guild_id, payload.match_name
+        )
         payload.attach_match_entry(match)
 
         # Create thread channel
@@ -117,7 +134,9 @@ class MatchCog(commands.GroupCog, name="match"):
         # Add all bot admins and server owner to the thread
         guild = self.bot.get_guild(payload.guild_id)
         owner_id = guild.owner_id if guild is not None else None
-        admin_ids = await self.bot.settings_manager.get_admins(payload.guild_id, owner_id=owner_id)
+        admin_ids = await self.bot.settings_manager.get_admins(
+            payload.guild_id, owner_id=owner_id
+        )
         for admin_id in admin_ids:
             user = self.bot.get_user(admin_id)
             if user is None:
@@ -131,8 +150,8 @@ class MatchCog(commands.GroupCog, name="match"):
                 pass
             except discord.Forbidden:
                 self.bot.logger.error(
-                    f"Unable to add admin id {user.id} to thread_channel " +
-                    f"{thread_channel.name} (id={thread_channel.id})"
+                    f"Unable to add admin id {user.id} to thread_channel "
+                    + f"{thread_channel.name} (id={thread_channel.id})"
                 )
 
         # Edit in place payload text channel ID to be thread channel now
@@ -145,18 +164,25 @@ class MatchCog(commands.GroupCog, name="match"):
 
         # Send R6View to thread channel
         message = await thread_channel.send(view=r6view)
-        self.bot.dispatch(Event.PREMATCH_DM_READY_SEND,
-                          PrematchDMPayload.from_prematch_payload(payload, message))
+        self.bot.dispatch(
+            Event.PREMATCH_DM_READY_SEND,
+            PrematchDMPayload.from_prematch_payload(payload, message),
+        )
 
     async def is_admin_including_owner(self, interaction: discord.Interaction) -> bool:
         guild = self.bot.get_guild(interaction.guild_id)
         owner_id = guild.owner_id if guild is not None else None
-        return owner_id == interaction.user.id or await self.bot.settings_manager.is_admin(
-            interaction.guild_id,
-            interaction.user.id,
+        return (
+            owner_id == interaction.user.id
+            or await self.bot.settings_manager.is_admin(
+                interaction.guild_id,
+                interaction.user.id,
+            )
         )
 
-    @app_commands.command(name="start", description="Enter pre-match configuration details")
+    @app_commands.command(
+        name="start", description="Enter pre-match configuration details"
+    )
     async def _start_match(self, interaction: discord.Interaction):
         guild_id = interaction.guild_id
         owner_id = interaction.user.id
@@ -165,7 +191,9 @@ class MatchCog(commands.GroupCog, name="match"):
         try:
             await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
-            return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+            )
 
         # Check if user is bot admin or server owner
         admin_or_owner = await self.is_admin_including_owner(interaction)
@@ -177,30 +205,41 @@ class MatchCog(commands.GroupCog, name="match"):
             admin=admin_or_owner,
         )
         valid_owned_queues = {
-            name: entry for name, entry in owned_queues.items()
-            if len(entry.players) >= 2
-            and not entry.in_progress
+            name: entry
+            for name, entry in owned_queues.items()
+            if len(entry.players) >= 2 and not entry.in_progress
         }
         if not valid_owned_queues:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START_QUEUES, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_QUEUES, ephemeral=True
+            )
 
         # Check if a text channel has been bound
-        bound_text_channel_id = await self.bot.settings_manager.get_bound_text_channel_id(interaction.guild_id)
+        bound_text_channel_id = (
+            await self.bot.settings_manager.get_bound_text_channel_id(
+                interaction.guild_id
+            )
+        )
         if bound_text_channel_id is None:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START_NO_TC_BOUND, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_NO_TC_BOUND, ephemeral=True
+            )
 
         # Check if the bound text channel is still valid
         tc = interaction.guild.get_channel(bound_text_channel_id)
         if tc is None:
-            return await interaction.response.send_message(Canned.ERR_MATCH_START_INVALID_TC, ephemeral=True)
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_INVALID_TC, ephemeral=True
+            )
 
         # Get all map pools created in the guild, custom and default
         ranked_name, qm_name = DEFAULT_MAP_POOL_NAMES
-        ranked_pool = CustomMapPool.create(
-            self.bot.user.id, ranked_name, R6_RANKED)
-        qm_pool = CustomMapPool.create(
-            self.bot.user.id, qm_name, R6_QUICKMATCH)
-        all_pools = [ranked_pool, qm_pool] + await self.bot.settings_manager.get_all_map_pools(interaction.guild_id)
+        ranked_pool = CustomMapPool.create(self.bot.user.id, ranked_name, R6_RANKED)
+        qm_pool = CustomMapPool.create(self.bot.user.id, qm_name, R6_QUICKMATCH)
+        all_pools = [
+            ranked_pool,
+            qm_pool,
+        ] + await self.bot.settings_manager.get_all_map_pools(interaction.guild_id)
 
         # Initialise prematch view and submit buttons
         prematch_view = PrematchView(self.bot, valid_owned_queues, all_pools)
@@ -212,7 +251,9 @@ class MatchCog(commands.GroupCog, name="match"):
         prematch_view.init_components(prematch_view_submit_button)
 
         # Send prematch view to user
-        return await interaction.response.send_message(view=prematch_view, ephemeral=True)
+        return await interaction.response.send_message(
+            view=prematch_view, ephemeral=True
+        )
 
 
 async def setup(bot):

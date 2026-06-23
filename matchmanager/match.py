@@ -1,10 +1,19 @@
 from typing import Dict, List, Union
 
 from base import WrapperBase
-from exceptions import *
+from exceptions import (
+    CaptainAlreadyAssigned,
+    CaptainNotAssigned,
+    InvalidGuildID,
+    MVPAlreadyAssigned,
+    MapAlreadyBanned,
+    MatchAlreadyExists,
+    MatchDoesNotExist,
+    MatchFinalised,
+)
 from queuemanager import QueueType
 
-from .enums import *
+from .enums import R6Map, R6Side
 
 __all__ = (
     "MatchWrapper",
@@ -15,16 +24,17 @@ __all__ = (
 
 
 class MatchWrapper(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
 
     def __init__(self, data: dict):
         self.__data: Dict[int, MatchGuildContainer] = {
-            int(guild_id): MatchGuildContainer.parse(guild_containers) for guild_id, guild_containers in data.items()
+            int(guild_id): MatchGuildContainer.parse(guild_containers)
+            for guild_id, guild_containers in data.items()
         }
 
-    def get(self, guild_id: int, throw: bool = False) -> Union["MatchGuildContainer", None]:
+    def get(
+        self, guild_id: int, throw: bool = False
+    ) -> Union["MatchGuildContainer", None]:
         """Get a MatchGuildContainer (MGC) of the specified guild
 
         Args:
@@ -67,15 +77,11 @@ class MatchWrapper(WrapperBase):
         Returns:
             dict: Dictionary representation of the MatchWrapper instance
         """
-        return {
-            guild_id: mgc.serialise() for guild_id, mgc in self.__data.items()
-        }
+        return {guild_id: mgc.serialise() for guild_id, mgc in self.__data.items()}
 
 
 class MatchGuildContainer(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
 
     def __init__(self, data: dict):
         self.__data: Dict[str, MatchEntry] = {
@@ -142,9 +148,7 @@ class MatchGuildContainer(WrapperBase):
         Returns:
             dict: Dictionary representation of the MGC instance
         """
-        return {
-            name: entry.serialise() for name, entry in self.__data.items()
-        }
+        return {name: entry.serialise() for name, entry in self.__data.items()}
 
 
 class MatchEntry(WrapperBase):
@@ -152,7 +156,6 @@ class MatchEntry(WrapperBase):
         "created_timestamp",
         "type",
         "voice_channel_id",
-
         "team_a",
         "team_b",
         "map",
@@ -270,11 +273,16 @@ class MatchEntry(WrapperBase):
 
     @property
     def sides_selected(self) -> bool:
-        return self.team_a.starting_side is not None and self.team_b.starting_side is not None
+        return (
+            self.team_a.starting_side is not None
+            and self.team_b.starting_side is not None
+        )
 
     @property
     def mvps_set(self) -> bool:
-        return isinstance(self.team_a.mvp_id, int) and isinstance(self.team_b.mvp_id, int)
+        return isinstance(self.team_a.mvp_id, int) and isinstance(
+            self.team_b.mvp_id, int
+        )
 
     @property
     def wins_set(self) -> bool:
@@ -305,13 +313,12 @@ class MatchEntry(WrapperBase):
             dict: Dictionary representation of the MatchEntry instance
         """
         return {
-            "created_timestamp":    self.created_timestamp,
-            "type":                 self.type,
-            "voice_channel_id":     self.voice_channel_id,
-
-            "team_a":               self.team_a.serialise(),
-            "team_b":               self.team_b.serialise(),
-            "map":                  self.map,
+            "created_timestamp": self.created_timestamp,
+            "type": self.type,
+            "voice_channel_id": self.voice_channel_id,
+            "team_a": self.team_a.serialise(),
+            "team_b": self.team_b.serialise(),
+            "map": self.map,
         }
 
 
@@ -393,23 +400,19 @@ class MatchTeam(WrapperBase):
         self.mvp_id = user_id
 
     def reset_player_draft(self) -> None:
-        """Resets the player draft state to default
-        """
+        """Resets the player draft state to default"""
         self.players = [self.captain_id]
 
     def reset_map_bans(self) -> None:
-        """Resets the map ban state to default
-        """
+        """Resets the map ban state to default"""
         self.map_bans = []
 
     def reset_starting_side(self) -> None:
-        """Resets the starting side state to default
-        """
+        """Resets the starting side state to default"""
         self.starting_side = None
 
     def reset_mvp_designation(self) -> None:
-        """Resets the team's MVP designation
-        """
+        """Resets the team's MVP designation"""
         self.mvp_id = None
 
     def set_rounds_won(self, rounds_won: int) -> None:
@@ -427,15 +430,15 @@ class MatchTeam(WrapperBase):
             dict: Dictionary representation of the MatchTeam instance
         """
         return {
-            "name":             self.name,
+            "name": self.name,
             "voice_channel_id": self.voice_channel_id,
-            "captain_id":       self.captain_id,
-            "players":          self.players,
-            "map_bans":         self.map_bans,
-            "starting_side":    self.starting_side,
-            "win":              self.win,
-            "mvp_id":           self.mvp_id,
-            "rounds_won":       self.rounds_won,
+            "captain_id": self.captain_id,
+            "players": self.players,
+            "map_bans": self.map_bans,
+            "starting_side": self.starting_side,
+            "win": self.win,
+            "mvp_id": self.mvp_id,
+            "rounds_won": self.rounds_won,
         }
 
     @classmethod
@@ -445,14 +448,16 @@ class MatchTeam(WrapperBase):
         Returns:
             MatchTeam: The created blank instance
         """
-        return cls({
-            "name": a_or_b,
-            "voice_channel_id": None,
-            "captain_id": None,
-            "players": [],
-            "map_bans": [],
-            "starting_side":  None,
-            "win": None,
-            "mvp_id": None,
-            "rounds_won": None,
-        })
+        return cls(
+            {
+                "name": a_or_b,
+                "voice_channel_id": None,
+                "captain_id": None,
+                "players": [],
+                "map_bans": [],
+                "starting_side": None,
+                "win": None,
+                "mvp_id": None,
+                "rounds_won": None,
+            }
+        )

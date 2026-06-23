@@ -2,14 +2,10 @@ __all__ = (
     "MatchAlreadyExists",
     "MatchDoesNotExist",
     "MatchFinalised",
-
     "CaptainAlreadyAssigned",
     "CaptainNotAssigned",
-
     "MapAlreadyBanned",
-
     "MVPAlreadyAssigned",
-    
     "RoundsWonTeamWonMismatch",
 )
 
@@ -17,7 +13,7 @@ __all__ = (
 class MatchAlreadyExists(Exception):
     def __init__(self, match_name: str):
         self.match_name = match_name
-        self.msg = f"Match with name \"{match_name}\" already exists"
+        self.msg = f'Match with name "{match_name}" already exists'
 
     def __str__(self):
         return f"MatchAlreadyExists[name={self.match_name}]"

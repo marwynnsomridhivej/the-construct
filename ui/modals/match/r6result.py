@@ -7,9 +7,7 @@ from canned import Canned
 from exceptions import RoundsWonTeamWonMismatch
 from matchmanager import MatchTeam
 
-__all__ = (
-    "R6ResultModal",
-)
+__all__ = ("R6ResultModal",)
 
 
 class R6ResultModal(discord.ui.Modal):
@@ -18,6 +16,7 @@ class R6ResultModal(discord.ui.Modal):
 
         # Reference parent view
         from ...views import R6View
+
         self.r6view: R6View = view
 
         # Typehints
@@ -40,11 +39,12 @@ class R6ResultModal(discord.ui.Modal):
                 options=[
                     discord.RadioGroupOption(
                         label=f"Team {self.get_captain_name(team)}",
-                        value=team.captain_id
-                    ) for team in self.r6view.teams
+                        value=team.captain_id,
+                    )
+                    for team in self.r6view.teams
                 ],
                 required=True,
-            )
+            ),
         )
 
         # Enter how many rounds each team won throughout the match
@@ -58,7 +58,8 @@ class R6ResultModal(discord.ui.Modal):
                     placeholder="Enter rounds won here",
                     required=True,
                 ),
-            ) for team in self.r6view.teams
+            )
+            for team in self.r6view.teams
         ]
 
         # Return list of all components
@@ -69,18 +70,26 @@ class R6ResultModal(discord.ui.Modal):
         ]
 
     def get_captain_name(self, team: MatchTeam) -> str:
-        return self.r6view.bot\
-            .get_guild(self.r6view.payload.guild_id)\
-            .get_member(team.captain_id).display_name
+        return (
+            self.r6view.bot.get_guild(self.r6view.payload.guild_id)
+            .get_member(team.captain_id)
+            .display_name
+        )
 
     def get_rounds_won(self, winning_captain_id: int) -> Tuple[int, int]:
-        assert isinstance(self.team_a_rounds_won.component,
-                          discord.ui.TextInput)
-        assert isinstance(self.team_b_rounds_won.component,
-                          discord.ui.TextInput)
+        assert isinstance(self.team_a_rounds_won.component, discord.ui.TextInput)
+        assert isinstance(self.team_b_rounds_won.component, discord.ui.TextInput)
 
         # Ensure no decimal points
-        if any(["." in component.value for component in [self.team_a_rounds_won.component, self.team_b_rounds_won.component]]):
+        if any(
+            [
+                "." in component.value
+                for component in [
+                    self.team_a_rounds_won.component,
+                    self.team_b_rounds_won.component,
+                ]
+            ]
+        ):
             raise ValueError
 
         # Cast string to int (will raise ValueError if any invalid characters are present)
@@ -93,12 +102,15 @@ class R6ResultModal(discord.ui.Modal):
 
         # Find winning team
         winning_team = discord.utils.find(
-            lambda t: t.captain_id == winning_captain_id, self.r6view.teams)
+            lambda t: t.captain_id == winning_captain_id, self.r6view.teams
+        )
 
         # Ensure winning team won more rounds
         if self.r6view.teams.index(winning_team) == 0 and rounds_won_a <= rounds_won_b:
             raise RoundsWonTeamWonMismatch
-        elif self.r6view.teams.index(winning_team) == 1 and rounds_won_a >= rounds_won_b:
+        elif (
+            self.r6view.teams.index(winning_team) == 1 and rounds_won_a >= rounds_won_b
+        ):
             raise RoundsWonTeamWonMismatch
 
         return (rounds_won_a, rounds_won_b)
@@ -131,9 +143,11 @@ class R6ResultModal(discord.ui.Modal):
 
         # Craft and send final result message
         rounds_won_winner, rounds_won_loser = sorted(rw, reverse=True)
-        winners = f"The winner of **{self.r6view.payload.match_name}** " + \
-            f"is **Team {self.r6view.match.winning_team.name}** " + \
-            f"[{rounds_won_winner} - {rounds_won_loser}]"
+        winners = (
+            f"The winner of **{self.r6view.payload.match_name}** "
+            + f"is **Team {self.r6view.match.winning_team.name}** "
+            + f"[{rounds_won_winner} - {rounds_won_loser}]"
+        )
         await interaction.response.send_message(winners)
         self.stop()
 

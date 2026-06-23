@@ -1,4 +1,4 @@
-from .feedback_type import *
-from .modals import *
-from .urls import *
-from .views import *
+from .feedback_type import *  # noqa: F403
+from .modals import *  # noqa: F403
+from .urls import *  # noqa: F403
+from .views import *  # noqa: F403

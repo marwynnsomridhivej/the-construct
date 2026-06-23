@@ -4,29 +4,27 @@ from typing import Set
 
 
 class Config(object):
-    __slots__ = [
+    __slots__ = (
         "__token",
-
         "owner_ids",
         "nexus_guild_id",
         "data_dir",
         "log_dir",
         "command_prefix",
-
         "cogs",
-    ]
+    )
 
     def __init__(self):
         self.load()
 
     def serialise(self) -> dict:
         return {
-            "token":            self.__token,
-            "owner_ids":        self.owner_ids,
-            "nexus_guild_id":   self.nexus_guild_id,
-            "data_dir":         self.data_dir,
-            "log_dir":          self.log_dir,
-            "command_prefix":   self.command_prefix,
+            "token": self.__token,
+            "owner_ids": self.owner_ids,
+            "nexus_guild_id": self.nexus_guild_id,
+            "data_dir": self.data_dir,
+            "log_dir": self.log_dir,
+            "command_prefix": self.command_prefix,
         }
 
     def load(self) -> None:
@@ -41,7 +39,8 @@ class Config(object):
 
         # Dynamically find cogs based on filename criteria
         self.cogs = [
-            f"cogs.{_dir[:-3]}" for _dir in os.listdir("./cogs")
+            f"cogs.{_dir[:-3]}"
+            for _dir in os.listdir("./cogs")
             if _dir.endswith("_cog.py")
         ]
 

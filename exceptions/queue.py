@@ -4,12 +4,9 @@ import discord
 
 __all__ = (
     "AlreadyInQueue",
-
     "NoListResults",
-
     "NotInQueue",
     "NotQueueOwner",
-
     "QueueAlreadyExists",
     "QueueDoesNotExist",
     "QueueLimitReached",
@@ -29,7 +26,9 @@ class AlreadyInQueue(Exception):
 
 
 class NoListResults(Exception):
-    def __init__(self, member: Optional[discord.Member] = None, queue_type: Optional[str] = None):
+    def __init__(
+        self, member: Optional[discord.Member] = None, queue_type: Optional[str] = None
+    ):
         self.member = member
         self.queue_type = queue_type
 
@@ -57,7 +56,7 @@ class NotQueueOwner(Exception):
 class QueueAlreadyExists(Exception):
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
-        self.msg = f"Queue with name \"{queue_name}\" already exists"
+        self.msg = f'Queue with name "{queue_name}" already exists'
 
     def __str__(self):
         return f"QueueAlreadyExists[name={self.queue_name}]"

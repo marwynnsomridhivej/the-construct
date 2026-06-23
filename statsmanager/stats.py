@@ -5,7 +5,7 @@ from warnings import deprecated
 
 from base import WrapperBase
 from canned import Canned
-from exceptions import *
+from exceptions import InvalidGuildID, PlayerAlreadyExists, PlayerDoesNotExist
 from queuemanager import QueueType
 
 __all__ = (
@@ -18,16 +18,17 @@ __all__ = (
 
 
 class StatsWrapper(WrapperBase):
-    __slots__ = (
-        "__data",
-    )
+    __slots__ = ("__data",)
 
     def __init__(self, data: dict):
         self.__data: Dict[int, StatsGuildContainer] = {
-            int(guild_id): StatsGuildContainer.parse(guild_containers) for guild_id, guild_containers in data.items()
+            int(guild_id): StatsGuildContainer.parse(guild_containers)
+            for guild_id, guild_containers in data.items()
         }
 
-    def get(self, guild_id: int, throw: bool = False) -> Union["StatsGuildContainer", None]:
+    def get(
+        self, guild_id: int, throw: bool = False
+    ) -> Union["StatsGuildContainer", None]:
         """Get a StatsGuildContainer (SGC) of the specified guild
 
         Args:
@@ -80,8 +81,11 @@ class StatsGuildContainer(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.current: Union[StatsSeason, None] = StatsSeason.parse(
-            data["current"]) if data.get("current") is not None else None
+        self.current: Union[StatsSeason, None] = (
+            StatsSeason.parse(data["current"])
+            if data.get("current") is not None
+            else None
+        )
         self.history: List[StatsSeason] = [
             StatsSeason.parse(entry) for entry in data["history"]
         ]
@@ -111,15 +115,17 @@ class StatsGuildContainer(WrapperBase):
         """
         return {
             "current": self.current.serialise() if self.current else None,
-            "history": [season.serialise() for season in self.history]
+            "history": [season.serialise() for season in self.history],
         }
 
     @classmethod
     def create_blank(cls) -> "StatsGuildContainer":
-        return cls({
-            "current": None,
-            "history": [],
-        })
+        return cls(
+            {
+                "current": None,
+                "history": [],
+            }
+        )
 
 
 class StatsSeason(WrapperBase):
@@ -146,9 +152,11 @@ class StatsSeason(WrapperBase):
         self.archived: bool = data["archived"]
 
         self.r6_5v5: StatsInfo = StatsInfo.parse(
-            data[self.__QT_ATTR_CONVERSION[QueueType.R6_5V5]])
+            data[self.__QT_ATTR_CONVERSION[QueueType.R6_5V5]]
+        )
         self.r6_1v1: StatsInfo = StatsInfo.parse(
-            data[self.__QT_ATTR_CONVERSION[QueueType.R6_1V1]])
+            data[self.__QT_ATTR_CONVERSION[QueueType.R6_1V1]]
+        )
 
     @property
     def is_current(self) -> bool:
@@ -163,7 +171,9 @@ class StatsSeason(WrapperBase):
         self.end_timestamp = int(datetime.now().timestamp())
         self.archived = True
 
-    def get_player(self, queue_type: QueueType, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
+    def get_player(
+        self, queue_type: QueueType, user_id: int, throw: bool = False
+    ) -> Union["StatsPlayer", None]:
         """Get a StatsPlayer in the specified queue type with the specified user ID
 
         Args:
@@ -217,7 +227,15 @@ class StatsSeason(WrapperBase):
             raise PlayerDoesNotExist(user_id)
         del data.players[user_id]
 
-    def award_player(self, queue_type: QueueType, user_id: int, mvp: bool, win: bool, mu: float, sigma: float) -> None:
+    def award_player(
+        self,
+        queue_type: QueueType,
+        user_id: int,
+        mvp: bool,
+        win: bool,
+        mu: float,
+        sigma: float,
+    ) -> None:
         """Awards the specified player points for winning or losing a match
 
         Args:
@@ -247,14 +265,16 @@ class StatsSeason(WrapperBase):
 
     @classmethod
     def create_blank(cls, name: str) -> "StatsSeason":
-        return cls({
-            "name": name,
-            "start_timestamp": int(datetime.now().timestamp()),
-            "end_timestamp": None,
-            "archived": False,
-            "r6_5v5": StatsInfo.create_blank().serialise(),
-            "r6_1v1": StatsInfo.create_blank().serialise(),
-        })
+        return cls(
+            {
+                "name": name,
+                "start_timestamp": int(datetime.now().timestamp()),
+                "end_timestamp": None,
+                "archived": False,
+                "r6_5v5": StatsInfo.create_blank().serialise(),
+                "r6_1v1": StatsInfo.create_blank().serialise(),
+            }
+        )
 
 
 class StatsInfo(WrapperBase):
@@ -268,7 +288,8 @@ class StatsInfo(WrapperBase):
 
         assert isinstance(data["players"], dict)
         self.players: Dict[int, StatsPlayer] = {
-            int(user_id): StatsPlayer.parse(entry) for user_id, entry in data["players"].items()
+            int(user_id): StatsPlayer.parse(entry)
+            for user_id, entry in data["players"].items()
         }
 
     @property
@@ -284,16 +305,15 @@ class StatsInfo(WrapperBase):
         return {
             "match_count": self.match_count,
             "players": {
-                user_id: player.serialise() for user_id, player in self.players.items() if player.matches_played > 0
+                user_id: player.serialise()
+                for user_id, player in self.players.items()
+                if player.matches_played > 0
             },
         }
 
     @classmethod
     def create_blank(cls) -> "StatsInfo":
-        return cls({
-            "match_count": 0,
-            "players": {}
-        })
+        return cls({"match_count": 0, "players": {}})
 
 
 class StatsPlayer(WrapperBase):
@@ -302,12 +322,10 @@ class StatsPlayer(WrapperBase):
         "wins",
         "losses",
         "times_mvp",
-
         # OpenSkill
         "mu",
         "sigma",
         "max_ordinal",
-
         # Legacy
         "__points",
         "__max_points",
@@ -391,24 +409,31 @@ class StatsPlayer(WrapperBase):
 
     @property
     def wl_ratio(self) -> Decimal:
-        return Decimal("{:.2f}".format(self.wins / self.matches_played)) if self.matches_played > 0 else Decimal()
+        return (
+            Decimal("{:.2f}".format(self.wins / self.matches_played))
+            if self.matches_played > 0
+            else Decimal()
+        )
 
     def __eq__(self, other: "StatsPlayer") -> bool:
-        return all([getattr(self, attr) == getattr(other, attr) for attr in [
-            "id",
-            "wins",
-            "losses",
-            "times_mvp",
-
-            # OpenSkill v2.x+
-            "mu",
-            "sigma",
-            "max_ordinal",
-
-            # Legacy v1.x
-            "points",
-            "max_points",
-        ]])
+        return all(
+            [
+                getattr(self, attr) == getattr(other, attr)
+                for attr in [
+                    "id",
+                    "wins",
+                    "losses",
+                    "times_mvp",
+                    # OpenSkill v2.x+
+                    "mu",
+                    "sigma",
+                    "max_ordinal",
+                    # Legacy v1.x
+                    "points",
+                    "max_points",
+                ]
+            ]
+        )
 
     def __ne__(self, other: "StatsPlayer") -> bool:
         return not self == other
@@ -446,8 +471,7 @@ class StatsPlayer(WrapperBase):
         return Decimal(current - previous)
 
     def reset(self) -> None:
-        """Reset a player's win, loss, mvp, and OpenSkill rating
-        """
+        """Reset a player's win, loss, mvp, and OpenSkill rating"""
         self.wins = 0
         self.losses = 0
         self.times_mvp = 0
@@ -462,10 +486,10 @@ class StatsPlayer(WrapperBase):
             dict: Dictionary representation of the StatsPlayer instance
         """
         data = {
-            "id":               self.id,
-            "wins":             self.wins,
-            "losses":           self.losses,
-            "times_mvp":        self.times_mvp,
+            "id": self.id,
+            "wins": self.wins,
+            "losses": self.losses,
+            "times_mvp": self.times_mvp,
         }
 
         if self.is_legacy:
@@ -490,14 +514,15 @@ class StatsPlayer(WrapperBase):
         Returns:
             StatsPlayer: The created zeroed instance
         """
-        return cls.parse({
-            "id":           user_id,
-            "wins":         0,
-            "losses":       0,
-            "times_mvp":    0,
-
-            # OpenSkill
-            "mu":           25,
-            "sigma":        25 / 3,
-            "max_ordinal":  0,
-        })
+        return cls.parse(
+            {
+                "id": user_id,
+                "wins": 0,
+                "losses": 0,
+                "times_mvp": 0,
+                # OpenSkill
+                "mu": 25,
+                "sigma": 25 / 3,
+                "max_ordinal": 0,
+            }
+        )

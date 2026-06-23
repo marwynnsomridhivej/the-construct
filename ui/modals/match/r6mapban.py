@@ -7,9 +7,7 @@ import discord
 from canned import Canned
 from matchmanager import R6Map
 
-__all__ = (
-    "R6MapBanModal",
-)
+__all__ = ("R6MapBanModal",)
 
 
 class R6MapBanModal(discord.ui.Modal):
@@ -17,6 +15,7 @@ class R6MapBanModal(discord.ui.Modal):
         super().__init__(title="Ban Map")
 
         from ...views import R6View
+
         self.r6view: R6View = view
 
         for item in self.init_components():
@@ -31,10 +30,12 @@ class R6MapBanModal(discord.ui.Modal):
                     discord.RadioGroupOption(
                         label=r6map.replace("_", " ").title(),
                         value=r6map.value,
-                    ) for r6map in self.r6view.map_pool if r6map not in self.r6view.match.banned_maps
+                    )
+                    for r6map in self.r6view.map_pool
+                    if r6map not in self.r6view.match.banned_maps
                 ],
                 required=True,
-            )
+            ),
         )
         return [self.map_ban]
 
@@ -58,7 +59,9 @@ class R6MapBanModal(discord.ui.Modal):
 
         # Check if we have banned every map but one and set it to the chosen map
         maps_remaining = [
-            _map for _map in self.r6view.map_pool if _map not in self.r6view.match.banned_maps
+            _map
+            for _map in self.r6view.map_pool
+            if _map not in self.r6view.match.banned_maps
         ]
 
         # Detect if 4 bans were done in total (each side completed their two bans)
@@ -71,10 +74,15 @@ class R6MapBanModal(discord.ui.Modal):
             # Need to update local MatchEntry instance again
             await self.r6view.update_match()
 
-        await interaction.response.send_message(f"Captain <@{captain_id}> has banned **{map_string}**", delete_after=10.0)
+        await interaction.response.send_message(
+            f"Captain <@{captain_id}> has banned **{map_string}**", delete_after=10.0
+        )
 
         if not self.r6view.finished_map_bans:
-            await interaction.channel.send(f"*It is now <@{self.r6view.other_captain_id(captain_id)}>'s turn to select a map to ban*", delete_after=10.0)
+            await interaction.channel.send(
+                f"*It is now <@{self.r6view.other_captain_id(captain_id)}>'s turn to select a map to ban*",
+                delete_after=10.0,
+            )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         self.r6view.bot.logger.error(

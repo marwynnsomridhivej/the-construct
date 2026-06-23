@@ -2,9 +2,7 @@ from typing import Dict
 
 import discord
 
-__all__ = (
-    "ConfirmationModal",
-)
+__all__ = ("ConfirmationModal",)
 
 
 class ConfirmationModal(discord.ui.Modal):
@@ -23,20 +21,20 @@ class ConfirmationModal(discord.ui.Modal):
     def init_components(self) -> None:
         self.confirm = discord.ui.Label(
             text=self.custom_text or "Are you sure?",
-            description=self.custom_description or "This operation cannot be undone. " +
-            "Only proceed if you know what you are doing.",
+            description=self.custom_description
+            or "This operation cannot be undone. "
+            + "Only proceed if you know what you are doing.",
             component=discord.ui.RadioGroup(
                 options=[
                     discord.RadioGroupOption(
                         label=self.custom_yes or "I understand and wish to proceed",
-                        value="1"
+                        value="1",
                     ),
                     discord.RadioGroupOption(
-                        label=self.custom_no or "No, take me back",
-                        value="0"
+                        label=self.custom_no or "No, take me back", value="0"
                     ),
                 ]
-            )
+            ),
         )
         self.add_item(self.confirm)
 
