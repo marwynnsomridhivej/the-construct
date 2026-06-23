@@ -50,7 +50,7 @@ class LeaderboardView(Paginator):
                         f"### {rank}. <@{player.id}>",
                         self._get_rating_text(player),
                         f"> - `{player.matches_played}` Match{"es" if player.matches_played != 1 else ""} Played",
-                        f"> - `{player.wins}`W/`{player.losses}`L (`{player.wl_ratio * 100}%` WL)",
+                        f"> - `{player.wins}`W/`{player.losses}`L (`{player.wl_ratio * 100}%` W/L)",
                         f"> - `{player.times_mvp}` time{"s" if player.times_mvp != 1 else ""} MVP",
                     ])
                 ))
