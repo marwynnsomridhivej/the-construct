@@ -1,4 +1,5 @@
-from typing import Coroutine, Dict
+from itertools import combinations
+from typing import Coroutine, Dict, List, Tuple
 
 import discord
 from discord import app_commands
@@ -30,7 +31,7 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot.logger.info("[MatchCog] Successfully loaded")
 
     async def _prematch_dm(self, payload: PrematchDMPayload) -> None:
-        for user_id in payload.entry.players:
+        for user_id in payload.queue_entry.players:
             user = self.bot.get_user(user_id)
             if user is None:
                 continue
@@ -45,18 +46,72 @@ class MatchCog(commands.GroupCog, name="match"):
             except discord.HTTPException:
                 continue
 
+    async def _perform_auto_draft(self, payload: PrematchPayload) -> Tuple[Tuple[int, int], Tuple[List[int], List[int]]]:
+        players = [
+            await self.bot.stats_manager.get_or_create_player(
+                guild_id=payload.guild_id,
+                queue_type=payload.queue_entry.type,
+                user_id=player_id,
+            ) for player_id in payload.queue_entry.players
+        ]
+
+        best_delta = 1
+        most_balanced_teams = None
+
+        # Brute force search for most balanced team composition using OpenSkill
+        for team_a_players in combinations(players, len(players) // 2):
+            team_b_players = [
+                player for player in players if player not in team_a_players
+            ]
+            teams = [
+                [self.bot.stats_manager.model.create_rating(
+                    [player.mu, player.sigma],
+                    name=str(player.id),
+                ) for player in team_players]
+                for team_players in (team_a_players, team_b_players)
+            ]
+
+            # Predict the win probability (closer to 0.5, the better)
+            odds_a, odds_b = self.bot.stats_manager.model.predict_win(teams)
+            delta = abs(odds_a - odds_b)
+
+            # Save the team configuration that is predicted to be the most even
+            if delta < best_delta:
+                best_delta = delta
+                most_balanced_teams = [
+                    [
+                        int(player.name) for player in sorted(
+                            team,
+                            key=lambda p: p.ordinal(),
+                            reverse=True,
+                        )] for team in teams
+                ]
+
+        # Isolate captains and non-captains
+        captains = tuple([team[0] for team in most_balanced_teams])
+        non_captains = tuple([team[1:] for team in most_balanced_teams])
+
+        return (captains, non_captains)
+
     async def _init_match_data(self, payload: PrematchPayload) -> None:
         # Correct for QueueType mismatch based on playercount
-        if len(payload.entry.players) == 2:
-            payload.entry.type = QueueType.R6_1V1
+        if len(payload.queue_entry.players) == 2:
+            payload.queue_entry.type = QueueType.R6_1V1
 
-        await self.bot.match_manager.create_match(payload=payload)
+        # Create autodraft payload if autodraft is enabled
+        auto_draft = None
+        if payload.auto_draft and len(payload.queue_entry.players) > 2:
+            auto_draft = AutoDraftPayload.create(*await self._perform_auto_draft(payload))
+
+        # Create match instance and attach it to the PrematchPayload
+        await self.bot.match_manager.create_match(payload=payload, auto_draft=auto_draft)
         match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
+        payload.attach_match_entry(match)
 
         # Create thread channel
         tc = self.bot.get_channel(payload.text_channel_id)
         thread_channel = await tc.create_thread(
-            name=f"{payload.match_name} - {payload.entry.type}",
+            name=f"{payload.match_name} - {payload.queue_entry.type}",
         )
 
         # Add all bot admins and server owner to the thread
@@ -69,7 +124,7 @@ class MatchCog(commands.GroupCog, name="match"):
                 continue
             try:
                 # Don't force add an admin if they are already a player
-                if user.id in payload.entry.players:
+                if user.id in payload.queue_entry.players:
                     continue
                 await thread_channel.add_user(user)
             except discord.HTTPException:
@@ -86,7 +141,7 @@ class MatchCog(commands.GroupCog, name="match"):
         # Initialise R6View
         r6view = R6View(payload=payload, match=match, bot=self.bot)
         await r6view.set_order()
-        r6view.init_components()
+        await r6view.init_components()
 
         # Send R6View to thread channel
         message = await thread_channel.send(view=r6view)

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ManagerBase
-from event import PrematchPayload
+from event import AutoDraftPayload, PrematchPayload
 from exceptions import *
 
 from .enums import *
@@ -25,21 +25,32 @@ class MatchManager(ManagerBase):
         }
         return choice if team.captain_id == captain_id else flip[choice]
 
-    async def create_match(self, *, payload: PrematchPayload) -> None:
+    async def create_match(self, *, payload: PrematchPayload, auto_draft: AutoDraftPayload = None) -> None:
         wrapper = await self._get_or_create_wrapper()
 
-        # Init teams
+        # Init two empty teams
         team_a = MatchTeam.create_empty("A")
         team_b = MatchTeam.create_empty("B")
 
-        # Assign captains
-        team_a.assign_captain(payload.captains[0])
-        team_b.assign_captain(payload.captains[1])
+        if payload.auto_draft and auto_draft is not None:
+            # Assign captains to each team from auto draft payload
+            team_a.assign_captain(auto_draft.team_a_captain)
+            team_b.assign_captain(auto_draft.team_b_captain)
+            payload.set_auto_draft_captains(auto_draft)
+
+            # Draft players to each team
+            for team, players in [(team_a, auto_draft.team_a_players), (team_b, auto_draft.team_b_players)]:
+                for player_id in players:
+                    team.draft_player(player_id)
+        else:
+            # Assign captains from payload
+            team_a.assign_captain(payload.captains[0])
+            team_b.assign_captain(payload.captains[1])
 
         # Craft entry data
         match_entry_data = {
             "created_timestamp":    int(datetime.now().timestamp()),
-            "type":                 payload.entry.type,
+            "type":                 payload.queue_entry.type,
             "voice_channel_id":     payload.voice_channel_id,
 
             "team_a":               team_a.serialise(),
@@ -128,9 +139,10 @@ class MatchManager(ManagerBase):
             .get_team_of_user(captain_id).voice_channel_id = vc_id
         await self.write(wrapper)
 
-    async def reset_draft(self, guild_id: int, name: str) -> None:
+    async def reset_draft(self, guild_id: int, payload: PrematchPayload) -> None:
         wrapper = await self._get_or_create_wrapper()
-        entry = wrapper.get(guild_id, throw=True).get(name, throw=True)
-        entry.reset_draft()
+        entry = wrapper.get(guild_id, throw=True).get(
+            payload.match_name, throw=True)
+        entry.reset_draft(auto_draft=payload.auto_draft)
         entry.map = None
         await self.write(wrapper)

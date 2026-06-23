@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import discord
 
@@ -15,6 +15,7 @@ __all__ = (
     # R6 Match
     "PrematchPayload",
     "PrematchDMPayload",
+    "AutoDraftPayload",
     "DMDeletePayload",
     "VCResetPayload",
     "MatchFinalisedPayload",
@@ -68,7 +69,8 @@ class PrematchPayload(WrapperBase):
         "__map_pool",
         "__auto_draft",
         "__captains",
-        "__entry",
+        "__queue_entry",
+        "__match_entry",
     )
 
     def __init__(self, data: dict):
@@ -77,9 +79,11 @@ class PrematchPayload(WrapperBase):
         self.__voice_channel_id: int = data["voice_channel_id"]
         self.__text_channel_id: int = data["text_channel_id"]
         self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
-        self.__auto_draft: bool = data["autodraft"]
+        self.__auto_draft: bool = data["auto_draft"]
         self.__captains: Tuple[int, int] = data["captains"]
-        self.__entry: QueueEntry = data["entry"]
+        self.__queue_entry: QueueEntry = QueueEntry(data["queue_entry"])
+        self.__match_entry: Union[MatchEntry, None] = MatchEntry(
+            data.get("match_entry")) if data.get("match_entry") else None
 
     @property
     def guild_id(self) -> int:
@@ -110,11 +114,21 @@ class PrematchPayload(WrapperBase):
         return self.__captains
 
     @property
-    def entry(self) -> QueueEntry:
-        return self.__entry
+    def queue_entry(self) -> QueueEntry:
+        return self.__queue_entry
+
+    @property
+    def match_entry(self) -> Union[MatchEntry, None]:
+        return self.__match_entry
 
     def switch_to_thread_channel(self, thread_id: int) -> None:
         self.__text_channel_id = thread_id
+
+    def attach_match_entry(self, match_entry: MatchEntry) -> None:
+        self.__match_entry = match_entry
+
+    def set_auto_draft_captains(self, payload: "AutoDraftPayload") -> None:
+        self.__captains = (payload.team_a_captain, payload.team_b_captain)
 
     def serialise(self) -> dict:
         return {
@@ -125,7 +139,8 @@ class PrematchPayload(WrapperBase):
             "map_pool": self.__map_pool.serialise(),
             "auto_draft": self.__auto_draft,
             "captains": self.__captains,
-            "entry": self.__entry,
+            "queue_entry": self.__queue_entry.serialise(),
+            "match_entry": getattr(self.__match_entry, "serialise", lambda: None)(),
         }
 
 
@@ -152,6 +167,54 @@ class PrematchDMPayload(PrematchPayload):
         data = payload.serialise()
         data["message"] = message
         return cls(data)
+
+
+class AutoDraftPayload(WrapperBase):
+    __slots__ = (
+        "__team_a_captain",
+        "__team_b_captain",
+        "__team_a_players",
+        "__team_b_players",
+    )
+
+    def __init__(self, data: dict):
+        self.__team_a_captain: int = data["team_a_captain"]
+        self.__team_b_captain: int = data["team_b_captain"]
+        self.__team_a_players: List[int] = data["team_a_players"]
+        self.__team_b_players: List[int] = data["team_b_players"]
+
+    @property
+    def team_a_captain(self) -> int:
+        return self.__team_a_captain
+
+    @property
+    def team_b_captain(self) -> int:
+        return self.__team_b_captain
+
+    @property
+    def team_a_players(self) -> List[int]:
+        return self.__team_a_players
+
+    @property
+    def team_b_players(self) -> List[int]:
+        return self.__team_b_players
+
+    @classmethod
+    def create(cls, captains: Tuple[int, int], players: Tuple[List[int], List[int]]) -> "AutoDraftPayload":
+        return cls({
+            "team_a_captain": captains[0],
+            "team_b_captain": captains[1],
+            "team_a_players": players[0],
+            "team_b_players": players[1],
+        })
+
+    def serialise(self) -> dict:
+        return {
+            "team_a_captain": self.__team_a_captain,
+            "team_b_captain": self.__team_b_captain,
+            "team_a_players": self.__team_a_players,
+            "team_b_players": self.__team_b_players,
+        }
 
 
 class DMDeletePayload(WrapperBase):

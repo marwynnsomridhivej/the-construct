@@ -237,13 +237,21 @@ class MatchEntry(WrapperBase):
 
         self.map = choice if isinstance(choice, R6Map) else R6Map(choice)
 
-    def reset_draft(self) -> None:
+    def reset_draft(self, auto_draft: bool = False) -> None:
         """Resets the complete draft state for both teams
+
+        Args:
+            auto_draft (bool, optional): Whether or not auto draft was used. Defaults to False.
         """
         for team in [self.team_a, self.team_b]:
-            team.reset_player_draft()
+            # Do not reset draft if auto draft was used
+            if not auto_draft:
+                team.reset_player_draft()
+
+            # Reset map bans, starting sides, and MVP designation
             team.reset_map_bans()
             team.reset_starting_side()
+            team.reset_mvp_designation()
 
     def set_rounds_won(self, captain_id: int, rounds_won: int) -> None:
         self.get_team_of_user(captain_id).set_rounds_won(rounds_won)
@@ -398,6 +406,11 @@ class MatchTeam(WrapperBase):
         """Resets the starting side state to default
         """
         self.starting_side = None
+
+    def reset_mvp_designation(self) -> None:
+        """Resets the team's MVP designation
+        """
+        self.mvp_id = None
 
     def set_rounds_won(self, rounds_won: int) -> None:
         """Set the amount of rounds won by this team
