@@ -44,8 +44,11 @@ class PlayerCog(commands.GroupCog, name="player"):
         await user.send(view=PlayerStatsDeleteDMView(user=user, guild=guild, queue_type=payload.queue_type))
 
     async def _perform_checks(self, interaction: discord.Interaction, member: discord.Member, queue_type: QueueType) -> bool:
-        # Must have manage guild permission to execute
-        if not interaction.user.guild_permissions.manage_guild:
+        # Must be server owner or bot administrator
+        if not (interaction.user.id == interaction.guild.owner_id or await self.bot.settings_manager.is_admin(
+            interaction.guild_id,
+            interaction.user.id,
+        )):
             await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
             return False
 

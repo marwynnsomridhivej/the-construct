@@ -26,9 +26,12 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         self.bot.logger.info("[SeasonCog] Successfully loaded")
 
-    def _ensure_perms(self, interaction: discord.Interaction) -> bool:
-        # Make sure user has "manage server" permissions
-        return interaction.user.guild_permissions.manage_guild
+    async def _ensure_perms(self, interaction: discord.Interaction) -> bool:
+        # Make sure user is either the server owner or is a bot administrator
+        return interaction.guild.owner_id == interaction.user.id or await self.bot.settings_manager.is_admin(
+            interaction.guild_id,
+            interaction.user.id,
+        )
 
     async def _send_season_end_dms(self, payload: SeasonEndPayload) -> None:
         users_data: Dict[discord.User, Dict[QueueType, Dict]] = {}
@@ -46,15 +49,19 @@ class SeasonCog(commands.GroupCog, name="season"):
                 }
 
         for user, data in users_data.items():
-            await user.send(view=SeasonEndDMView(
-                guild=self.bot.get_guild(payload.guild_id),
-                season=payload.season,
-                data=data,
-            ))
+            try:
+                await user.send(view=SeasonEndDMView(
+                    guild=self.bot.get_guild(payload.guild_id),
+                    season=payload.season,
+                    data=data,
+                ))
+            except discord.HTTPException as e:
+                self.bot.logger.error(
+                    f"An error occurred when trying to send the season end DM: {e.text}")
 
     @app_commands.command(name="start", description="Starts a new season")
     async def _start_season(self, interaction: discord.Interaction):
-        if not self._ensure_perms(interaction):
+        if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
 
         try:
@@ -85,7 +92,7 @@ class SeasonCog(commands.GroupCog, name="season"):
 
     @app_commands.command(name="stop", description="Stops the current active season")
     async def _stop_season(self, interaction: discord.Interaction):
-        if not self._ensure_perms(interaction):
+        if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
 
         try:
