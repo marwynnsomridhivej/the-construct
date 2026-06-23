@@ -73,6 +73,48 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.1.0-beta
+
+#### Added
+
+- Introduction of advanced player ranking system powered internally by [OpenSkill](https://openskill.me/en/stable/)
+  - Implement auto draft feature based on player skill
+  - Leaderboard rankings based on OpenSkill ordinal
+  - Win predictions appear on the match panel
+- UI/UX overhaul
+  - Prematch configuration now happens in an interactive message instead of a modal
+  - Added auto draft and map pool selection
+  - Match panel responsiveness increased by performing frontend operations first (editing text content),
+  enabling/disabling buttons, etc
+  - During team-specific voice channel teardown, all members connected to those voice channels will get moved,
+  regardless of whether or not they were an actual match participant or spectator
+- Added bot settings
+  - Configuration of bot administrators, bound text channel, and map pools
+  - Server owner can specify bot administrators that will inherit a similar permission level
+- Bot administrators
+  - Bot admainistrators can perform operations previously only limited to the queue owner and team captains,
+  such as MVP designation, results reporting, match panel reset, match panel cancel, etc.
+  - Bot administrators can perform management operations without requiring ownership of individual managed items,
+  like queue state, match starting, etc.
+- Bound text channel
+  - No need to specify what text channel the match thread will spawn in, instead bot administrators can set this
+  beforehand
+- Custom map pools
+  - Specify the larger set of maps the bot will choose from when a match is started
+  - Each server can have up to 10 custom map pools
+  - Bot admins can create, edit, and delete custom map pools
+
+#### Removed
+
+- Deprecation of legacy v1.x points-based player ranking system
+- Modal-based prematch configuration
+
+### 2.0.0-beta
+
+#### Added
+
+- Separation of leadearboards by queue type
+
 ### 1.0.1-beta
 
 #### Added
