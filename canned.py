@@ -37,7 +37,7 @@ class Canned(StrEnum):
     ERR_QUEUE_LOCKSTATE_U = "ERROR - The specified queue is already unlocked"
     ERR_QUEUE_PROGSTATE = "ERROR - The specified queue currently has a match in progress and cannot be modified"
     ERR_QUEUE_NO_LIST_RESULTS = "ERROR - Could not find any queues matching the specified criteria"
-    
+
     # R6 Prematch
     ERR_PREMATCH_NO_QUEUE = "ERROR - Please specify a queue"
     ERR_PREMATCH_NO_VC = "ERROR - Please specify a voice channel"
@@ -102,6 +102,7 @@ class Canned(StrEnum):
     R6DRAFT_RESET_DEFAULT = "Player draft, map bans, and starting side selection have been reset"
     R6DRAFT_DISCLAIMER = "-# *Only team captains and the queue owner can interact with the buttons below*"
     R6DRAFT_THREAD_CLEANUP = "Match contained within thread was finalised or canceled"
+    R6DRAFT_VC_CREATION = "Voice channels are being created for each team, and players will be moved to their appropriate voice channel momentarily"
 
     # R6 Draft - General Errors
     ERR_R6DRAFT_GEN_DRAFT = "ERROR - An error has occurred. Unable to draft player"
