@@ -1,4 +1,6 @@
-from typing import Dict, List, Tuple, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import discord
 
@@ -8,11 +10,14 @@ from queuemanager import QueueEntry, QueueType
 from settingsmanager import CustomMapPool
 from statsmanager import StatsPlayer, StatsSeason
 
+if TYPE_CHECKING:
+    from ui import R6View
+
 __all__ = (
     # Queue
     "QueueFilledPayload",
     # R6 Match
-    "PrematchPayload",
+    "MatchPayload",
     "PrematchDMPayload",
     "AutoDraftPayload",
     "DMDeletePayload",
@@ -57,12 +62,14 @@ class QueueFilledPayload(WrapperBase):
         }
 
 
-class PrematchPayload(WrapperBase):
+class MatchPayload(WrapperBase):
     __slots__ = (
         "__guild_id",
-        "__match_name",
         "__voice_channel_id",
         "__text_channel_id",
+        "__r6view_message_id",
+        "__r6view",
+        "__match_name",
         "__map_pool",
         "__auto_draft",
         "__captains",
@@ -72,9 +79,11 @@ class PrematchPayload(WrapperBase):
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
-        self.__match_name: str = data["match_name"]
         self.__voice_channel_id: int = data["voice_channel_id"]
         self.__text_channel_id: int = data["text_channel_id"]
+        self.__r6view_message_id: int = data.get("r6view_message_id")
+        self.__r6view: R6View = data.get("r6view")
+        self.__match_name: str = data["match_name"]
         self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
         self.__auto_draft: bool = data["auto_draft"]
         self.__captains: Tuple[int, int] = data["captains"]
@@ -88,16 +97,24 @@ class PrematchPayload(WrapperBase):
         return self.__guild_id
 
     @property
-    def match_name(self) -> str:
-        return self.__match_name
-
-    @property
     def voice_channel_id(self) -> int:
         return self.__voice_channel_id
 
     @property
     def text_channel_id(self) -> int:
         return self.__text_channel_id
+
+    @property
+    def r6view_message_id(self) -> int:
+        return self.__r6view_message_id
+
+    @property
+    def r6view(self) -> R6View:
+        return self.__r6view
+
+    @property
+    def match_name(self) -> str:
+        return self.__match_name
 
     @property
     def map_pool(self) -> CustomMapPool:
@@ -122,6 +139,12 @@ class PrematchPayload(WrapperBase):
     def switch_to_thread_channel(self, thread_id: int) -> None:
         self.__text_channel_id = thread_id
 
+    def set_r6view_message_id(self, message_id: int) -> None:
+        self.__r6view_message_id = message_id
+
+    def attach_r6view(self, r6view: R6View) -> None:
+        self.__r6view = r6view
+
     def attach_match_entry(self, match_entry: MatchEntry) -> None:
         self.__match_entry = match_entry
 
@@ -131,9 +154,11 @@ class PrematchPayload(WrapperBase):
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
-            "match_name": self.__match_name,
             "voice_channel_id": self.__voice_channel_id,
             "text_channel_id": self.__text_channel_id,
+            "r6view_message_id": self.r6view_message_id,
+            "r6view": self.__r6view,
+            "match_name": self.__match_name,
             "map_pool": self.__map_pool.serialise(),
             "auto_draft": self.__auto_draft,
             "captains": self.__captains,
@@ -142,7 +167,7 @@ class PrematchPayload(WrapperBase):
         }
 
 
-class PrematchDMPayload(PrematchPayload):
+class PrematchDMPayload(MatchPayload):
     __slots__ = ("__message",)
 
     def __init__(self, data: dict):
@@ -160,7 +185,7 @@ class PrematchDMPayload(PrematchPayload):
 
     @classmethod
     def from_prematch_payload(
-        cls, payload: PrematchPayload, message: discord.Message
+        cls, payload: MatchPayload, message: discord.Message
     ) -> "PrematchDMPayload":
         data = payload.serialise()
         data["message"] = message
@@ -318,6 +343,7 @@ class MatchFinalisedPayload(WrapperBase):
         "__lobby_vc_id",
         "__winning_team",
         "__losing_team",
+        "__r6view_message_id",
     )
 
     def __init__(self, data: dict):
@@ -328,6 +354,7 @@ class MatchFinalisedPayload(WrapperBase):
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__winning_team: MatchTeam = data["winning_team"]
         self.__losing_team: MatchTeam = data["losing_team"]
+        self.__r6view_message_id: int = data["r6view_message_id"]
 
     @property
     def guild_id(self) -> int:
@@ -361,6 +388,10 @@ class MatchFinalisedPayload(WrapperBase):
     def losing_team(self) -> MatchTeam:
         return self.__losing_team
 
+    @property
+    def r6view_message_id(self) -> int:
+        return self.__r6view_message_id
+
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
@@ -370,6 +401,7 @@ class MatchFinalisedPayload(WrapperBase):
             "lobby_vc_id": self.__lobby_vc_id,
             "winning_team": self.__winning_team,
             "losing_team": self.__losing_team,
+            "r6view_message_id": self.__r6view_message_id,
         }
 
     @classmethod
@@ -381,6 +413,7 @@ class MatchFinalisedPayload(WrapperBase):
         queue_type: QueueType,
         owner_id: int,
         match_entry: MatchEntry,
+        r6view_message_id: int,
     ) -> "MatchFinalisedPayload":
         return cls(
             {
@@ -391,6 +424,7 @@ class MatchFinalisedPayload(WrapperBase):
                 "lobby_vc_id": match_entry.voice_channel_id,
                 "winning_team": match_entry.winning_team,
                 "losing_team": match_entry.losing_team,
+                "r6view_message_id": r6view_message_id,
             }
         )
 

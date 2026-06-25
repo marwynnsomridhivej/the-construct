@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import random
 import traceback
 from decimal import Decimal
-from typing import Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import discord
 
@@ -10,13 +12,14 @@ from event import (
     DMDeletePayload,
     Event,
     MatchFinalisedPayload,
-    PrematchPayload,
+    MatchPayload,
     Reason,
     VCResetPayload,
 )
 from matchmanager import MatchEntry, MatchTeam, R6Map
 from queuemanager import QueueType
 from statsmanager import StatsPlayer
+from util import ephemeral
 
 from ..modals import (
     ConfirmationModal,
@@ -27,6 +30,9 @@ from ..modals import (
     R6SideModal,
 )
 from ..urls import R6URL
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 __all__ = (
     "R6View",
@@ -186,13 +192,13 @@ class R6ViewButtons(discord.ui.ActionRow):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
         # Check to ensure the player interacting with this button is the one that should be drafting
         if self.r6view.current_drafting_captain.id != interaction.user.id:
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_DRAFT_TURN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_DRAFT_TURN, **ephemeral()
             )
 
         draft_modal = R6DraftModal(view=self.r6view)
@@ -233,13 +239,13 @@ class R6ViewButtons(discord.ui.ActionRow):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
         # Draft order already initialised, can jump right in
         if self.r6view.current_map_banning_captain.id != interaction.user.id:
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_BAN_TURN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_BAN_TURN, **ephemeral()
             )
 
         map_ban_modal = R6MapBanModal(view=self.r6view)
@@ -285,12 +291,12 @@ class R6ViewButtons(discord.ui.ActionRow):
         # Only let team captains successfully interact
         if not self.is_captain(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
         if self.r6view.current_map_banning_captain.id != interaction.user.id:
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_SIDE, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_SIDE, **ephemeral()
             )
 
         side_modal = R6SideModal(view=self.r6view)
@@ -321,7 +327,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         # Allow bot admins and team captains to interact
         if not await self.can_interact(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
         captain_id = None
@@ -372,9 +378,7 @@ class R6ViewButtons(discord.ui.ActionRow):
     ):
         if not await self.can_admin_interact(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
-                ephemeral=True,
-                delete_after=5,
+                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN, **ephemeral()
             )
 
         result_modal = R6ResultModal(view=self.r6view)
@@ -415,8 +419,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
     ):
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
-                ephemeral=True,
+                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN, **ephemeral()
             )
 
         confirm_modal = ConfirmationModal(operation="reset")
@@ -431,7 +434,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
             button.disabled = True
             await interaction.message.edit(view=self.draft_row.r6view)
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_FINAL, **ephemeral()
             )
 
         await self.draft_row.reset_to_default(interaction)
@@ -454,9 +457,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
     ):
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN,
-                ephemeral=True,
-                delete_after=5,
+                Canned.ERR_R6DRAFT_OWNER_OR_ADMIN, **ephemeral()
             )
 
         confirm_modal = ConfirmationModal(operation="cancel")
@@ -471,7 +472,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
             button.disabled = True
             await interaction.message.edit(view=self.draft_row.r6view)
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_FINAL, ephemeral=True, delete_after=5
+                Canned.ERR_R6DRAFT_FINAL, **ephemeral()
             )
 
         # Disable all buttons in R6ViewButtons
@@ -507,9 +508,14 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
             VCResetPayload.create(
                 interaction.guild_id,
                 self.r6view.match.voice_channel_id,
-                [self.r6view.match.team_a, self.r6view.match.team_b],
+                self.r6view.teams,
                 self.r6view.match.type,
             ),
+        )
+
+        # Dispatch event to stop monitoring R6View message
+        self.r6view.bot.dispatch(
+            Event.UNREGISTER_MATCH_WATCH, self.r6view.payload.r6view_message_id
         )
 
         # Dispatch THREAD_CLEANUP event
@@ -517,15 +523,11 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
 
 
 class R6View(discord.ui.LayoutView):
-    def __init__(self, *, payload: PrematchPayload, match: MatchEntry, bot):
+    def __init__(self, *, payload: MatchPayload, match: MatchEntry, bot):
         super().__init__(timeout=None)
         self.payload = payload
         self.match = match
-
-        from bot import Bot
-
         self.bot: Bot = bot
-
         self.match_canceled = False
 
         # Attribute type hints
@@ -915,6 +917,7 @@ class R6View(discord.ui.LayoutView):
                     queue_type=self.match.type,
                     owner_id=self.payload.queue_entry.owner_id,
                     match_entry=self.match,
+                    r6view_message_id=self.payload.r6view_message_id,
                 ),
             )
             return True

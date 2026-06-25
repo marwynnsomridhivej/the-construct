@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from base import ManagerBase
-from event import AutoDraftPayload, PrematchPayload
+from event import AutoDraftPayload, MatchPayload
 
 from .enums import R6Map, R6Side
 from .match import MatchEntry, MatchTeam, MatchWrapper
@@ -27,7 +27,7 @@ class MatchManager(ManagerBase):
         return choice if team.captain_id == captain_id else flip[choice]
 
     async def create_match(
-        self, *, payload: PrematchPayload, auto_draft: AutoDraftPayload = None
+        self, *, payload: MatchPayload, auto_draft: AutoDraftPayload = None
     ) -> None:
         wrapper = await self._get_or_create_wrapper()
 
@@ -151,7 +151,7 @@ class MatchManager(ManagerBase):
         ).voice_channel_id = vc_id
         await self.write(wrapper)
 
-    async def reset_draft(self, guild_id: int, payload: PrematchPayload) -> None:
+    async def reset_draft(self, guild_id: int, payload: MatchPayload) -> None:
         wrapper = await self._get_or_create_wrapper()
         entry = wrapper.get(guild_id, throw=True).get(payload.match_name, throw=True)
         entry.reset_draft(auto_draft=payload.auto_draft)
