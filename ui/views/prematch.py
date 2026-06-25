@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import random
-from typing import Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import discord
 
 from canned import Canned
-from event import Event, PrematchPayload
+from event import Event, MatchPayload
 from exceptions import QueueProgressStateError
 from queuemanager import ALL_CAPT_SELECT_MODES, CaptSelect, QueueEntry, QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool, MapPoolName
 from statsmanager import StatsPlayer
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 __all__ = (
     "PrematchView",
@@ -22,9 +28,6 @@ class PrematchView(discord.ui.LayoutView):
 
         self.queues = queues
         self.pools = pools
-
-        from bot import Bot
-
         self.bot: Bot = bot
 
         # Component attributes
@@ -297,21 +300,17 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 raise ValueError(mode)
 
     async def submit_button_callback(self, interaction: discord.Interaction) -> None:
-        kwargs = {
-            "ephemeral": True,
-            "delete_after": 5,
-        }
 
         # Check if a queue has been specified
         if self.parent_view.queue is None:
             return await interaction.response.send_message(
-                Canned.ERR_PREMATCH_NO_QUEUE, **kwargs
+                Canned.ERR_PREMATCH_NO_QUEUE, **ephemeral()
             )
 
         # Check if a voice channel has been selected
         if self.parent_view.voice_channel_id is None:
             return await interaction.response.send_message(
-                Canned.ERR_PREMATCH_NO_VC, **kwargs
+                Canned.ERR_PREMATCH_NO_VC, **ephemeral()
             )
 
         # Check if manual captain select was filled correctly
@@ -319,13 +318,13 @@ class PrematchViewButtons(discord.ui.ActionRow):
             # Ensure only two users were selected
             if len(self.parent_view.manual_captain) != 2:
                 return await interaction.response.send_message(
-                    Canned.ERR_PREMATCH_MANUAL_CAPTAIN, **kwargs
+                    Canned.ERR_PREMATCH_MANUAL_CAPTAIN, **ephemeral()
                 )
 
             # Ensure no bots in selected users
             if any([user.bot for user in self.parent_view.manual_captain]):
                 return await interaction.response.send_message(
-                    Canned.ERR_PREMATCH_BOT_USER, **kwargs
+                    Canned.ERR_PREMATCH_BOT_USER, **ephemeral()
                 )
 
             # Ensure the users selected are in the player pool
@@ -334,7 +333,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 [user.id in player_ids for user in self.parent_view.manual_captain]
             ):
                 return await interaction.response.send_message(
-                    Canned.ERR_PREMATCH_INVALID_USER, **kwargs
+                    Canned.ERR_PREMATCH_INVALID_USER, **ephemeral()
                 )
 
         # Check if a text channel has been bound
@@ -345,14 +344,26 @@ class PrematchViewButtons(discord.ui.ActionRow):
         )
         if bound_text_channel_id is None:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_START_NO_TC_BOUND, **kwargs
+                Canned.ERR_MATCH_START_NO_TC_BOUND, **ephemeral()
             )
 
-        # Check if the bound text channel is still valid
+        # Check if the bound text channel exists
         bound_text_channel = interaction.guild.get_channel(bound_text_channel_id)
         if bound_text_channel is None:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_START_INVALID_TC, **kwargs
+                Canned.ERR_MATCH_START_INVALID_TC, **ephemeral()
+            )
+
+        # Check if the bot can send messages in the bound text channel
+        bot_member = interaction.guild.get_member(self.parent_view.bot.user.id)
+        can_send_messages_in_threads = (
+            bound_text_channel.permissions_for(bot_member).send_messages_in_threads
+            if bot_member
+            else False
+        )
+        if not can_send_messages_in_threads:
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_TC_PERMS, **ephemeral()
             )
 
         # Check if the queue entry can be started
@@ -366,7 +377,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 )
         except QueueProgressStateError:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_IN_PROGRESS, **kwargs
+                Canned.ERR_MATCH_IN_PROGRESS, **ephemeral()
             )
 
         # Delete the original message if all checks passed
@@ -394,8 +405,8 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 mode=self.parent_view.captain_mode,
             )
 
-        # Craft PrematchPayload
-        payload = PrematchPayload.parse(
+        # Craft MatchPayload
+        payload = MatchPayload.parse(
             {
                 "guild_id": interaction.guild_id,
                 "match_name": self.parent_view.queue,
@@ -411,7 +422,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
 
         # Dispatch PREMATCH_MODAL_DONE and send confirmation message
         await interaction.response.send_message(
-            Canned.MATCH_DM_CONF, ephemeral=True, delete_after=10
+            Canned.MATCH_DM_CONF, **ephemeral(seconds=10)
         )
         self.parent_view.bot.dispatch(Event.PREMATCH_MODAL_DONE, payload)
 

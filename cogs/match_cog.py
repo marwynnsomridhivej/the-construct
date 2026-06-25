@@ -1,23 +1,27 @@
+from __future__ import annotations
+
 from itertools import combinations
-from typing import Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING, Coroutine, Dict, List, Tuple
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from event import AutoDraftPayload, Event, PrematchDMPayload, PrematchPayload
+from event import AutoDraftPayload, Event, MatchPayload, PrematchDMPayload
 from matchmanager import R6_QUICKMATCH, R6_RANKED
 from queuemanager import QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
 from ui import MatchStartDMView, PrematchView, PrematchViewButtons, R6View
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 @app_commands.guild_only()
 class MatchCog(commands.GroupCog, name="match"):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -49,7 +53,7 @@ class MatchCog(commands.GroupCog, name="match"):
                 continue
 
     async def _perform_auto_draft(
-        self, payload: PrematchPayload
+        self, payload: MatchPayload
     ) -> Tuple[Tuple[int, int], Tuple[List[int], List[int]]]:
         players = [
             await self.bot.stats_manager.get_or_create_player(
@@ -104,7 +108,7 @@ class MatchCog(commands.GroupCog, name="match"):
 
         return (captains, non_captains)
 
-    async def _init_match_data(self, payload: PrematchPayload) -> None:
+    async def _init_match_data(self, payload: MatchPayload) -> None:
         # Correct for QueueType mismatch based on playercount
         if len(payload.queue_entry.players) == 2:
             payload.queue_entry.type = QueueType.R6_1V1
@@ -116,7 +120,7 @@ class MatchCog(commands.GroupCog, name="match"):
                 *await self._perform_auto_draft(payload)
             )
 
-        # Create match instance and attach it to the PrematchPayload
+        # Create match instance and attach it to the MatchPayload
         await self.bot.match_manager.create_match(
             payload=payload, auto_draft=auto_draft
         )
@@ -164,6 +168,15 @@ class MatchCog(commands.GroupCog, name="match"):
 
         # Send R6View to thread channel
         message = await thread_channel.send(view=r6view)
+
+        # Attach message ID and R6View instance to payload
+        payload.set_r6view_message_id(message.id)
+        payload.attach_r6view(r6view)
+
+        # Dispatch REGISTER_MATCH_WATCH event
+        self.bot.dispatch(Event.REGISTER_MATCH_WATCH, payload)
+
+        # Dispatch PREMATCH_DM_READY_SEND event
         self.bot.dispatch(
             Event.PREMATCH_DM_READY_SEND,
             PrematchDMPayload.from_prematch_payload(payload, message),
@@ -192,7 +205,7 @@ class MatchCog(commands.GroupCog, name="match"):
             await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             return await interaction.response.send_message(
-                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+                Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
             )
 
         # Check if user is bot admin or server owner
@@ -211,7 +224,7 @@ class MatchCog(commands.GroupCog, name="match"):
         }
         if not valid_owned_queues:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_START_QUEUES, ephemeral=True
+                Canned.ERR_MATCH_START_QUEUES, **ephemeral()
             )
 
         # Check if a text channel has been bound
@@ -222,14 +235,26 @@ class MatchCog(commands.GroupCog, name="match"):
         )
         if bound_text_channel_id is None:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_START_NO_TC_BOUND, ephemeral=True
+                Canned.ERR_MATCH_START_NO_TC_BOUND, **ephemeral()
             )
 
-        # Check if the bound text channel is still valid
+        # Check if the bound text channel exists
         tc = interaction.guild.get_channel(bound_text_channel_id)
         if tc is None:
             return await interaction.response.send_message(
-                Canned.ERR_MATCH_START_INVALID_TC, ephemeral=True
+                Canned.ERR_MATCH_START_INVALID_TC, **ephemeral()
+            )
+
+        # Check if the bot can send messages in the bound text channel
+        bot_member = interaction.guild.get_member(self.bot.user.id)
+        can_send_messages_in_threads = (
+            tc.permissions_for(bot_member).send_messages_in_threads
+            if bot_member
+            else False
+        )
+        if not can_send_messages_in_threads:
+            return await interaction.response.send_message(
+                Canned.ERR_MATCH_START_TC_PERMS, **ephemeral()
             )
 
         # Get all map pools created in the guild, custom and default
