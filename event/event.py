@@ -19,11 +19,17 @@ class Event(StrEnum):
     # Dispatched after cancel button was pressed to delete prematch DM message
     PREMATCH_DM_DELETE = "prematch_dm_delete"
 
+    # Dispatched after a match has been started to monitor the existence of the match panel
+    REGISTER_MATCH_WATCH = "register_match_watch"
+
     # Dispatched after the reset button was pressed
     RESET_BUTTON_PRESSED = "reset_button_pressed"
 
     # Dispatched after the cancel button was pressed to destroy temporary voice channels
     CANCEL_BUTTON_PRESSED = "cancel_button_pressed"
+
+    # Dispatch to remove a match panel from monitoring
+    UNREGISTER_MATCH_WATCH = "unregister_match_watch"
 
     # Dispatched after match has been finalised (win + mvp set for both teams)
     MATCH_FINALISED = "match_finalised"
