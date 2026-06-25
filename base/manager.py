@@ -58,15 +58,15 @@ class ManagerBase(ABC):
 
     @abstractmethod
     async def _get_or_create_wrapper(
-        self, *, cls: WrapperBase.__class__
-    ) -> WrapperBase:
+        self, *, cls: type[WrapperBase]
+    ) -> type[WrapperBase]:
         """Get wrapper from data, or create datafile if it doesn't exist. Must be overridden
 
         Args:
-            cls (WrapperBase.__class__): Class that inherits from WrapperBase
+            cls (type[WrapperBase]): Class that inherits from WrapperBase
 
         Returns:
-            WrapperBase: An instantiated wrapper
+            type[WrapperBase]: An instantiated wrapper of the provided class
         """
         try:
             data = await self.__get_wrapper_data()
