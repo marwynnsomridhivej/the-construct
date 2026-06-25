@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 
 from ...urls import R6URL
 from .settings_buttons import SettingsSelectButtons
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 class SettingsSelectView(discord.ui.LayoutView):
@@ -17,9 +24,6 @@ class SettingsSelectView(discord.ui.LayoutView):
         self.guild_id = guild_id
         self.user_id = user_id
         self.source_interaction = source_interaction
-
-        from bot import Bot
-
         self.bot: Bot = bot
 
         self.init_components()

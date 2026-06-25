@@ -1,10 +1,15 @@
-from typing import List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
 
 import discord
 
 from queuemanager import QueueType
 
 from .paginator import Paginator, PaginatorButtonRow
+
+if TYPE_CHECKING:
+    from statsmanager import StatsSeason
 
 __all__ = ("SeasonsListView",)
 
@@ -16,9 +21,6 @@ class SeasonsListView(Paginator):
             data=seasons,
             per_page=5,
         )
-
-        from statsmanager import StatsSeason
-
         self._seasons: List[StatsSeason] = seasons
 
     def paginate_text_display(self) -> List[discord.ui.Item]:

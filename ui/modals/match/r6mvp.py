@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import traceback
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import discord
 
 from canned import Canned
 from exceptions import MVPAlreadyAssigned
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from ...views import R6View
 
 __all__ = ("R6MVPModal",)
 
@@ -12,9 +18,6 @@ __all__ = ("R6MVPModal",)
 class R6MVPModal(discord.ui.Modal):
     def __init__(self, *, view, captain_id: int = None):
         super().__init__(title="Designate MVP")
-
-        from ...views import R6View
-
         self._r6view: R6View = view
 
         for item in self._init_components(captain_id):
@@ -56,7 +59,7 @@ class R6MVPModal(discord.ui.Modal):
             )
         except MVPAlreadyAssigned:
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_MVP_EXISTS, ephemeral=True
+                Canned.ERR_R6DRAFT_MVP_EXISTS, **ephemeral()
             )
 
         # Update local MatchEntry instance attached to R6View

@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import discord
 
 from .paginator import Paginator, PaginatorButtonRow
+
+if TYPE_CHECKING:
+    from queuemanager import QueueType
+    from statsmanager import StatsPlayer, StatsSeason
 
 __all__ = ("LeaderboardView",)
 
@@ -18,20 +24,12 @@ class LeaderboardView(Paginator):
             per_page=8,
         )
 
-        from queuemanager import QueueType
-        from statsmanager import StatsPlayer, StatsSeason
-
         self._season: StatsSeason = season
         self._data: List[Tuple[int, StatsPlayer]] = rankings
         self.queue_type: QueueType = queue_type
         self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
-    def _get_rating_text(self, player) -> str:
-        # Typehints
-        from statsmanager import StatsPlayer
-
-        assert isinstance(player, StatsPlayer)
-
+    def _get_rating_text(self, player: StatsPlayer) -> str:
         # Refer to appropriate rating metrics
         _current, _max = (
             (player.rating, player.max_rating)

@@ -1,10 +1,19 @@
+from __future__ import annotations
+
 import traceback
+from typing import TYPE_CHECKING
 
 import discord
 
 from canned import Canned
+from util import ephemeral
 
 from ..feedback_type import FEEDBACK_TYPES, FeedbackType
+
+if TYPE_CHECKING:
+    from bot import Bot
+
+    from ..views import FeedbackView
 
 __all__ = ("FeedbackModal",)
 
@@ -12,11 +21,7 @@ __all__ = ("FeedbackModal",)
 class FeedbackModal(discord.ui.Modal):
     def __init__(self, *, bot):
         super().__init__(title="Feedback Submission Form")
-
-        from bot import Bot
-
         self.bot: Bot = bot
-
         self.init_components()
 
     def init_components(self) -> None:
@@ -50,8 +55,6 @@ class FeedbackModal(discord.ui.Modal):
         assert isinstance(self.feedback_type.component, discord.ui.RadioGroup)
         assert isinstance(self.feedback_content.component, discord.ui.TextInput)
 
-        from ..views import FeedbackView
-
         feedback_view = FeedbackView(
             feedback_type=FeedbackType(self.feedback_type.component.value),
             content=self.feedback_content.component.value,
@@ -66,7 +69,9 @@ class FeedbackModal(discord.ui.Modal):
                 allowed_mentions=discord.AllowedMentions.none(),
             )
 
-        await interaction.response.send_message(Canned.FEEDBACK_CONF, ephemeral=True)
+        await interaction.response.send_message(
+            Canned.FEEDBACK_CONF, **ephemeral(seconds=10)
+        )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         self.bot.logger.error(

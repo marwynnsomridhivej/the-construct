@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 
 from base import SettingsBaseView
+
+if TYPE_CHECKING:
+    from .settings_buttons import SettingsGeneralButtons
 
 
 class SettingsGeneralView(SettingsBaseView):
@@ -13,8 +20,6 @@ class SettingsGeneralView(SettingsBaseView):
         parent_view: discord.ui.LayoutView,
         bot,
     ):
-        from .settings_buttons import SettingsGeneralButtons
-
         super().__init__(
             guild_id=guild_id,
             user_id=user_id,

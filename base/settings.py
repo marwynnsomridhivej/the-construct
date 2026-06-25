@@ -1,6 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import discord
+
+if TYPE_CHECKING:
+    from bot import Bot
+    from ui import R6URL
 
 __all__ = (
     "SettingsBaseView",
@@ -25,9 +32,6 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         self.source_interaction = source_interaction
         self.button_cls = button_cls
         self.parent_view = parent_view
-
-        from bot import Bot
-
         self.bot: Bot = bot
 
         # Will be changed in init_components
@@ -38,8 +42,6 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
 
     async def init_components(self) -> None:
         # Prep section with text and thumbnail
-        from ui import R6URL
-
         guild_icon = self.bot.get_guild(self.guild_id).icon
         section = discord.ui.Section(
             discord.ui.TextDisplay(await self.get_text_content()),

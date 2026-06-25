@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import traceback
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import discord
 
 from canned import Canned
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 __all__ = ("SeasonStartModal",)
 
@@ -11,9 +16,6 @@ __all__ = ("SeasonStartModal",)
 class SeasonStartModal(discord.ui.Modal):
     def __init__(self, *, bot):
         super().__init__(title="Start Season")
-
-        from bot import Bot
-
         self.bot: Bot = bot
 
         # Check this for the finalised name

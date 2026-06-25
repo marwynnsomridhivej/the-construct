@@ -1,4 +1,6 @@
-from typing import Coroutine, Dict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Coroutine, Dict
 
 import discord
 from discord import app_commands
@@ -8,13 +10,15 @@ from canned import Canned
 from event import Event, PlayerStatsResetPayload
 from queuemanager import QueueType
 from ui import ConfirmationModal, PlayerStatsDeleteDMView, PlayerStatsResetDMView
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 @app_commands.guild_only()
 class PlayerCog(commands.GroupCog, name="player"):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -69,12 +73,12 @@ class PlayerCog(commands.GroupCog, name="player"):
                 interaction.user.id,
             )
         ):
-            await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
+            await interaction.response.send_message(Canned.ERR_PERMS, **ephemeral())
             return False
 
         # Ensure specified member is not a bot user
         if member.bot:
-            await interaction.response.send_message(Canned.ERR_BOT_USER, ephemeral=True)
+            await interaction.response.send_message(Canned.ERR_BOT_USER, **ephemeral())
             return False
 
         # Ensure there is an active season
@@ -82,7 +86,7 @@ class PlayerCog(commands.GroupCog, name="player"):
             await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
         except ValueError:
             await interaction.response.send_message(
-                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+                Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
             )
             return False
 
@@ -92,7 +96,7 @@ class PlayerCog(commands.GroupCog, name="player"):
         )
         if not any([player.id == member.id for player in all_players]):
             await interaction.response.send_message(
-                Canned.ERR_STATS_PLAYER_NO_RANKED, ephemeral=True
+                Canned.ERR_STATS_PLAYER_NO_RANKED, **ephemeral()
             )
             return False
 

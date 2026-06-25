@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import traceback
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import discord
 
@@ -7,16 +9,15 @@ from canned import Canned
 from exceptions import RoundsWonTeamWonMismatch
 from matchmanager import MatchTeam
 
+if TYPE_CHECKING:
+    from ...views import R6View
+
 __all__ = ("R6ResultModal",)
 
 
 class R6ResultModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Report Results")
-
-        # Reference parent view
-        from ...views import R6View
-
         self.r6view: R6View = view
 
         # Typehints
@@ -51,7 +52,7 @@ class R6ResultModal(discord.ui.Modal):
         self.team_a_rounds_won, self.team_b_rounds_won = [
             discord.ui.Label(
                 text=f"Rounds Won - Team {self.get_captain_name(team)}",
-                description=f"Enter how many rounds this team won",
+                description="Enter how many rounds this team won",
                 component=discord.ui.TextInput(
                     min_length=1,
                     max_length=2,

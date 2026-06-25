@@ -1,4 +1,6 @@
-from typing import List, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Union
 
 import discord
 
@@ -13,9 +15,12 @@ from ui import (
     SettingsMapPoolEditModal,
     SettingsSetAdminModal,
 )
+from util import ephemeral
 
-from .settings_general import SettingsGeneralView
-from .settings_map_pool import SettingsMapPoolView
+if TYPE_CHECKING:
+    from .settings_general import SettingsGeneralView
+    from .settings_map_pool import SettingsMapPoolView
+    from .settings_select import SettingsSelectView
 
 __all__ = (
     # Select which setting category
@@ -29,9 +34,6 @@ __all__ = (
 class SettingsSelectButtons(SettingsBaseButtons):
     def __init__(self, *, view):
         super().__init__(view=view)
-
-        from .settings_select import SettingsSelectView
-
         self.parent_view: SettingsSelectView
 
     @discord.ui.button(
@@ -84,9 +86,6 @@ class SettingsSelectButtons(SettingsBaseButtons):
 class SettingsGeneralButtons(SettingsBaseButtons):
     def __init__(self, *, view, show_admin_buttons: bool = False):
         super().__init__(view=view, show_admin_buttons=show_admin_buttons)
-
-        from .settings_general import SettingsGeneralView
-
         self.parent_view: SettingsGeneralView
 
         self.init_buttons()
@@ -191,9 +190,6 @@ class SettingsGeneralButtons(SettingsBaseButtons):
 class SettingsMapPoolButtons(SettingsBaseButtons):
     def __init__(self, *, view, show_admin_buttons: bool = False):
         super().__init__(view=view, show_admin_buttons=show_admin_buttons)
-
-        from .settings_map_pool import SettingsMapPoolView
-
         self.parent_view: SettingsMapPoolView
 
         self.init_buttons()
@@ -242,7 +238,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
             interaction.guild_id
         ):
             return await interaction.response.send_message(
-                Canned.ERR_SETTINGS_MAP_POOL_CAP, ephemeral=True
+                Canned.ERR_SETTINGS_MAP_POOL_CAP, **ephemeral()
             )
 
         # Display create modal and wait until it is finished
@@ -280,9 +276,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         name = self.parent_view.get_selected_map_pool_name()
         if not name:
             return await interaction.response.send_message(
-                Canned.ERR_SETTINGS_MAP_POOL_MANAGE_NO_NAME,
-                ephemeral=True,
-                delete_after=10,
+                Canned.ERR_SETTINGS_MAP_POOL_MANAGE_NO_NAME, **ephemeral(seconds=10)
             )
 
         # Edit the specified map pool instance and wait until interaction completes
@@ -353,9 +347,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         name = self.parent_view.get_selected_map_pool_name()
         if not name:
             return await interaction.response.send_message(
-                Canned.ERR_SETTINGS_MAP_POOL_MANAGE_NO_NAME,
-                ephemeral=True,
-                delete_after=10,
+                Canned.ERR_SETTINGS_MAP_POOL_MANAGE_NO_NAME, **ephemeral(seconds=10)
             )
 
         # Send delete modal and wait until interaction completes
@@ -394,9 +386,6 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
 class SettingsMapPoolSelectRow(SettingsBaseButtons):
     def __init__(self, *, view, names: List[str]):
         super().__init__(view=view)
-
-        from .settings_map_pool import SettingsMapPoolView
-
         self.parent_view: SettingsMapPoolView
 
         self.name_select = discord.ui.Select(

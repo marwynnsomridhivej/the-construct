@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import traceback
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import discord
 
@@ -7,6 +9,10 @@ from canned import Canned
 from exceptions import InvalidMapPoolName
 from matchmanager import R6_QUICKMATCH, R6Map
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, PER_MAP_POOL_LIMIT, CustomMapPool
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 __all__ = (
     "SettingsMapPoolCreateModal",
@@ -17,11 +23,7 @@ __all__ = (
 class SettingsMapPoolCreateModal(discord.ui.Modal):
     def __init__(self, bot):
         super().__init__(title="Create Custom Map Pool")
-
-        from bot import Bot
-
         self.__bot: Bot = bot
-
         self.is_valid = True
         self.name: str = None
         self.maps: List[R6Map] = None
@@ -77,7 +79,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         if isinstance(error, InvalidMapPoolName):
             await interaction.response.send_message(
-                Canned.ERR_SETTINGS_CREATE_MAP_POOL_NAME, ephemeral=True
+                Canned.ERR_SETTINGS_CREATE_MAP_POOL_NAME, **ephemeral()
             )
         else:
             self.__bot.logger.error(
@@ -85,7 +87,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
             )
             traceback.print_exception(type(error), error, error.__traceback__)
             await interaction.response.send_message(
-                Canned.ERR_SETTINGS_CREATE_MAP_POOL, ephemeral=True
+                Canned.ERR_SETTINGS_CREATE_MAP_POOL, **ephemeral()
             )
 
         self.is_valid = False
@@ -95,13 +97,8 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
 class SettingsMapPoolEditModal(discord.ui.Modal):
     def __init__(self, bot, previous: CustomMapPool):
         super().__init__(title="Edit Custom Map Pool")
-
-        from bot import Bot
-
         self.__bot: Bot = bot
-
         self.previous = previous
-
         self.is_valid = True
         self.name: str = None
         self.maps: List[R6Map] = None
@@ -165,7 +162,7 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
         traceback.print_exception(type(error), error, error.__traceback__)
 
         await interaction.response.send_message(
-            Canned.ERR_SETTINGS_CREATE_MAP_POOL, ephemeral=True
+            Canned.ERR_SETTINGS_CREATE_MAP_POOL, **ephemeral()
         )
         self.is_valid = False
         self.stop()

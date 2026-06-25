@@ -1,4 +1,6 @@
-from typing import Coroutine, Dict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Coroutine, Dict
 
 import discord
 from discord import app_commands
@@ -8,13 +10,15 @@ from canned import Canned
 from event import Event, SeasonEndPayload
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 from ui import ConfirmationModal, SeasonEndDMView, SeasonsListView, SeasonStartModal
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 @app_commands.guild_only()
 class SeasonCog(commands.GroupCog, name="season"):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -69,7 +73,7 @@ class SeasonCog(commands.GroupCog, name="season"):
     async def _start_season(self, interaction: discord.Interaction):
         if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_PERMS, ephemeral=True
+                Canned.ERR_PERMS, **ephemeral()
             )
 
         try:
@@ -81,7 +85,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         else:
             # If no errors, means season exists, so we send error message here
             return await interaction.response.send_message(
-                Canned.ERR_SEASON_EXISTS, ephemeral=True
+                Canned.ERR_SEASON_EXISTS, **ephemeral()
             )
 
         season_start_modal = SeasonStartModal(bot=self.bot)
@@ -114,7 +118,7 @@ class SeasonCog(commands.GroupCog, name="season"):
     async def _stop_season(self, interaction: discord.Interaction):
         if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(
-                Canned.ERR_PERMS, ephemeral=True
+                Canned.ERR_PERMS, **ephemeral()
             )
 
         try:
@@ -123,7 +127,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         except ValueError:
             # If no season, send error message
             return await interaction.response.send_message(
-                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+                Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
             )
 
         season_end_modal = ConfirmationModal(

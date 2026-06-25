@@ -1,15 +1,21 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
 from ui import FeedbackModal
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 class ReportsCog(commands.Cog):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -31,7 +37,7 @@ class ReportsCog(commands.Cog):
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(
                 Canned.ERR_COOLDOWN.format(int(error.cooldown.get_retry_after())),
-                ephemeral=True,
+                **ephemeral(),
             )
 
 

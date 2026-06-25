@@ -1,9 +1,14 @@
-from typing import Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Union
 
 import discord
 
 from base import SettingsBaseView
 from settingsmanager import PER_GUILD_MAP_POOL_LIMIT
+
+if TYPE_CHECKING:
+    from .settings_buttons import SettingsMapPoolButtons, SettingsMapPoolSelectRow
 
 
 class SettingsMapPoolView(SettingsBaseView):
@@ -16,8 +21,6 @@ class SettingsMapPoolView(SettingsBaseView):
         parent_view: discord.ui.LayoutView,
         bot,
     ):
-        from .settings_buttons import SettingsMapPoolButtons
-
         super().__init__(
             guild_id=guild_id,
             user_id=user_id,
@@ -39,8 +42,6 @@ class SettingsMapPoolView(SettingsBaseView):
 
             # If the server has custom map pools, show pool selector
             if pool_names:
-                from .settings_buttons import SettingsMapPoolSelectRow
-
                 self.map_pool_name_select = SettingsMapPoolSelectRow(
                     view=self,
                     names=pool_names,

@@ -1,16 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 
 from base import ManagerBase
 
 from .dm import DMWrapper
 
+if TYPE_CHECKING:
+    from bot import Bot
+
 
 class DMManager(ManagerBase):
     def __init__(self, dm_loc: str, bot):
         super().__init__(dm_loc, "dms")
-
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def load(self):

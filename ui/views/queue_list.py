@@ -1,8 +1,13 @@
-from typing import List, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Tuple
 
 import discord
 
 from .paginator import Paginator, PaginatorButtonRow
+
+if TYPE_CHECKING:
+    from queuemanager import QueueEntry
 
 __all__ = ("QueueListView",)
 
@@ -22,12 +27,7 @@ class QueueListView(Paginator):
             per_page=per_page,
             timeout=None,
         )
-
-        # Type hints
-        from queuemanager import QueueEntry
-
         self._data: List[Tuple[str, QueueEntry]] = data
-
         self.criteria = criteria
 
     def paginate_text_display(self) -> List[discord.ui.Item]:

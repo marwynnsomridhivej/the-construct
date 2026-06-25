@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import traceback
-from typing import Coroutine, Dict, List, Optional
+from typing import TYPE_CHECKING, Coroutine, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -23,12 +25,13 @@ from exceptions import (
 from queuemanager import QueueEntry, QueueType
 from ui import QueueFilledDMView, QueueListView
 
+if TYPE_CHECKING:
+    from bot import Bot
+
 
 @app_commands.guild_only()
 class QueueCog(commands.GroupCog, name="queue"):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -233,7 +236,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         lockable_queues = [
             name
             for name, entry in queues.items()
-            if entry.locked == False and interaction.user.id == entry.owner_id
+            if not entry.locked and interaction.user.id == entry.owner_id
         ]
         return self.get_sorted_choices(lockable_queues, current)
 
@@ -269,7 +272,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         unlockable_queues = [
             name
             for name, entry in queues.items()
-            if entry.locked == True and interaction.user.id == entry.owner_id
+            if entry.locked and interaction.user.id == entry.owner_id
         ]
         return self.get_sorted_choices(unlockable_queues, current)
 

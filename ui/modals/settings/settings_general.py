@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import traceback
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import discord
 
 from canned import Canned
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 __all__ = (
     "SettingsSetAdminModal",
@@ -15,11 +21,7 @@ class SettingsSetAdminModal(discord.ui.Modal):
     def __init__(self, bot, previous: List[int]):
         super().__init__(title="Set Admins")
         self.previous = previous
-
-        from bot import Bot
-
         self.__bot: Bot = bot
-
         self.admins: List[int] = None
         self.is_valid = True
 
@@ -59,7 +61,7 @@ class SettingsSetAdminModal(discord.ui.Modal):
         traceback.print_exception(type(error), error, error.__traceback__)
 
         await interaction.response.send_message(
-            Canned.ERR_SETTINGS_SET_ADMIN, ephemeral=True
+            Canned.ERR_SETTINGS_SET_ADMIN, **ephemeral()
         )
         self.is_valid = False
         self.stop()
@@ -69,11 +71,7 @@ class SettingsBindTextChannelModal(discord.ui.Modal):
     def __init__(self, bot, previous: int):
         super().__init__(title="Bind Text Channel")
         self.previous = previous
-
-        from bot import Bot
-
         self.__bot: Bot = bot
-
         self.channel_id: int = None
         self.is_valid = True
 
@@ -107,7 +105,7 @@ class SettingsBindTextChannelModal(discord.ui.Modal):
         ):
             self.is_valid = False
             return await interaction.response.send_message(
-                Canned.ERR_SETTINGS_BIND_CHANNEL_PERMS, ephemeral=True
+                Canned.ERR_SETTINGS_BIND_CHANNEL_PERMS, **ephemeral()
             )
 
         self.channel_id = channel.id
@@ -119,7 +117,7 @@ class SettingsBindTextChannelModal(discord.ui.Modal):
         traceback.print_exception(type(error), error, error.__traceback__)
 
         await interaction.response.send_message(
-            Canned.ERR_SETTINGS_BIND_CHANNEL, ephemeral=True
+            Canned.ERR_SETTINGS_BIND_CHANNEL, **ephemeral()
         )
         self.is_valid = False
         self.stop()

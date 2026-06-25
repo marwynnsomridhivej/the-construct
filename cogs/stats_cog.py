@@ -1,4 +1,6 @@
-from typing import Coroutine, Dict, List, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Coroutine, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -9,12 +11,14 @@ from canned import Canned
 from event import Event, MatchFinalisedPayload
 from queuemanager import QueueType
 from ui import LeaderboardView
+from util import ephemeral
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 class StatsCog(commands.Cog):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
 
     async def cog_load(self):
@@ -121,7 +125,7 @@ class StatsCog(commands.Cog):
                 await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             return await interaction.response.send_message(
-                Canned.ERR_SEASON_NO_EXISTS, ephemeral=True
+                Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
             )
 
         # Ensure we have rankings and the season isn't empty (aka stats exist)
@@ -131,12 +135,12 @@ class StatsCog(commands.Cog):
             )
         except ValueError:
             return await interaction.response.send_message(
-                Canned.ERR_STATS_INVALID_SEASON_NAME, ephemeral=True
+                Canned.ERR_STATS_INVALID_SEASON_NAME, **ephemeral()
             )
         else:
             if not ranked_players:
                 return await interaction.response.send_message(
-                    Canned.ERR_STATS_NO_PLAYERS, ephemeral=True
+                    Canned.ERR_STATS_NO_PLAYERS, **ephemeral()
                 )
 
         lbview = LeaderboardView(

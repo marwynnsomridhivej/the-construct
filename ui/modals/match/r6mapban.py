@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import random
 import traceback
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import discord
 
 from canned import Canned
 from matchmanager import R6Map
+
+if TYPE_CHECKING:
+    from ...views import R6View
 
 __all__ = ("R6MapBanModal",)
 
@@ -13,9 +18,6 @@ __all__ = ("R6MapBanModal",)
 class R6MapBanModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Ban Map")
-
-        from ...views import R6View
-
         self.r6view: R6View = view
 
         for item in self.init_components():

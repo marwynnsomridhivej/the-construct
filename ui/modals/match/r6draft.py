@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import traceback
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import discord
 
 from canned import Canned
+
+if TYPE_CHECKING:
+    from ...views import R6View
 
 __all__ = ("R6DraftModal",)
 
@@ -11,9 +16,6 @@ __all__ = ("R6DraftModal",)
 class R6DraftModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Draft Player")
-
-        from ...views import R6View
-
         self.r6view: R6View = view
 
         for item in self.init_components():
