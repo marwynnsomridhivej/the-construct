@@ -59,6 +59,7 @@ class Canned(StrEnum):
     ERR_MATCH_START_QUEUES = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
     ERR_MATCH_START_NO_TC_BOUND = "ERROR - Unable to start a match, as the text channel for creating the thread has not been bound"
     ERR_MATCH_START_INVALID_TC = "ERROR - Unable to start a match, as the currently bound text channel was unable to be found"
+    ERR_MATCH_START_TC_PERMS = "ERROR - Unable to start a match, as the bot cannot send messages in threads created in the bound text channel"
     ERR_MATCH_IN_PROGRESS = "ERROR - This match is already in progress"
     ERR_MATCH_SEASON = "ERROR - There is no active season in this server. Create an active season with `/season start`"
     MATCH_DM_CONF = (
