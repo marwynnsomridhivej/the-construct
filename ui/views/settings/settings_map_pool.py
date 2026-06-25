@@ -7,8 +7,13 @@ import discord
 from base import SettingsBaseView
 from settingsmanager import PER_GUILD_MAP_POOL_LIMIT
 
+from .buttons import SettingsMapPoolButtons, SettingsMapPoolSelectRow
+
 if TYPE_CHECKING:
-    from .settings_buttons import SettingsMapPoolButtons, SettingsMapPoolSelectRow
+    from bot import Bot
+
+
+__all__ = ("SettingsMapPoolView",)
 
 
 class SettingsMapPoolView(SettingsBaseView):
@@ -19,7 +24,7 @@ class SettingsMapPoolView(SettingsBaseView):
         user_id: int,
         source_interaction: discord.Interaction,
         parent_view: discord.ui.LayoutView,
-        bot,
+        bot: Bot,
     ):
         super().__init__(
             guild_id=guild_id,

@@ -6,8 +6,12 @@ import discord
 
 from base import SettingsBaseView
 
+from .buttons import SettingsGeneralButtons
+
 if TYPE_CHECKING:
-    from .settings_buttons import SettingsGeneralButtons
+    from bot import Bot
+
+__all__ = ("SettingsGeneralView",)
 
 
 class SettingsGeneralView(SettingsBaseView):
@@ -18,7 +22,7 @@ class SettingsGeneralView(SettingsBaseView):
         user_id: int,
         source_interaction: discord.Interaction,
         parent_view: discord.ui.LayoutView,
-        bot,
+        bot: Bot,
     ):
         super().__init__(
             guild_id=guild_id,
