@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import traceback
-from typing import Coroutine, Dict, List
+from typing import TYPE_CHECKING, Coroutine, Dict, List
 
 import discord
 from discord.ext import commands
@@ -9,7 +11,7 @@ from event import (
     DMDeletePayload,
     Event,
     MatchFinalisedPayload,
-    PrematchPayload,
+    MatchPayload,
     Reason,
     VCResetPayload,
 )
@@ -23,19 +25,23 @@ from exceptions import (
 )
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 
+if TYPE_CHECKING:
+    from bot import Bot
+
 
 class MonitoringCog(commands.Cog):
     def __init__(self, bot):
-        from bot import Bot
-
         self.bot: Bot = bot
+        self.r6view_to_watch: Dict[int, MatchPayload] = {}
 
     async def cog_load(self):
         _handlers: Dict[Coroutine, Event] = {
             # Custom Events
+            self.register_r6view_to_watch: Event.REGISTER_MATCH_WATCH,
+            self.unregister_r6view_to_watch: Event.UNREGISTER_MATCH_WATCH,
             self.queue_match_cleanup: Event.MATCH_FINALISED,
             self.delete_vcs: Event.MATCH_FINALISED,
-            self.delete_dms: Event.MATCH_FINALISED,
+            self.delete_dms_after_match: Event.MATCH_FINALISED,
             self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
             self.increment_match_count: Event.MATCH_FINALISED,
             self.thread_cleanup: Event.THREAD_CLEANUP,
@@ -43,15 +49,16 @@ class MonitoringCog(commands.Cog):
             self.vc_delete_reset_cancel: Event.CANCEL_BUTTON_PRESSED,
             # DPY Events
             self._on_raw_member_remove: "raw_member_remove",
+            self._on_raw_message_delete: "raw_message_delete",
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
         self.bot.logger.info("[MonitoringCog] Successfully loaded")
 
-    # =============================================
-    # ================CUSTOM EVENTS================
-    # =============================================
+    # ==============================================
+    # ===============HELPER FUNCTIONS===============
+    # ==============================================
 
     async def _move_everyone_to_lobby_vc(
         self, temp_vc_id: int, lobby_vc_id: int, reason: Reason
@@ -63,7 +70,12 @@ class MonitoringCog(commands.Cog):
             return
 
         for member in temp_vc.members:
-            await member.move_to(lobby_vc, reason=reason)
+            try:
+                await member.move_to(lobby_vc, reason=reason)
+            except discord.HTTPException:
+                self.bot.logger.error(
+                    f"Could not move member {member.display_name} ({member.id}) to lobby voice channel {lobby_vc_id}"
+                )
 
     async def _delete_dms(self, guild_id: int, players: List[int]) -> None:
         for player in players:
@@ -93,6 +105,20 @@ class MonitoringCog(commands.Cog):
                 )
                 traceback.print_exception(type(e), e, e.__traceback__)
 
+    # =============================================
+    # ================CUSTOM EVENTS================
+    # =============================================
+
+    async def register_r6view_to_watch(self, payload: MatchPayload) -> None:
+        # Add payload to match panels to watch so the bot can detect
+        # prematurely deleted R6View panels
+        self.r6view_to_watch[payload.r6view_message_id] = payload
+
+    async def unregister_r6view_to_watch(self, message_id: int) -> None:
+        # Remove the payload associated with the provided message_id if one exists
+        if message_id in self.r6view_to_watch.keys():
+            del self.r6view_to_watch[message_id]
+
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
         # Don't do anything if it is a 1v1, since no separate VCs were created
         if payload.queue_type == QueueType.R6_1V1:
@@ -106,12 +132,19 @@ class MonitoringCog(commands.Cog):
                     Reason.MATCH_FINALISED_LOBBY_MOVE,
                 )
             except discord.HTTPException:
-                pass
+                self.bot.logger.error(
+                    f"Unable to move voice clients from voice channel ID {team.voice_channel_id} to {payload.lobby_vc_id}"
+                )
 
             # After moving everyone, THEN delete the VC
-            await self.bot.get_channel(team.voice_channel_id).delete(
-                reason=Reason.MATCH_FINALISED_DEL_TEMP
-            )
+            try:
+                await self.bot.get_channel(team.voice_channel_id).delete(
+                    reason=Reason.MATCH_FINALISED_DEL_TEMP
+                )
+            except discord.HTTPException:
+                self.bot.logger.error(
+                    f"Unable to delete the voice channel with ID: {team.voice_channel_id}"
+                )
 
     async def queue_match_cleanup(self, payload: MatchFinalisedPayload) -> None:
         await self.bot.queue_manager.delete_queue(
@@ -123,8 +156,9 @@ class MonitoringCog(commands.Cog):
             payload.guild_id,
             payload.name,
         )
+        del self.r6view_to_watch[payload.r6view_message_id]
 
-    async def delete_dms(self, payload: MatchFinalisedPayload) -> None:
+    async def delete_dms_after_match(self, payload: MatchFinalisedPayload) -> None:
         for team in payload.teams:
             await self._delete_dms(payload.guild_id, team.players)
 
@@ -136,18 +170,23 @@ class MonitoringCog(commands.Cog):
             payload.guild_id, queue_type=payload.queue_type
         )
 
-    async def thread_cleanup(self, payload: PrematchPayload) -> None:
+    async def thread_cleanup(self, payload: MatchPayload) -> None:
         thread_channel: discord.Thread = self.bot.get_channel(payload.text_channel_id)
         if not isinstance(thread_channel, discord.Thread):
             self.bot.logger.error(
                 f"Could not find thread channel with ID {payload.text_channel_id}"
             )
 
-        await thread_channel.edit(
-            archived=True,
-            locked=True,
-            reason=Canned.R6DRAFT_THREAD_CLEANUP,
-        )
+        try:
+            await thread_channel.edit(
+                archived=True,
+                locked=True,
+                reason=Canned.R6DRAFT_THREAD_CLEANUP,
+            )
+        except discord.HTTPException:
+            self.bot.logger.error(
+                f"Unable to lock and archive the thread channel with ID {payload.text_channel_id}"
+            )
 
     async def reset_move_back(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
@@ -168,7 +207,13 @@ class MonitoringCog(commands.Cog):
             team_voice_channel = self.bot.get_channel(team.voice_channel_id)
             if team_voice_channel is None:
                 continue
-            await team_voice_channel.delete(reason=Reason.VC_DECONSTRUCT)
+
+            try:
+                await team_voice_channel.delete(reason=Reason.VC_DECONSTRUCT)
+            except discord.HTTPException:
+                self.bot.logger.error(
+                    f"Unable to delete the team voice channel with ID: {team.voice_channel_id}"
+                )
 
     # =============================================
     # =================DPY EVENTS==================
@@ -222,6 +267,72 @@ class MonitoringCog(commands.Cog):
                 pass
             except PlayerDoesNotExist:
                 pass
+
+    async def _on_raw_message_delete(
+        self, event_payload: discord.RawMessageDeleteEvent
+    ) -> None:
+        # If the message ID isn't one that was watched, disregard
+        if event_payload.message_id not in self.r6view_to_watch.keys():
+            return
+
+        # Try to get the channel the message was deleted in (should be thread)
+        channel = self.bot.get_channel(event_payload.channel_id)
+
+        # Skip if channel could not be found for any reason
+        if channel is None:
+            return
+
+        # Acquire the associated data payload
+        data_payload = self.r6view_to_watch[event_payload.message_id]
+
+        # Try to resend the R6View its state up until the message deletion
+        try:
+            message = await channel.send(view=data_payload.r6view)
+        except discord.HTTPException:
+            # If for any reason the message cannot be sent cancel the match
+            await self.bot.match_manager.delete_match(
+                data_payload.guild_id,
+                data_payload.match_name,
+            )
+
+            # Then set the progress and lock states back to False
+            await self.bot.queue_manager.set_progress_state(
+                data_payload.guild_id,
+                data_payload.match_name,
+                False,
+            )
+            await self.bot.queue_manager.set_queue_lock_state(
+                data_payload.guild_id,
+                0,
+                data_payload.match_name,
+                False,
+                admin=True,
+            )
+
+            # Set match canceled in R6View to True and stop responding to interactions
+            data_payload.r6view.match_canceled = True
+            data_payload.r6view.stop()
+
+            # Teardown any created voice channels
+            self.bot.dispatch(
+                Event.CANCEL_BUTTON_PRESSED,
+                VCResetPayload.create(
+                    data_payload.guild_id,
+                    data_payload.match_entry.voice_channel_id,
+                    data_payload.r6view.teams,
+                    data_payload.r6view.match.type,
+                ),
+            )
+
+            # Clean up the thread
+            self.bot.dispatch(Event.THREAD_CLEANUP, data_payload)
+        else:
+            # If message sending was successful, watch it
+            data_payload.set_r6view_message_id(message.id)
+            self.bot.dispatch(Event.REGISTER_MATCH_WATCH, data_payload)
+        finally:
+            # Unregister the old reference
+            self.bot.dispatch(Event.UNREGISTER_MATCH_WATCH, event_payload.message_id)
 
 
 async def setup(bot):
