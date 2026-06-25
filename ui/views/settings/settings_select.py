@@ -4,55 +4,39 @@ from typing import TYPE_CHECKING
 
 import discord
 
-from ...urls import R6URL
-from .settings_buttons import SettingsSelectButtons
+from base import SettingsBaseView
+
+from .buttons import SettingsSelectButtons
 
 if TYPE_CHECKING:
     from bot import Bot
 
 
-class SettingsSelectView(discord.ui.LayoutView):
+__all__ = ("SettingsSelectView",)
+
+
+class SettingsSelectView(SettingsBaseView):
     def __init__(
         self,
         *,
         guild_id: int,
         user_id: int,
         source_interaction: discord.Interaction,
-        bot,
+        bot: Bot,
     ):
-        super().__init__(timeout=None)
-        self.guild_id = guild_id
-        self.user_id = user_id
-        self.source_interaction = source_interaction
-        self.bot: Bot = bot
-
-        self.init_components()
-
-    def init_components(self) -> None:
-        # Get guild icon pfp
-        guild_icon = self.bot.get_guild(self.guild_id).icon
-
-        # Main text section
-        self.section = discord.ui.Section(
-            discord.ui.TextDisplay(
-                "\n".join(
-                    [
-                        "## Select Setting",
-                        "Select the setting category using the buttons below.",
-                    ]
-                )
-            ),
-            accessory=discord.ui.Thumbnail(
-                media=guild_icon.url if guild_icon is not None else R6URL.ICON
-            ),
+        super().__init__(
+            guild_id=guild_id,
+            user_id=user_id,
+            source_interaction=source_interaction,
+            button_cls=SettingsSelectButtons,
+            parent_view=None,
+            bot=bot,
         )
 
-        # Add select buttons ActionRow
-        self.button_row = SettingsSelectButtons(view=self)
-
-        # Group everything in a container
-        container = discord.ui.Container(
-            self.section, self.button_row, accent_color=discord.Color.blurple()
+    async def get_text_content(self) -> str:
+        return "\n".join(
+            [
+                "## Select Setting",
+                "Select the setting category using the buttons below.",
+            ]
         )
-
-        self.add_item(container)
