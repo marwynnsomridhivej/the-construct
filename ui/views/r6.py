@@ -19,7 +19,7 @@ from event import (
 from matchmanager import MatchEntry, MatchTeam, R6Map
 from queuemanager import QueueType
 from statsmanager import StatsPlayer
-from util import ephemeral
+from util import ICON, ephemeral
 
 from ..modals import (
     ConfirmationModal,
@@ -29,7 +29,6 @@ from ..modals import (
     R6ResultModal,
     R6SideModal,
 )
-from ..urls import R6URL
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -614,7 +613,7 @@ class R6View(discord.ui.LayoutView):
 
         # Initialise main text section with thumbnail
         self.about_text = discord.ui.TextDisplay(await self.get_text_content())
-        self.thumbnail = discord.ui.Thumbnail(media=R6URL.ICON)
+        self.thumbnail = discord.ui.Thumbnail(media=ICON)
         self.section = discord.ui.Section(self.about_text, accessory=self.thumbnail)
 
         # Initialise container and put everything inside in order

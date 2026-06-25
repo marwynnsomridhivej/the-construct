@@ -3,8 +3,7 @@ from typing import List
 import discord
 
 from event import PrematchDMPayload
-
-from ..urls import R6URL
+from util import ICON
 
 __all__ = ("MatchStartDMView",)
 
@@ -92,7 +91,7 @@ class MatchStartDMView(discord.ui.LayoutView):
                 discord.ui.TextDisplay(f"## Match Starting in {self._guild.name}"),
                 self.text_display[0],
                 accessory=discord.ui.Thumbnail(
-                    self._guild.icon.url if self._guild.icon is not None else R6URL.ICON
+                    self._guild.icon.url if self._guild.icon is not None else ICON
                 ),
             ),
             # Actual part that displays details and instructions

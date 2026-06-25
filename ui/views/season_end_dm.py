@@ -4,8 +4,7 @@ import discord
 
 from queuemanager import QueueType
 from statsmanager import StatsPlayer, StatsSeason
-
-from ..urls import R6URL
+from util import ICON
 
 __all__ = ("SeasonEndDMView",)
 
@@ -87,7 +86,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
             discord.ui.Section(
                 *self.text_display[:1],
                 accessory=discord.ui.Thumbnail(
-                    self._guild.icon.url if self._guild.icon is not None else R6URL.ICON
+                    self._guild.icon.url if self._guild.icon is not None else ICON
                 ),
             ),
             *self.text_display[1:],

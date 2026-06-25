@@ -3,8 +3,7 @@ from typing import List
 import discord
 
 from queuemanager import QueueType
-
-from ..urls import R6URL
+from util import ICON
 
 __all__ = ("PlayerStatsResetDMView",)
 
@@ -59,7 +58,7 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
             discord.ui.Section(
                 self.text_display[0],
                 accessory=discord.ui.Thumbnail(
-                    self.guild.icon.url if self.guild.icon is not None else R6URL.ICON
+                    self.guild.icon.url if self.guild.icon is not None else ICON
                 ),
             ),
             self.text_display[1],

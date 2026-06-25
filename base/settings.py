@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING
 
 import discord
 
+from util import ICON
+
 if TYPE_CHECKING:
     from bot import Bot
-    from ui import R6URL
 
 __all__ = (
     "SettingsBaseView",
@@ -46,7 +47,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         section = discord.ui.Section(
             discord.ui.TextDisplay(await self.get_text_content()),
             accessory=discord.ui.Thumbnail(
-                media=guild_icon.url if guild_icon is not None else R6URL.ICON,
+                media=guild_icon.url if guild_icon is not None else ICON,
             ),
         )
 
@@ -99,5 +100,5 @@ class SettingsBaseButtons(discord.ui.ActionRow, ABC):
     def __init__(self, *, view, show_admin_buttons: bool = False):
         super().__init__()
 
-        self.parent_view: type[discord.ui.LayoutView] = view
+        self.parent_view: type[SettingsBaseView] = view
         self.show_admin_buttons = show_admin_buttons

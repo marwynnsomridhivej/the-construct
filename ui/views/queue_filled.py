@@ -3,8 +3,7 @@ from typing import List
 import discord
 
 from queuemanager import QueueEntry
-
-from ..urls import R6URL
+from util import ICON
 
 __all__ = ("QueueFilledDMView",)
 
@@ -50,7 +49,7 @@ class QueueFilledDMView(discord.ui.LayoutView):
             discord.ui.Section(
                 *self.text_display,
                 accessory=discord.ui.Thumbnail(
-                    self._guild.icon.url if self._guild.icon is not None else R6URL.ICON
+                    self._guild.icon.url if self._guild.icon is not None else ICON
                 ),
             ),
             accent_color=discord.Color.blurple(),
