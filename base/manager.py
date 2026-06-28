@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from aiofile import async_open
 
-from .wrapper import WrapperBase
+from .wrapper import WrapperBase, WrapperBaseType
 
 __all__ = ("ManagerBase",)
 
@@ -15,10 +15,13 @@ class ManagerBase(ABC):
         self.__dir = _dir
         self.file_path = f"{self.__dir}/{name}.json"
         self._logger = logging.getLogger()
-        self.__wrapper_data: dict = None
+        self.__wrapper_data: dict = {}
 
     @abstractmethod
-    async def load(self, *, name: str):
+    async def load(self) -> None:
+        pass
+
+    async def _load(self, *, name: str):
         """Initialiser, will create necessary directories. Must be overridden
 
         Args:
@@ -27,7 +30,7 @@ class ManagerBase(ABC):
         if not os.path.exists(self.__dir):
             os.mkdir(self.__dir)
 
-        await self._get_or_create_wrapper()
+        await self.get_or_create_wrapper()  # type: ignore
         self._logger.info(f"[{name}] Successfully loaded")
 
     async def __get_wrapper_data(self) -> dict:
@@ -39,7 +42,7 @@ class ManagerBase(ABC):
         Returns:
             dict: Wrapper data dict
         """
-        if self.__wrapper_data is None:
+        if not self.__wrapper_data:
             async with async_open(self.file_path, "r") as afile:
                 data = json.loads(await afile.read())
                 self.__wrapper_data = data
@@ -57,16 +60,19 @@ class ManagerBase(ABC):
             await afile.write(json.dumps(data, indent=4))
 
     @abstractmethod
+    async def get_or_create_wrapper(self) -> WrapperBaseType:  # type: ignore
+        pass
+
     async def _get_or_create_wrapper(
-        self, *, cls: type[WrapperBase]
-    ) -> type[WrapperBase]:
+        self, *, cls: type[WrapperBaseType]
+    ) -> WrapperBaseType:
         """Get wrapper from data, or create datafile if it doesn't exist. Must be overridden
 
         Args:
-            cls (type[WrapperBase]): Class that inherits from WrapperBase
+            cls (type[WrapperBaseType]): Class that inherits from WrapperBase
 
         Returns:
-            type[WrapperBase]: An instantiated wrapper of the provided class
+            WrapperBaseType: An instantiated wrapper of the provided class
         """
         try:
             data = await self.__get_wrapper_data()
