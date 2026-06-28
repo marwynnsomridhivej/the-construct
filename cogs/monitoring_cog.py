@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, Coroutine, Dict, List
+from collections.abc import Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 import discord
 from discord.ext import commands
@@ -28,6 +29,17 @@ from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 if TYPE_CHECKING:
     from bot import Bot
 
+    type Coro = Coroutine[Any, Any, None]
+    type Handler = Union[
+        Callable[[MatchPayload], Coro],
+        Callable[[MatchFinalisedPayload], Coro],
+        Callable[[DMDeletePayload], Coro],
+        Callable[[VCResetPayload], Coro],
+        Callable[[discord.RawMemberRemoveEvent], Coro],
+        Callable[[discord.RawMessageDeleteEvent], Coro],
+        Callable[[int], Coro],
+    ]
+
 
 class MonitoringCog(commands.Cog):
     def __init__(self, bot):
@@ -35,7 +47,7 @@ class MonitoringCog(commands.Cog):
         self.r6view_to_watch: Dict[int, MatchPayload] = {}
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Event] = {
+        _handlers: Dict[Handler, str] = {
             # Custom Events
             self.register_r6view_to_watch: Event.REGISTER_MATCH_WATCH,
             self.unregister_r6view_to_watch: Event.UNREGISTER_MATCH_WATCH,
@@ -66,7 +78,10 @@ class MonitoringCog(commands.Cog):
         temp_vc = self.bot.get_channel(temp_vc_id)
         lobby_vc = self.bot.get_channel(lobby_vc_id)
 
-        if temp_vc is None or lobby_vc is None:
+        if not (
+            isinstance(temp_vc, discord.VoiceChannel)
+            and isinstance(lobby_vc, discord.VoiceChannel)
+        ):
             return
 
         for member in temp_vc.members:
@@ -81,7 +96,10 @@ class MonitoringCog(commands.Cog):
         for player in players:
             try:
                 message_id = await self.bot.dm_manager.delete(guild_id, player)
-                dm_channel = await self.bot.get_user(player).create_dm()
+                user = self.bot.get_user(player)
+                if user is None:
+                    continue
+                dm_channel = await user.create_dm()
                 await dm_channel.get_partial_message(message_id).delete()
                 self.bot.logger.info(
                     f"Deleted message ID {message_id} for user {player}"
@@ -92,16 +110,16 @@ class MonitoringCog(commands.Cog):
                 )
             except discord.NotFound:
                 self.bot.logger.info(
-                    f"Message ID {message_id} for user {player} was already deleted"
+                    f"Message ID {message_id} for user {player} was already deleted"  # type: ignore
                 )
             except discord.HTTPException as e:
                 self.bot.logger.error(
-                    f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}"
+                    f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}"  # type: ignore
                 )
             except Exception as e:
                 self.bot.logger.error(
                     "An exception occurred when trying to delete "
-                    + f"message ID {message_id} for user {player}: {e}"
+                    + f"message ID {message_id} for user {player}: {e}"  # type: ignore
                 )
                 traceback.print_exception(type(e), e, e.__traceback__)
 
@@ -127,7 +145,7 @@ class MonitoringCog(commands.Cog):
         for team in payload.teams:
             try:
                 await self._move_everyone_to_lobby_vc(
-                    team.voice_channel_id,
+                    team.voice_channel_id,  # type: ignore
                     payload.lobby_vc_id,
                     Reason.MATCH_FINALISED_LOBBY_MOVE,
                 )
@@ -138,7 +156,7 @@ class MonitoringCog(commands.Cog):
 
             # After moving everyone, THEN delete the VC
             try:
-                await self.bot.get_channel(team.voice_channel_id).delete(
+                await self.bot.get_channel(team.voice_channel_id).delete(  # type: ignore
                     reason=Reason.MATCH_FINALISED_DEL_TEMP
                 )
             except discord.HTTPException:
@@ -171,9 +189,9 @@ class MonitoringCog(commands.Cog):
         )
 
     async def thread_cleanup(self, payload: MatchPayload) -> None:
-        thread_channel: discord.Thread = self.bot.get_channel(payload.text_channel_id)
+        thread_channel = self.bot.get_channel(payload.text_channel_id)
         if not isinstance(thread_channel, discord.Thread):
-            self.bot.logger.error(
+            return self.bot.logger.error(
                 f"Could not find thread channel with ID {payload.text_channel_id}"
             )
 
@@ -191,7 +209,7 @@ class MonitoringCog(commands.Cog):
     async def reset_move_back(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
             await self._move_everyone_to_lobby_vc(
-                team.voice_channel_id,
+                team.voice_channel_id,  # type: ignore
                 payload.lobby_vc_id,
                 Reason.VIEW_RESET_STATE,
             )
@@ -199,13 +217,13 @@ class MonitoringCog(commands.Cog):
     async def vc_delete_reset_cancel(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
             await self._move_everyone_to_lobby_vc(
-                team.voice_channel_id,
+                team.voice_channel_id,  # type: ignore
                 payload.lobby_vc_id,
                 Reason.VIEW_RESET_STATE,
             )
 
-            team_voice_channel = self.bot.get_channel(team.voice_channel_id)
-            if team_voice_channel is None:
+            team_voice_channel = self.bot.get_channel(team.voice_channel_id)  # type: ignore
+            if not isinstance(team_voice_channel, discord.VoiceChannel):
                 continue
 
             try:
@@ -235,7 +253,8 @@ class MonitoringCog(commands.Cog):
         # Leave all queues the user is in, so long as it is not currently in progress (in an active match)
         try:
             queues = await self.bot.queue_manager.list_queues(
-                payload.guild_id, member=payload.user
+                payload.guild_id,
+                member=payload.user,  # type: ignore
             )
             for name in queues.keys():
                 try:
@@ -279,7 +298,7 @@ class MonitoringCog(commands.Cog):
         channel = self.bot.get_channel(event_payload.channel_id)
 
         # Skip if channel could not be found for any reason
-        if channel is None:
+        if not isinstance(channel, discord.Thread):
             return
 
         # Acquire the associated data payload
@@ -318,7 +337,7 @@ class MonitoringCog(commands.Cog):
                 Event.CANCEL_BUTTON_PRESSED,
                 VCResetPayload.create(
                     data_payload.guild_id,
-                    data_payload.match_entry.voice_channel_id,
+                    data_payload.match_entry.voice_channel_id,  # type: ignore
                     data_payload.r6view.teams,
                     data_payload.r6view.match.type,
                 ),
