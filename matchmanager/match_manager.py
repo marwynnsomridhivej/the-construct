@@ -12,9 +12,9 @@ class MatchManager(ManagerBase):
         super().__init__(match_loc, "matches")
 
     async def load(self):
-        await super().load(name="MatchManager")
+        await super()._load(name="MatchManager")
 
-    async def _get_or_create_wrapper(self) -> MatchWrapper:
+    async def get_or_create_wrapper(self) -> MatchWrapper:
         return await super()._get_or_create_wrapper(cls=MatchWrapper)
 
     def _get_starting_side(
@@ -29,7 +29,7 @@ class MatchManager(ManagerBase):
     async def create_match(
         self, *, payload: MatchPayload, auto_draft: AutoDraftPayload = None
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
 
         # Init two empty teams
         team_a = MatchTeam.create_empty("A")
@@ -73,22 +73,22 @@ class MatchManager(ManagerBase):
         await self.write(wrapper)
 
     async def delete_match(self, guild_id: int, name: str) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).delete(name)
         await self.write(wrapper)
 
     async def get_match(self, guild_id: int, name: str) -> MatchEntry:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         return wrapper.get(guild_id, throw=True).get(name, throw=True)
 
     async def has_running_match(self, guild_id: int) -> bool:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         return bool(wrapper.get(guild_id, throw=True).data)
 
     async def draft_player(
         self, guild_id: int, name: str, captain_id: int, player_id: int
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).get_team_of_user(
             captain_id
         ).draft_player(player_id)
@@ -97,21 +97,21 @@ class MatchManager(ManagerBase):
     async def ban_map(
         self, guild_id: int, name: str, captain_id: int, choice: R6Map
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).ban_map(
             captain_id, choice
         )
         await self.write(wrapper)
 
     async def select_map(self, guild_id: int, name: str, choice: R6Map) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).set_map(choice)
         await self.write(wrapper)
 
     async def select_starting_side(
         self, guild_id: int, name: str, captain_id: int, choice: R6Side
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         mgc = wrapper.get(guild_id, throw=True).get(name, throw=True)
         mgc.team_a.starting_side = self._get_starting_side(
             mgc.team_a, captain_id, choice
@@ -122,12 +122,12 @@ class MatchManager(ManagerBase):
         await self.write(wrapper)
 
     async def designate_mvp(self, guild_id: int, name: str, mvp_id: int) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).designate_mvp(mvp_id)
         await self.write(wrapper)
 
     async def set_winning_team(self, guild_id: int, name: str, captain_id: int) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).designate_winner(
             captain_id
         )
@@ -136,7 +136,7 @@ class MatchManager(ManagerBase):
     async def set_team_rounds_won(
         self, guild_id: int, name: str, captain_id: int, rounds_won: int
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).set_rounds_won(
             captain_id, rounds_won
         )
@@ -145,14 +145,14 @@ class MatchManager(ManagerBase):
     async def set_team_vc(
         self, guild_id: int, name: str, captain_id: int, vc_id: int
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get(guild_id, throw=True).get(name, throw=True).get_team_of_user(
             captain_id
         ).voice_channel_id = vc_id
         await self.write(wrapper)
 
     async def reset_draft(self, guild_id: int, payload: MatchPayload) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         entry = wrapper.get(guild_id, throw=True).get(payload.match_name, throw=True)
         entry.reset_draft(auto_draft=payload.auto_draft)
         entry.map = None

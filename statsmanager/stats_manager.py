@@ -25,18 +25,18 @@ class StatsManager(ManagerBase):
         )
 
     async def load(self):
-        await super().load(name="StatsManager")
+        await super()._load(name="StatsManager")
 
     # =====================================
     # ============PLAYERS STUFF============
     # =====================================
-    async def _get_or_create_wrapper(self) -> StatsWrapper:
+    async def get_or_create_wrapper(self) -> StatsWrapper:
         return await super()._get_or_create_wrapper(cls=StatsWrapper)
 
     async def get_or_create_player(
         self, *, guild_id: int, queue_type: QueueType, user_id: int
     ) -> StatsPlayer:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
         try:
@@ -50,7 +50,7 @@ class StatsManager(ManagerBase):
     async def get_guild_players(
         self, guild_id: int, queue_type: QueueType
     ) -> List[StatsPlayer]:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         return [
             player
             for player in wrapper.get_or_create(guild_id)
@@ -61,7 +61,7 @@ class StatsManager(ManagerBase):
     async def reset_player(
         self, *, guild_id: int, queue_type: QueueType, user_id: int
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).current.get_player(
             queue_type, user_id, throw=True
         ).reset()
@@ -70,7 +70,7 @@ class StatsManager(ManagerBase):
     async def delete_player(
         self, *, guild_id: int, queue_type: QueueType, user_id: int
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).current.delete_player(queue_type, user_id)
         await self.write(wrapper)
 
@@ -83,7 +83,7 @@ class StatsManager(ManagerBase):
         mvp_id: int,
         win: bool,
     ):
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         for rating in ratings:
             player_id = int(rating.name)
             wrapper.get_or_create(guild_id).current.award_player(
@@ -108,26 +108,26 @@ class StatsManager(ManagerBase):
         Raises:
             ValueError: No active season exists for the specified guild
         """
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         exists = wrapper.get_or_create(guild_id).has_active_season()
         err = ValueError(f"No active season for guild ID {guild_id}")
         if not exists:
             raise err
 
     async def start_season(self, *, guild_id: int, name: str) -> StatsSeason:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
         sgc.set_current_season(name)
         await self.write(wrapper)
         return sgc.current
 
     async def stop_season(self, *, guild_id: int) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).stop_current_season()
         await self.write(wrapper)
 
     async def get_season(self, *, guild_id: int, name: str = None) -> StatsSeason:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
         # If no name specified, return current season details
@@ -143,7 +143,7 @@ class StatsManager(ManagerBase):
     async def get_season_rankings(
         self, *, guild_id: int, queue_type: QueueType, name: str = None
     ) -> List[Tuple[int, StatsPlayer]]:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
         # Get appropriate season
@@ -205,7 +205,7 @@ class StatsManager(ManagerBase):
         return rank_ordered
 
     async def get_all_seasons(self, guild_id: int) -> List[StatsSeason]:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
 
         current = wrapper.get_or_create(guild_id).current
         seasons = copy.deepcopy(wrapper.get_or_create(guild_id).history)
@@ -217,7 +217,7 @@ class StatsManager(ManagerBase):
     async def increment_season_match_count(
         self, guild_id: int, queue_type: QueueType
     ) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).current.get_data_by_queue_type(
             queue_type
         ).match_count += 1

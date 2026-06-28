@@ -17,14 +17,14 @@ class DMManager(ManagerBase):
         super().__init__(dm_loc, "dms")
         self.bot: Bot = bot
 
-    async def load(self):
-        await super().load(name="DMManager")
+    async def load(self):  # type: ignore
+        await super()._load(name="DMManager")
 
-    async def _get_or_create_wrapper(self) -> DMWrapper:
+    async def get_or_create_wrapper(self) -> DMWrapper:
         return await super()._get_or_create_wrapper(cls=DMWrapper)
 
     async def purge_all(self) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         for identifier, message_id in wrapper.data.items():
             user_id = [int(_id) for _id in identifier.split("_")][1]
             user = self.bot.get_user(user_id)
@@ -53,7 +53,7 @@ class DMManager(ManagerBase):
         await self.write(wrapper)
 
     async def create(self, guild_id: int, user_id: int, message_id: int) -> None:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         if wrapper.get(guild_id, user_id) is not None:
             raise KeyError(
                 f"Entry already exists for guild_id {guild_id} and user_id {user_id}"
@@ -62,7 +62,7 @@ class DMManager(ManagerBase):
         await self.write(wrapper)
 
     async def delete(self, guild_id: int, user_id: int) -> int:
-        wrapper = await self._get_or_create_wrapper()
+        wrapper = await self.get_or_create_wrapper()
         message_id = wrapper.delete(guild_id, user_id)
         await self.write(wrapper)
         return message_id
