@@ -10,6 +10,7 @@ if TYPE_CHECKING:
         MatchPayload,
         PlayerStatsResetPayload,
         PrematchDMPayload,
+        QueueFilledPayload,
         SeasonEndPayload,
         VCResetPayload,
     )
@@ -49,6 +50,7 @@ type EventHandlerType = (
     | Callable[[MatchPayload], CoroType]
     | Callable[[PlayerStatsResetPayload], CoroType]
     | Callable[[PrematchDMPayload], CoroType]
+    | Callable[[QueueFilledPayload], CoroType]
     | Callable[[SeasonEndPayload], CoroType]
     | Callable[[VCResetPayload], CoroType]
 )
