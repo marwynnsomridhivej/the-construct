@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, TypeVar
+from typing import TypeVar
 
 __all__ = (
     "WrapperBase",
     "WrapperBaseType",
 )
 
-if TYPE_CHECKING:
-    WrapperBaseType = TypeVar("WrapperBaseType", bound="WrapperBase")
+WrapperBaseType = TypeVar("WrapperBaseType", bound="WrapperBase")
 
 
 class WrapperBase(ABC):
