@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -23,7 +23,7 @@ __all__ = (
 
 
 class PrematchView(discord.ui.LayoutView):
-    def __init__(self, bot, queues: Dict[str, QueueEntry], pools: List[CustomMapPool]):
+    def __init__(self, bot, queues: dict[str, QueueEntry], pools: list[CustomMapPool]):
         super().__init__(timeout=None)
 
         self.queues = queues
@@ -43,15 +43,15 @@ class PrematchView(discord.ui.LayoutView):
         self.submit_button: "PrematchViewButtons"
 
     @property
-    def queue(self) -> Union[str, None]:
+    def queue(self) -> str | None:
         return self.queue_select.values[0] if self.queue_select.values else None
 
     @property
-    def voice_channel_id(self) -> Union[int, None]:
+    def voice_channel_id(self) -> int | None:
         return self.vc_select.values[0].id if self.vc_select.values else None
 
     @property
-    def map_pool_name(self) -> Union[str, None]:
+    def map_pool_name(self) -> str | None:
         return (
             self.map_pool_select.values[0]
             if self.map_pool_select.values
@@ -67,7 +67,7 @@ class PrematchView(discord.ui.LayoutView):
         )
 
     @property
-    def captain_mode(self) -> Union[str, None]:
+    def captain_mode(self) -> str | None:
         return (
             self.captain_mode_select.values[0]
             if self.captain_mode_select.values
@@ -75,7 +75,7 @@ class PrematchView(discord.ui.LayoutView):
         )
 
     @property
-    def manual_captain(self) -> List[Union[discord.Member, discord.User]]:
+    def manual_captain(self) -> list[discord.Member | discord.User]:
         return self.captain_manual_select.values
 
     def init_components(self, submit_button: "PrematchViewButtons") -> None:
@@ -230,7 +230,7 @@ class PrematchView(discord.ui.LayoutView):
 
     def generate_label(
         self, *, text: str, description: str, component: discord.ui.Item
-    ) -> List[type[discord.ui.Item]]:
+    ) -> list[type[discord.ui.Item]]:
         component.callback = self.generic_callback
         return [
             discord.ui.TextDisplay(
@@ -278,14 +278,14 @@ class PrematchViewButtons(discord.ui.ActionRow):
         *,
         guild_id: int,
         queue_type: QueueType,
-        player_ids: List[int],
+        player_ids: list[int],
         mode: CaptSelect,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         match mode:
             case CaptSelect.RANDOM:
                 return tuple(random.sample(player_ids, 2))
             case CaptSelect.RATING:
-                captains: List[StatsPlayer] = sorted(
+                captains: list[StatsPlayer] = sorted(
                     [
                         await self.parent_view.bot.stats_manager.get_or_create_player(
                             guild_id=guild_id, queue_type=queue_type, user_id=_id

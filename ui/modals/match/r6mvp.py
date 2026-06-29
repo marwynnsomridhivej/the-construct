@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -23,9 +23,9 @@ class R6MVPModal(discord.ui.Modal):
         for item in self._init_components(captain_id):
             self.add_item(item)
 
-    def _init_components(self, captain_id: int) -> List[discord.ui.Item]:
+    def _init_components(self, captain_id: int) -> list[discord.ui.Item]:
         # Assemble a list of players that are on the team of the specified captain id
-        players: List[discord.Member] = [
+        players: list[discord.Member] = [
             self._r6view.bot.get_guild(self._r6view.payload.guild_id).get_member(
                 player_id
             )

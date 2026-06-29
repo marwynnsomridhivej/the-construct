@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import traceback
 from decimal import Decimal
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -59,7 +59,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         self.r6view = view
 
         # Draft Index
-        self.index: Dict[str, int]
+        self.index: dict[str, int]
 
         # Initialise everything to starting states
         self.reset_to_default_state()
@@ -530,7 +530,7 @@ class R6View(discord.ui.LayoutView):
         self.match_canceled = False
 
         # Attribute type hints
-        self.map_pool: List[R6Map]
+        self.map_pool: list[R6Map]
         self.map_pool_name: str
 
         # View components
@@ -541,11 +541,11 @@ class R6View(discord.ui.LayoutView):
         self.r6_view_admin_buttons: R6ViewAdminButtons
 
         # Drafting
-        self.draft_order: List[StatsPlayer]
-        self.op_draft_order: List[StatsPlayer]
+        self.draft_order: list[StatsPlayer]
+        self.op_draft_order: list[StatsPlayer]
 
     @property
-    def teams(self) -> List[MatchTeam]:
+    def teams(self) -> list[MatchTeam]:
         return [self.match.team_a, self.match.team_b]
 
     @property
@@ -573,7 +573,7 @@ class R6View(discord.ui.LayoutView):
         return len(self.payload.queue_entry.players)
 
     @property
-    def draftable_players(self) -> List[Tuple[str, str]]:
+    def draftable_players(self) -> list[tuple[str, str]]:
         # Get special 1v1 and autodraft cases out of the way
         if self.match.type == QueueType.R6_1V1 or self.payload.auto_draft:
             return []
@@ -664,7 +664,7 @@ class R6View(discord.ui.LayoutView):
 
     async def get_win_chance(self, name: str) -> Decimal:
         # Convert player IDs to StatsPlayer instances
-        teams: List[List[StatsPlayer]] = [
+        teams: list[list[StatsPlayer]] = [
             [
                 await self.bot.stats_manager.get_or_create_player(
                     guild_id=self.payload.guild_id,
@@ -695,7 +695,7 @@ class R6View(discord.ui.LayoutView):
             * 100
         ).quantize(Decimal("0.01"))
 
-    async def get_team_players_text(self, team: MatchTeam) -> List[int]:
+    async def get_team_players_text(self, team: MatchTeam) -> list[int]:
         txt = f"### Team {team.name}"
         if self.match.wins_set:
             txt += " (Win)" if team.win else " (Lose)"
@@ -889,7 +889,7 @@ class R6View(discord.ui.LayoutView):
                 except Exception as e:
                     traceback.print_exception(type(e), e, e.__traceback__)
 
-    def get_team_awaiting_mvp(self) -> Union[MatchTeam, None]:
+    def get_team_awaiting_mvp(self) -> MatchTeam | None:
         for team in self.teams:
             if team.mvp_id is None:
                 return team

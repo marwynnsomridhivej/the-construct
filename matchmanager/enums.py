@@ -1,5 +1,4 @@
 from enum import StrEnum
-from typing import List
 
 __all__ = (
     "R6Map",
@@ -47,7 +46,7 @@ class R6Side(StrEnum):
     DEFENDER = "defender"
 
 
-R6_RANKED: List[R6Map] = sorted(
+R6_RANKED: list[R6Map] = sorted(
     [
         R6Map.CASINO,
         R6Map.CHALET,
@@ -65,7 +64,7 @@ R6_RANKED: List[R6Map] = sorted(
     ]
 )
 
-R6_QUICKMATCH: List[R6Map] = sorted(
+R6_QUICKMATCH: list[R6Map] = sorted(
     [
         R6Map.CASINO,
         R6Map.HOUSE,

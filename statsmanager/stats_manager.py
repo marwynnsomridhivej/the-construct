@@ -1,5 +1,4 @@
 import copy
-from typing import List, Tuple
 
 import discord
 from openskill.models import PlackettLuce, PlackettLuceRating
@@ -49,7 +48,7 @@ class StatsManager(ManagerBase):
 
     async def get_guild_players(
         self, guild_id: int, queue_type: QueueType
-    ) -> List[StatsPlayer]:
+    ) -> list[StatsPlayer]:
         wrapper = await self.get_or_create_wrapper()
         return [
             player
@@ -79,7 +78,7 @@ class StatsManager(ManagerBase):
         *,
         guild_id: int,
         queue_type: QueueType,
-        ratings: List[PlackettLuceRating],
+        ratings: list[PlackettLuceRating],
         mvp_id: int,
         win: bool,
     ):
@@ -142,7 +141,7 @@ class StatsManager(ManagerBase):
 
     async def get_season_rankings(
         self, *, guild_id: int, queue_type: QueueType, name: str = None
-    ) -> List[Tuple[int, StatsPlayer]]:
+    ) -> list[tuple[int, StatsPlayer]]:
         wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
@@ -204,7 +203,7 @@ class StatsManager(ManagerBase):
 
         return rank_ordered
 
-    async def get_all_seasons(self, guild_id: int) -> List[StatsSeason]:
+    async def get_all_seasons(self, guild_id: int) -> list[StatsSeason]:
         wrapper = await self.get_or_create_wrapper()
 
         current = wrapper.get_or_create(guild_id).current

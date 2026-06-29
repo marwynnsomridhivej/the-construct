@@ -1,5 +1,3 @@
-from typing import Dict, List, Union
-
 import discord
 
 from base import WrapperBase
@@ -31,14 +29,12 @@ class QueueWrapper(WrapperBase):
     # {guild_id: QueueGuildContainer}
 
     def __init__(self, data: dict):
-        self.__data: Dict[int, QueueGuildContainer] = {
+        self.__data: dict[int, QueueGuildContainer] = {
             int(guild_id): QueueGuildContainer.parse(queues)
             for guild_id, queues in data.items()
         }
 
-    def get(
-        self, guild_id: int, throw: bool = False
-    ) -> Union["QueueGuildContainer", None]:
+    def get(self, guild_id: int, throw: bool = False) -> "QueueGuildContainer | None":
         """Get a QueueGuildContainer (QGC) of the specified guild
 
         Args:
@@ -49,7 +45,7 @@ class QueueWrapper(WrapperBase):
             InvalidGuildID: No QGC instance exists for the specified guild
 
         Returns:
-            Union[QueueGuildContainer, None]: The QGC instance of the specified guild
+            QueueGuildContainer | None: The QGC instance of the specified guild
         """
         qgc = self.__data.get(guild_id)
         if qgc is None and throw:
@@ -72,7 +68,7 @@ class QueueWrapper(WrapperBase):
         return qgc
 
     @property
-    def data(self) -> Dict[int, "QueueGuildContainer"]:
+    def data(self) -> dict[int, "QueueGuildContainer"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -92,7 +88,7 @@ class QueueGuildContainer(WrapperBase):
     def __init__(self, data: dict):
         self.__data = {name: QueueEntry.parse(entry) for name, entry in data.items()}
 
-    def get(self, name: str, throw: bool = False) -> Union["QueueEntry", None]:
+    def get(self, name: str, throw: bool = False) -> "QueueEntry | None":
         """Get a QueueEntry with the specified name
 
         Args:
@@ -103,7 +99,7 @@ class QueueGuildContainer(WrapperBase):
             QueueDoesNotExist: No QueueEntry instance exists with the specified name
 
         Returns:
-            Union[QueueEntry, None]: The QueueEntry instance with the specified name
+            QueueEntry | None: The QueueEntry instance with the specified name
         """
         data = self.__data.get(name)
         if data is None and throw:
@@ -148,18 +144,18 @@ class QueueGuildContainer(WrapperBase):
         return self.__data.pop(name)
 
     def filter(
-        self, *, member: Union[discord.Member, None], queue_type: QueueType = None
-    ) -> Dict[str, "QueueEntry"]:
+        self, *, member: discord.Member | None, queue_type: QueueType | None = None
+    ) -> dict[str, "QueueEntry"]:
         """Filter all stored QueueEntry by user presence or queue type
 
         Args:
-            user_id (int): The ID of the user to filter by
-            queue_type (QueueType): The QueueType to filter by
+            member (discord.Member | None): The ID of the user to filter by
+            queue_type (QueueType | None): The QueueType to filter by
 
         Returns:
-            Dict[str, QueueEntry]: Dict containing queue name and QueueEntry instance
+            dict[str, QueueEntry]: dict containing queue name and QueueEntry instance
         """
-        user_id = member.id if hasattr(member, "id") else None
+        user_id = member.id if hasattr(member, "id") else None  # type: ignore
         return {
             name: entry
             for name, entry in self.__data.items()
@@ -168,7 +164,7 @@ class QueueGuildContainer(WrapperBase):
         }
 
     @property
-    def data(self) -> Dict[str, "QueueEntry"]:
+    def data(self) -> dict[str, "QueueEntry"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -195,7 +191,7 @@ class QueueEntry(WrapperBase):
         self.owner_id: int = data["owner_id"]
         self.created_timestamp: int = data["created_timestamp"]
         self.type: QueueType = data["type"]
-        self.players: List[int] = data["players"]
+        self.players: list[int] = data["players"]
         self.max_players: int = data["max_players"]
         self.locked: bool = data["locked"]
         self.in_progress: bool = data["in_progress"]

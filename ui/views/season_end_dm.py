@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 import discord
 
 from queuemanager import QueueType
@@ -11,7 +9,7 @@ __all__ = ("SeasonEndDMView",)
 
 class SeasonEndDMView(discord.ui.LayoutView):
     def __init__(
-        self, *, guild: discord.Guild, season: StatsSeason, data: Dict[QueueType, Dict]
+        self, *, guild: discord.Guild, season: StatsSeason, data: dict[QueueType, dict]
     ):
         super().__init__(timeout=None)
 
@@ -34,7 +32,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
         return f"- {_type}: `{_current}` `({_max} peak)`"
 
     @property
-    def text_display(self) -> List[discord.ui.Item]:
+    def text_display(self) -> list[discord.ui.Item]:
         items = []
 
         # Header

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -26,7 +26,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
         self.__bot: Bot = bot
         self.is_valid = True
         self.name: str = None
-        self.maps: List[R6Map] = None
+        self.maps: list[R6Map] = None
 
         self.init_components()
 
@@ -101,7 +101,7 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
         self.previous = previous
         self.is_valid = True
         self.name: str = None
-        self.maps: List[R6Map] = None
+        self.maps: list[R6Map] = None
 
         self.init_components()
 

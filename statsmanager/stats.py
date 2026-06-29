@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Union
 from warnings import deprecated
 
 from base import WrapperBase
@@ -21,14 +20,12 @@ class StatsWrapper(WrapperBase):
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
-        self.__data: Dict[int, StatsGuildContainer] = {
+        self.__data: dict[int, StatsGuildContainer] = {
             int(guild_id): StatsGuildContainer.parse(guild_containers)
             for guild_id, guild_containers in data.items()
         }
 
-    def get(
-        self, guild_id: int, throw: bool = False
-    ) -> Union["StatsGuildContainer", None]:
+    def get(self, guild_id: int, throw: bool = False) -> "StatsGuildContainer | None":
         """Get a StatsGuildContainer (SGC) of the specified guild
 
         Args:
@@ -39,7 +36,7 @@ class StatsWrapper(WrapperBase):
             InvalidGuildID: No SGC instance exists for the specified guild
 
         Returns:
-            Union[StatsGuildContainer, None]: The SGC instance of the specified guild
+            StatsGuildContainer | None: The SGC instance of the specified guild
         """
         sgc = self.__data.get(guild_id)
         if sgc is None and throw:
@@ -62,7 +59,7 @@ class StatsWrapper(WrapperBase):
         return sgc
 
     @property
-    def data(self) -> Dict[int, "StatsGuildContainer"]:
+    def data(self) -> dict[int, "StatsGuildContainer"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -81,19 +78,19 @@ class StatsGuildContainer(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.current: Union[StatsSeason, None] = (
+        self.current: StatsSeason | None = (
             StatsSeason.parse(data["current"])
             if data.get("current") is not None
             else None
         )
-        self.history: List[StatsSeason] = [
+        self.history: list[StatsSeason] = [
             StatsSeason.parse(entry) for entry in data["history"]
         ]
 
     def has_active_season(self) -> bool:
         return isinstance(self.current, StatsSeason)
 
-    def set_current_season(self, name: str) -> "StatsSeason":
+    def set_current_season(self, name: str) -> None:
         if self.has_active_season():
             raise ValueError("An active season already exists")
 
@@ -129,7 +126,6 @@ class StatsGuildContainer(WrapperBase):
 
 
 class StatsSeason(WrapperBase):
-    # TODO: Rename to StatsSeason
     __slots__ = (
         "name",
         "start_timestamp",
@@ -148,7 +144,7 @@ class StatsSeason(WrapperBase):
     def __init__(self, data: dict):
         self.name: str = data["name"]
         self.start_timestamp: int = data["start_timestamp"]
-        self.end_timestamp: int = data.get("end_timestamp", None)
+        self.end_timestamp: int | None = data.get("end_timestamp", None)
         self.archived: bool = data["archived"]
 
         self.r6_5v5: StatsInfo = StatsInfo.parse(
@@ -173,7 +169,7 @@ class StatsSeason(WrapperBase):
 
     def get_player(
         self, queue_type: QueueType, user_id: int, throw: bool = False
-    ) -> Union["StatsPlayer", None]:
+    ) -> "StatsPlayer | None":
         """Get a StatsPlayer in the specified queue type with the specified user ID
 
         Args:
@@ -185,7 +181,7 @@ class StatsSeason(WrapperBase):
             PlayerDoesNotExist: No StatsPlayer instance exists in the specified queue type with the specified user ID
 
         Returns:
-            Union[StatsPlayer, None]: The StatsPlayer instance, if found
+            StatsPlayer | None: The StatsPlayer instance, if found
         """
         data = self.get_data_by_queue_type(queue_type)
         player = data.players.get(user_id)
@@ -287,7 +283,7 @@ class StatsInfo(WrapperBase):
         self.match_count: int = data["match_count"]
 
         assert isinstance(data["players"], dict)
-        self.players: Dict[int, StatsPlayer] = {
+        self.players: dict[int, StatsPlayer] = {
             int(user_id): StatsPlayer.parse(entry)
             for user_id, entry in data["players"].items()
         }
@@ -339,13 +335,13 @@ class StatsPlayer(WrapperBase):
 
         # New v2.x+ OpenSkill rating parameters.
         # These values can be None when handling v1.x data
-        self.mu: Union[float, None] = data.get("mu", 25)
-        self.sigma: Union[float, None] = data.get("sigma", 25 / 3)
-        self.max_ordinal: Union[float, None] = data.get("max_ordinal", 0)
+        self.mu: float | None = data.get("mu", 25)
+        self.sigma: float | None = data.get("sigma", 25 / 3)
+        self.max_ordinal: float | None = data.get("max_ordinal", 0)
 
         # Legacy v1.x points system
-        self.__points: Union[int, None] = data.get("points")
-        self.__max_points: Union[int, None] = data.get("max_points")
+        self.__points: int | None = data.get("points")
+        self.__max_points: int | None = data.get("max_points")
 
     # ======================================
     # ======OPENSKILL V2.X+ ATTRIBUTES======
@@ -390,13 +386,13 @@ class StatsPlayer(WrapperBase):
         return self.__points is not None and self.__max_points is not None
 
     @property
-    @deprecated(Canned.DEPR_V1X_POINTS)
-    def points(self) -> Union[int, None]:
+    @deprecated(Canned.DEPR_V1X_POINTS.value)
+    def points(self) -> int | None:
         return self.__points
 
     @property
-    @deprecated(Canned.DEPR_V1X_POINTS)
-    def max_points(self) -> Union[int, None]:
+    @deprecated(Canned.DEPR_V1X_POINTS.value)
+    def max_points(self) -> int | None:
         return self.__max_points
 
     # =================================

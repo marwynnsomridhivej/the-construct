@@ -1,12 +1,10 @@
-from typing import Dict
-
 import discord
 
 __all__ = ("ConfirmationModal",)
 
 
 class ConfirmationModal(discord.ui.Modal):
-    def __init__(self, *, operation: str, custom: Dict[str, str] = {}):
+    def __init__(self, *, operation: str, custom: dict[str, str] = {}):
         super().__init__(title=f"{operation.title()} Confirmation")
 
         # Allow for custom UI text

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -31,7 +31,7 @@ class R6ResultModal(discord.ui.Modal):
         # Validity flag
         self.is_valid: bool = True
 
-    def init_components(self) -> List[discord.ui.Item]:
+    def init_components(self) -> list[discord.ui.Item]:
         # Select which team won overall
         self.result = discord.ui.Label(
             text="Match Results",
@@ -77,7 +77,7 @@ class R6ResultModal(discord.ui.Modal):
             .display_name
         )
 
-    def get_rounds_won(self, winning_captain_id: int) -> Tuple[int, int]:
+    def get_rounds_won(self, winning_captain_id: int) -> tuple[int, int]:
         assert isinstance(self.team_a_rounds_won.component, discord.ui.TextInput)
         assert isinstance(self.team_b_rounds_won.component, discord.ui.TextInput)
 

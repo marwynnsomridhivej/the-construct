@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from collections.abc import Callable, Coroutine
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -25,29 +24,19 @@ from exceptions import (
     QueueProgressStateError,
 )
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
+from util import EventHandlerType
 
 if TYPE_CHECKING:
     from bot import Bot
-
-    type Coro = Coroutine[Any, Any, None]
-    type Handler = Union[
-        Callable[[MatchPayload], Coro],
-        Callable[[MatchFinalisedPayload], Coro],
-        Callable[[DMDeletePayload], Coro],
-        Callable[[VCResetPayload], Coro],
-        Callable[[discord.RawMemberRemoveEvent], Coro],
-        Callable[[discord.RawMessageDeleteEvent], Coro],
-        Callable[[int], Coro],
-    ]
 
 
 class MonitoringCog(commands.Cog):
     def __init__(self, bot):
         self.bot: Bot = bot
-        self.r6view_to_watch: Dict[int, MatchPayload] = {}
+        self.r6view_to_watch: dict[int, MatchPayload] = {}
 
     async def cog_load(self):
-        _handlers: Dict[Handler, str] = {
+        _handlers: dict[EventHandlerType, str] = {
             # Custom Events
             self.register_r6view_to_watch: Event.REGISTER_MATCH_WATCH,
             self.unregister_r6view_to_watch: Event.UNREGISTER_MATCH_WATCH,
@@ -92,7 +81,7 @@ class MonitoringCog(commands.Cog):
                     f"Could not move member {member.display_name} ({member.id}) to lobby voice channel {lobby_vc_id}"
                 )
 
-    async def _delete_dms(self, guild_id: int, players: List[int]) -> None:
+    async def _delete_dms(self, guild_id: int, players: list[int]) -> None:
         for player in players:
             try:
                 message_id = await self.bot.dm_manager.delete(guild_id, player)

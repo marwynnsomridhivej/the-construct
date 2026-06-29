@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -81,15 +81,15 @@ class MatchPayload(WrapperBase):
         self.__guild_id: int = data["guild_id"]
         self.__voice_channel_id: int = data["voice_channel_id"]
         self.__text_channel_id: int = data["text_channel_id"]
-        self.__r6view_message_id: int = data.get("r6view_message_id")
-        self.__r6view: R6View = data.get("r6view")
+        self.__r6view_message_id: int | None = data.get("r6view_message_id")
+        self.__r6view: R6View | None = data.get("r6view")
         self.__match_name: str = data["match_name"]
         self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
         self.__auto_draft: bool = data["auto_draft"]
-        self.__captains: Tuple[int, int] = data["captains"]
+        self.__captains: tuple[int, int] = data["captains"]
         self.__queue_entry: QueueEntry = QueueEntry(data["queue_entry"])
-        self.__match_entry: Union[MatchEntry, None] = (
-            MatchEntry(data.get("match_entry")) if data.get("match_entry") else None
+        self.__match_entry: MatchEntry | None = (
+            MatchEntry(data["match_entry"]) if data.get("match_entry") else None
         )
 
     @property
@@ -106,10 +106,14 @@ class MatchPayload(WrapperBase):
 
     @property
     def r6view_message_id(self) -> int:
+        if not self.__r6view_message_id:
+            raise ValueError
         return self.__r6view_message_id
 
     @property
     def r6view(self) -> R6View:
+        if not self.__r6view:
+            raise ValueError
         return self.__r6view
 
     @property
@@ -125,7 +129,7 @@ class MatchPayload(WrapperBase):
         return self.__auto_draft
 
     @property
-    def captains(self) -> Tuple[int, int]:
+    def captains(self) -> tuple[int, int]:
         return self.__captains
 
     @property
@@ -133,7 +137,7 @@ class MatchPayload(WrapperBase):
         return self.__queue_entry
 
     @property
-    def match_entry(self) -> Union[MatchEntry, None]:
+    def match_entry(self) -> MatchEntry | None:
         return self.__match_entry
 
     def switch_to_thread_channel(self, thread_id: int) -> None:
@@ -203,8 +207,8 @@ class AutoDraftPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__team_a_captain: int = data["team_a_captain"]
         self.__team_b_captain: int = data["team_b_captain"]
-        self.__team_a_players: List[int] = data["team_a_players"]
-        self.__team_b_players: List[int] = data["team_b_players"]
+        self.__team_a_players: list[int] = data["team_a_players"]
+        self.__team_b_players: list[int] = data["team_b_players"]
 
     @property
     def team_a_captain(self) -> int:
@@ -215,16 +219,16 @@ class AutoDraftPayload(WrapperBase):
         return self.__team_b_captain
 
     @property
-    def team_a_players(self) -> List[int]:
+    def team_a_players(self) -> list[int]:
         return self.__team_a_players
 
     @property
-    def team_b_players(self) -> List[int]:
+    def team_b_players(self) -> list[int]:
         return self.__team_b_players
 
     @classmethod
     def create(
-        cls, captains: Tuple[int, int], players: Tuple[List[int], List[int]]
+        cls, captains: tuple[int, int], players: tuple[list[int], list[int]]
     ) -> "AutoDraftPayload":
         return cls(
             {
@@ -252,14 +256,14 @@ class DMDeletePayload(WrapperBase):
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
-        self.__players: List[int] = data["players"]
+        self.__players: list[int] = data["players"]
 
     @property
     def guild_id(self) -> int:
         return self.__guild_id
 
     @property
-    def players(self) -> List[int]:
+    def players(self) -> list[int]:
         return self.__players
 
     def serialise(self) -> dict:
@@ -269,7 +273,7 @@ class DMDeletePayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, players: List[int]) -> "DMDeletePayload":
+    def create(cls, *, guild_id: int, players: list[int]) -> "DMDeletePayload":
         return cls(
             {
                 "guild_id": guild_id,
@@ -289,7 +293,7 @@ class VCResetPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__lobby_vc_id: int = data["lobby_vc_id"]
-        self.__teams: List[MatchTeam] = data["teams"]
+        self.__teams: list[MatchTeam] = data["teams"]
         self.__queue_type: QueueType = data["queue_type"]
 
     @property
@@ -301,7 +305,7 @@ class VCResetPayload(WrapperBase):
         return self.__lobby_vc_id
 
     @property
-    def teams(self) -> List[MatchTeam]:
+    def teams(self) -> list[MatchTeam]:
         return self.__teams
 
     @property
@@ -321,7 +325,7 @@ class VCResetPayload(WrapperBase):
         cls,
         guild_id: int,
         lobby_vc_id: int,
-        teams: List[MatchTeam],
+        teams: list[MatchTeam],
         queue_type: QueueType,
     ) -> "VCResetPayload":
         return cls(
@@ -377,7 +381,7 @@ class MatchFinalisedPayload(WrapperBase):
         return self.__lobby_vc_id
 
     @property
-    def teams(self) -> List[MatchTeam]:
+    def teams(self) -> list[MatchTeam]:
         return [self.__winning_team, self.__losing_team]
 
     @property
@@ -439,7 +443,7 @@ class SeasonEndPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__season: StatsSeason = data["season"]
-        self.__ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]] = data[
+        self.__ranked_players: dict[QueueType, list[tuple[int, StatsPlayer]]] = data[
             "ranked_players"
         ]
 
@@ -452,7 +456,7 @@ class SeasonEndPayload(WrapperBase):
         return self.__season
 
     @property
-    def ranked_players(self) -> Dict[QueueType, List[Tuple[int, StatsPlayer]]]:
+    def ranked_players(self) -> dict[QueueType, list[tuple[int, StatsPlayer]]]:
         return self.__ranked_players
 
     def serialise(self) -> dict:
@@ -468,7 +472,7 @@ class SeasonEndPayload(WrapperBase):
         *,
         guild_id: int,
         season: StatsSeason,
-        ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]],
+        ranked_players: dict[QueueType, list[tuple[int, StatsPlayer]]],
     ) -> "SeasonEndPayload":
         return cls(
             {

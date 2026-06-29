@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Coroutine, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord import app_commands
@@ -11,7 +11,7 @@ from canned import Canned
 from event import Event, MatchFinalisedPayload
 from queuemanager import QueueType
 from ui import LeaderboardView
-from util import ephemeral
+from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -22,7 +22,7 @@ class StatsCog(commands.Cog):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Event] = {
+        _handlers: dict[EventHandlerType, Event] = {
             self.calc_stats: Event.MATCH_FINALISED,
         }
         for coro, event in _handlers.items():
@@ -44,7 +44,7 @@ class StatsCog(commands.Cog):
 
     async def calc_stats(self, payload: MatchFinalisedPayload):
         # Create rating objects from StatsPlayer mu and sigma for both teams
-        winning_team: List[PlackettLuceRating] = [
+        winning_team: list[PlackettLuceRating] = [
             await self._create_openskill_rating_object(
                 payload.guild_id,
                 player_id,
@@ -52,7 +52,7 @@ class StatsCog(commands.Cog):
             )
             for player_id in payload.winning_team.players
         ]
-        losing_team: List[PlackettLuceRating] = [
+        losing_team: list[PlackettLuceRating] = [
             await self._create_openskill_rating_object(
                 payload.guild_id,
                 player_id,
@@ -160,7 +160,7 @@ class StatsCog(commands.Cog):
     @_leaderboard_command.autocomplete("name")
     async def _leaderboard_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
         return sorted(
             [

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -221,7 +221,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
 
 
 class SettingsMapPoolSelectRow(SettingsBaseButtons):
-    def __init__(self, *, view, names: List[str]):
+    def __init__(self, *, view, names: list[str]):
         super().__init__(view=view)
         self.parent_view: SettingsMapPoolView
 
@@ -246,5 +246,5 @@ class SettingsMapPoolSelectRow(SettingsBaseButtons):
         await interaction.response.defer()
 
     @property
-    def value(self) -> Union[str, None]:
+    def value(self) -> str | None:
         return self.name_select.values[0] if self.name_select.values else None

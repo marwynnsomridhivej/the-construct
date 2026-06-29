@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Union
+from typing import Any, Generator
 
 import discord
 
@@ -18,12 +18,12 @@ class SettingsWrapper(WrapperBase):
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
-        self.__data: Dict[int, SettingsEntry] = {
+        self.__data: dict[int, SettingsEntry] = {
             int(guild_id): SettingsEntry.parse(entry)
             for guild_id, entry in data.items()
         }
 
-    def get(self, guild_id: int, throw: bool = False) -> Union["SettingsEntry", None]:
+    def get(self, guild_id: int, throw: bool = False) -> "SettingsEntry | None":
         entry = self.__data.get(guild_id)
         if entry is None and throw:
             raise InvalidGuildID(guild_id)
@@ -37,7 +37,7 @@ class SettingsWrapper(WrapperBase):
         return entry
 
     @property
-    def data(self) -> Dict[int, "SettingsEntry"]:
+    def data(self) -> dict[int, "SettingsEntry"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -52,36 +52,36 @@ class SettingsEntry(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.__admins: List[int] = data["admins"]
-        self.__text_channel_id: Union[int, None]
+        self.__admins: list[int] = data["admins"]
+        self.__text_channel_id: int | None
         try:
             self.__text_channel_id = int(data["text_channel_id"])
         except TypeError:
             self.__text_channel_id = None
-        self.__map_pools: List[CustomMapPool] = [
+        self.__map_pools: list[CustomMapPool] = [
             CustomMapPool.parse(pool) for pool in data["map_pools"]
         ]
 
     @property
-    def admins(self) -> List[int]:
+    def admins(self) -> list[int]:
         return self.__admins
 
     @property
-    def text_channel_id(self) -> Union[int, None]:
+    def text_channel_id(self) -> int | None:
         return self.__text_channel_id
 
     @property
-    def map_pools(self) -> List["CustomMapPool"]:
+    def map_pools(self) -> list["CustomMapPool"]:
         return self.__map_pools
 
-    def set_admins(self, user_ids: List[int]) -> None:
+    def set_admins(self, user_ids: list[int]) -> None:
         self.__admins = user_ids
 
     def bind_text_channel_id(self, _id: int) -> None:
         self.__text_channel_id = _id
 
     def create_map_pool(
-        self, owner_id: int, name: str, maps: List[R6Map] = []
+        self, owner_id: int, name: str, maps: list[R6Map] = []
     ) -> "CustomMapPool":
         name_taken = any([pool.name == name for pool in self.__map_pools])
         if name_taken:
@@ -109,7 +109,7 @@ class SettingsEntry(WrapperBase):
         else:
             raise MapPoolAlreadyExists(new_name)
 
-    def modify_map_pool_maps(self, name: str, maps: List[R6Map]) -> None:
+    def modify_map_pool_maps(self, name: str, maps: list[R6Map]) -> None:
         pool = self.get_map_pool(name)
         pool.set_maps(maps)
 
@@ -143,14 +143,14 @@ class CustomMapPool(WrapperBase):
     def __init__(self, data: dict):
         self.__owner_id: int = int(data["owner_id"])
         self.__name: str = data["name"]
-        self.__maps: List[R6Map] = [R6Map(name) for name in data["maps"]]
+        self.__maps: list[R6Map] = [R6Map(name) for name in data["maps"]]
         self.__created_timestamp: int = data["created_timestamp"]
         self.__modified_timestamp: int = data["modified_timestamp"]
 
     def __len__(self) -> int:
         return len(self.__maps)
 
-    def __iter__(self) -> Generator[Any, Any, R6Map]:
+    def __iter__(self) -> Generator[Any, Any, R6Map | None]:
         yield from self.__maps
 
     @property
@@ -162,7 +162,7 @@ class CustomMapPool(WrapperBase):
         return self.__name
 
     @property
-    def maps(self) -> List[R6Map]:
+    def maps(self) -> list[R6Map]:
         return self.__maps
 
     @property
@@ -181,7 +181,7 @@ class CustomMapPool(WrapperBase):
         self.__name = name
         self.update_modified_timestamp()
 
-    def set_maps(self, maps: List[R6Map]) -> None:
+    def set_maps(self, maps: list[R6Map]) -> None:
         self.__maps = maps
         self.update_modified_timestamp()
 
@@ -198,7 +198,7 @@ class CustomMapPool(WrapperBase):
         }
 
     @classmethod
-    def create(cls, owner_id: int, name: str, maps: List[R6Map]) -> "CustomMapPool":
+    def create(cls, owner_id: int, name: str, maps: list[R6Map]) -> "CustomMapPool":
         timestamp = int(datetime.now().timestamp())
         return cls(
             {

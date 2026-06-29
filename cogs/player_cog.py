@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Coroutine, Dict
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -10,7 +10,7 @@ from canned import Canned
 from event import Event, PlayerStatsResetPayload
 from queuemanager import QueueType
 from ui import ConfirmationModal, PlayerStatsDeleteDMView, PlayerStatsResetDMView
-from util import ephemeral
+from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -22,7 +22,7 @@ class PlayerCog(commands.GroupCog, name="player"):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Event] = {
+        _handlers: dict[EventHandlerType, Event] = {
             self.send_player_stats_reset_dm: Event.PLAYER_STATS_RESET,
             self.send_player_stats_delete_dm: Event.PLAYER_STATS_DELETE,
         }

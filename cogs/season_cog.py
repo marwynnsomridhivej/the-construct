@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Coroutine, Dict
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -10,7 +10,7 @@ from canned import Canned
 from event import Event, SeasonEndPayload
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 from ui import ConfirmationModal, SeasonEndDMView, SeasonsListView, SeasonStartModal
-from util import ephemeral
+from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -22,7 +22,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Event] = {
+        _handlers: dict[EventHandlerType, Event] = {
             self._send_season_end_dms: Event.SEASON_STOP
         }
         for coro, event in _handlers.items():
@@ -41,7 +41,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         )
 
     async def _send_season_end_dms(self, payload: SeasonEndPayload) -> None:
-        users_data: Dict[discord.User, Dict[QueueType, Dict]] = {}
+        users_data: dict[discord.User, dict[QueueType, dict]] = {}
 
         for queue_type, players in payload.ranked_players.items():
             for rank, player in players:

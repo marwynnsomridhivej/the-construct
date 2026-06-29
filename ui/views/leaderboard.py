@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -25,7 +25,7 @@ class LeaderboardView(Paginator):
         )
 
         self._season: StatsSeason = season
-        self._data: List[Tuple[int, StatsPlayer]] = rankings
+        self._data: list[tuple[int, StatsPlayer]] = rankings
         self.queue_type: QueueType = queue_type
         self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
@@ -41,7 +41,7 @@ class LeaderboardView(Paginator):
         # Return final formatted string
         return f"> - `{_current}`{_type} (`{_max}` peak)"
 
-    def paginate_text_display(self) -> List[discord.ui.Item]:
+    def paginate_text_display(self) -> list[discord.ui.Item]:
         items = []
         index_base = self.per_page * self.current_page
 

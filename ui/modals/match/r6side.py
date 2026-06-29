@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -22,7 +22,7 @@ class R6SideModal(discord.ui.Modal):
         for item in self.init_components():
             self.add_item(item)
 
-    def init_components(self) -> List[discord.ui.Item]:
+    def init_components(self) -> list[discord.ui.Item]:
         self.side_select = discord.ui.Label(
             text="Starting Side Selection",
             description="Select whether your team would like to attack or defend first",

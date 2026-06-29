@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -18,7 +18,7 @@ class QueueListView(Paginator):
         *,
         source_interaction: discord.Interaction,
         data,
-        criteria: List[str],
+        criteria: list[str],
         per_page: int = 3,
     ):
         super().__init__(
@@ -27,10 +27,10 @@ class QueueListView(Paginator):
             per_page=per_page,
             timeout=None,
         )
-        self._data: List[Tuple[str, QueueEntry]] = data
+        self._data: list[tuple[str, QueueEntry]] = data
         self.criteria = criteria
 
-    def paginate_text_display(self) -> List[discord.ui.Item]:
+    def paginate_text_display(self) -> list[discord.ui.Item]:
         items = []
         index_base = self.per_page * self.current_page
 

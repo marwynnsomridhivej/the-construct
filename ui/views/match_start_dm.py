@@ -1,5 +1,3 @@
-from typing import List
-
 import discord
 
 from event import PrematchDMPayload
@@ -19,7 +17,7 @@ class MatchStartDMView(discord.ui.LayoutView):
         self.init_components()
 
     @property
-    def text_display(self) -> List[discord.ui.Item]:
+    def text_display(self) -> list[discord.ui.Item]:
         items = []
 
         # Instructions

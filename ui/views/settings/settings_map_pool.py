@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -103,7 +103,7 @@ class SettingsMapPoolView(SettingsBaseView):
 
         return "\n".join(items)
 
-    def get_selected_map_pool_name(self) -> Union[str, None]:
+    def get_selected_map_pool_name(self) -> str | None:
         # If not admin, SettingsMapPoolView will not have the attribute map_pool_name_select
         if not hasattr(self, "map_pool_name_select"):
             return None

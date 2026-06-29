@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -18,11 +18,11 @@ __all__ = (
 
 
 class SettingsSetAdminModal(discord.ui.Modal):
-    def __init__(self, bot, previous: List[int]):
+    def __init__(self, bot, previous: list[int]):
         super().__init__(title="Set Admins")
         self.previous = previous
         self.__bot: Bot = bot
-        self.admins: List[int] = None
+        self.admins: list[int] = None
         self.is_valid = True
 
         self.init_components()

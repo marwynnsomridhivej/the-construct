@@ -1,15 +1,13 @@
-from typing import Dict, List, Union
-
 from base import WrapperBase
 from exceptions import (
     CaptainAlreadyAssigned,
     CaptainNotAssigned,
     InvalidGuildID,
-    MVPAlreadyAssigned,
     MapAlreadyBanned,
     MatchAlreadyExists,
     MatchDoesNotExist,
     MatchFinalised,
+    MVPAlreadyAssigned,
 )
 from queuemanager import QueueType
 
@@ -27,14 +25,12 @@ class MatchWrapper(WrapperBase):
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
-        self.__data: Dict[int, MatchGuildContainer] = {
+        self.__data: dict[int, MatchGuildContainer] = {
             int(guild_id): MatchGuildContainer.parse(guild_containers)
             for guild_id, guild_containers in data.items()
         }
 
-    def get(
-        self, guild_id: int, throw: bool = False
-    ) -> Union["MatchGuildContainer", None]:
+    def get(self, guild_id: int, throw: bool = False) -> "MatchGuildContainer | None":
         """Get a MatchGuildContainer (MGC) of the specified guild
 
         Args:
@@ -45,7 +41,7 @@ class MatchWrapper(WrapperBase):
             InvalidGuildID: No MGC instance exists for the specified guild
 
         Returns:
-            Union[MatchGuildContainer, None]: The MGC instance of the specified guild
+            MatchGuildContainer | None: The MGC instance of the specified guild
         """
         mgc = self.__data.get(guild_id)
         if mgc is None and throw:
@@ -68,7 +64,7 @@ class MatchWrapper(WrapperBase):
         return mgc
 
     @property
-    def data(self) -> Dict[int, "MatchGuildContainer"]:
+    def data(self) -> dict[int, "MatchGuildContainer"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -84,11 +80,11 @@ class MatchGuildContainer(WrapperBase):
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
-        self.__data: Dict[str, MatchEntry] = {
+        self.__data: dict[str, MatchEntry] = {
             name: MatchEntry.parse(entry) for name, entry in data.items()
         }
 
-    def get(self, name: str, throw: bool = False) -> Union["MatchEntry", None]:
+    def get(self, name: str, throw: bool = False) -> "MatchEntry | None":
         """Get a MatchEntry with the specified name
 
         Args:
@@ -99,7 +95,7 @@ class MatchGuildContainer(WrapperBase):
             MatchDoesNotExist: No MatchEntry instance exists with the specified name
 
         Returns:
-            Union[MatchEntry, None]: The MatchEntry instance with the specified name
+            MatchEntry | None: The MatchEntry instance with the specified name
         """
         data = self.__data.get(name)
         if data is None and throw:
@@ -139,7 +135,7 @@ class MatchGuildContainer(WrapperBase):
         return self.__data.pop(name)
 
     @property
-    def data(self) -> Dict[str, "MatchEntry"]:
+    def data(self) -> dict[str, "MatchEntry"]:
         return self.__data
 
     def serialise(self) -> dict:
@@ -168,7 +164,7 @@ class MatchEntry(WrapperBase):
 
         self.team_a: MatchTeam = MatchTeam.parse(data["team_a"])
         self.team_b: MatchTeam = MatchTeam.parse(data["team_b"])
-        self.map: Union[R6Map, None] = data["map"]
+        self.map: R6Map | None = data["map"]
 
     def get_team_of_user(self, user_id: int) -> "MatchTeam":
         """Finds the team the specified user ID belongs to
@@ -260,11 +256,11 @@ class MatchEntry(WrapperBase):
         self.get_team_of_user(captain_id).set_rounds_won(rounds_won)
 
     @property
-    def captains(self) -> List[int]:
-        return [self.team_a.captain_id, self.team_b.captain_id]
+    def captains(self) -> list[int]:
+        return [self.team_a.captain_id, self.team_b.captain_id]  # type: ignore
 
     @property
-    def banned_maps(self) -> List[R6Map]:
+    def banned_maps(self) -> list[R6Map]:
         return self.team_a.map_bans + self.team_b.map_bans
 
     @property
@@ -293,14 +289,14 @@ class MatchEntry(WrapperBase):
         return self.wins_set and self.mvps_set
 
     @property
-    def winning_team(self) -> Union["MatchTeam", None]:
+    def winning_team(self) -> "MatchTeam | None":
         if not self.wins_set:
             return None
 
         return self.team_a if self.team_a.win else self.team_b
 
     @property
-    def losing_team(self) -> Union["MatchTeam", None]:
+    def losing_team(self) -> "MatchTeam | None":
         if not self.wins_set:
             return None
 
@@ -339,14 +335,14 @@ class MatchTeam(WrapperBase):
         assert data["name"] in ["A", "B"]
 
         self.name: str = data["name"]
-        self.voice_channel_id: Union[int, None] = data["voice_channel_id"]
-        self.captain_id: Union[int, None] = data["captain_id"]
-        self.players: List[int] = data["players"]
-        self.map_bans: List[R6Map] = data["map_bans"]
-        self.starting_side: Union[R6Side, None] = data["starting_side"]
-        self.win: Union[bool, None] = data["win"]
-        self.mvp_id: Union[int, None] = data["mvp_id"]
-        self.rounds_won: Union[int, None] = data["rounds_won"]
+        self.voice_channel_id: int | None = data["voice_channel_id"]
+        self.captain_id: int | None = data["captain_id"]
+        self.players: list[int] = data["players"]
+        self.map_bans: list[R6Map] = data["map_bans"]
+        self.starting_side: R6Side | None = data["starting_side"]
+        self.win: bool | None = data["win"]
+        self.mvp_id: int | None = data["mvp_id"]
+        self.rounds_won: int | None = data["rounds_won"]
 
     def assign_captain(self, user_id: int) -> None:
         """Designates a captain by user ID
@@ -401,7 +397,7 @@ class MatchTeam(WrapperBase):
 
     def reset_player_draft(self) -> None:
         """Resets the player draft state to default"""
-        self.players = [self.captain_id]
+        self.players = [self.captain_id]  # type: ignore
 
     def reset_map_bans(self) -> None:
         """Resets the map ban state to default"""

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 import discord
 
@@ -89,13 +89,13 @@ class QueueManager(ManagerBase):
         )
         await self.write(wrapper)
 
-    async def get_all_queues(self, guild_id: int) -> Dict[str, QueueEntry]:
+    async def get_all_queues(self, guild_id: int) -> dict[str, QueueEntry]:
         wrapper = await self.get_or_create_wrapper()
         return wrapper.get_or_create(guild_id).data
 
     async def get_queues_owned_by(
         self, guild_id: int, owner_id: int, admin: bool = False
-    ) -> Dict[str, QueueEntry]:
+    ) -> dict[str, QueueEntry]:
         queues = await self.get_all_queues(guild_id)
         return {
             name: entry
@@ -108,7 +108,7 @@ class QueueManager(ManagerBase):
         guild_id: int,
         member: Optional[discord.Member] = None,
         queue_type: Optional[QueueType] = None,
-    ) -> Dict[str, QueueEntry]:
+    ) -> dict[str, QueueEntry]:
         wrapper = await self.get_or_create_wrapper()
         results = wrapper.get_or_create(guild_id).filter(
             member=member, queue_type=queue_type

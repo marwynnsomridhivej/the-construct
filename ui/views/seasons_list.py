@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -21,9 +21,9 @@ class SeasonsListView(Paginator):
             data=seasons,
             per_page=5,
         )
-        self._seasons: List[StatsSeason] = seasons
+        self._seasons: list[StatsSeason] = seasons
 
-    def paginate_text_display(self) -> List[discord.ui.Item]:
+    def paginate_text_display(self) -> list[discord.ui.Item]:
         items = []
         index_base = self.per_page * self.current_page
 

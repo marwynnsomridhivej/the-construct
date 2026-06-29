@@ -1,5 +1,3 @@
-from typing import List
-
 import discord
 
 from queuemanager import QueueType
@@ -21,7 +19,7 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
         self.init_components()
 
     @property
-    def text_display(self) -> List[discord.ui.Item]:
+    def text_display(self) -> list[discord.ui.Item]:
         items = []
 
         # Header

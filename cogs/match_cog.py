@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from itertools import combinations
-from typing import TYPE_CHECKING, Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -13,7 +13,7 @@ from matchmanager import R6_QUICKMATCH, R6_RANKED
 from queuemanager import QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
 from ui import MatchStartDMView, PrematchView, PrematchViewButtons, R6View
-from util import ephemeral
+from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -25,7 +25,7 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Event] = {
+        _handlers: dict[EventHandlerType, Event] = {
             self._init_match_data: Event.PREMATCH_MODAL_DONE,
             self._prematch_dm: Event.PREMATCH_DM_READY_SEND,
         }
@@ -54,7 +54,7 @@ class MatchCog(commands.GroupCog, name="match"):
 
     async def _perform_auto_draft(
         self, payload: MatchPayload
-    ) -> Tuple[Tuple[int, int], Tuple[List[int], List[int]]]:
+    ) -> tuple[tuple[int, int], tuple[list[int], list[int]]]:
         players = [
             await self.bot.stats_manager.get_or_create_player(
                 guild_id=payload.guild_id,

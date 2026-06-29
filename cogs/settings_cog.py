@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Coroutine, Dict
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from ui import SettingsSelectView
+from util import EventHandlerType
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -18,7 +19,7 @@ class SettingsCog(commands.Cog):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, str] = {
+        _handlers: dict[EventHandlerType, str] = {
             self._create_settings_on_guild_join: "guild_join",
         }
         for coro, event in _handlers.items():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import traceback
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -23,7 +23,7 @@ class R6MapBanModal(discord.ui.Modal):
         for item in self.init_components():
             self.add_item(item)
 
-    def init_components(self) -> List[discord.ui.Item]:
+    def init_components(self) -> list[discord.ui.Item]:
         self.map_ban = discord.ui.Label(
             text="Ban Map",
             description="Select a map to ban",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import discord
 
@@ -19,7 +19,7 @@ class SeasonStartModal(discord.ui.Modal):
         self.bot: Bot = bot
 
         # Check this for the finalised name
-        self.name: Union[str, None] = None
+        self.name: str | None = None
 
         self.init_components()
 

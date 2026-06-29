@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from collections.abc import Callable, Coroutine
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord import app_commands
@@ -25,11 +24,10 @@ from exceptions import (
 )
 from queuemanager import QueueEntry, QueueType
 from ui import QueueFilledDMView, QueueListView
+from util import EventHandlerType
 
 if TYPE_CHECKING:
     from bot import Bot
-
-    type Handler = Callable[[QueueFilledPayload], Coroutine[Any, Any, None]]
 
 
 @app_commands.guild_only()
@@ -38,7 +36,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Handler, Event] = {
+        _handlers: dict[EventHandlerType, Event] = {
             self._notify_queue_owner_full: Event.QUEUE_FILLED,
         }
         for coro, event in _handlers.items():
@@ -137,7 +135,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     @_delete_queue.autocomplete("name")
     async def _delete_queue_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         owned_queues = [
             name
@@ -189,7 +187,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     @_join_queue.autocomplete("name")
     async def _join_queue_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         joinable_queues = [
             name
@@ -227,7 +225,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     @_leave_queue.autocomplete("name")
     async def _leave_queue_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         leaveable_queues = [
             name
@@ -268,7 +266,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     @_lock_queue.autocomplete("name")
     async def _lock_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         lockable_queues = [
             name
@@ -309,7 +307,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     @_unlock_queue.autocomplete("name")
     async def _unlock_autocomplete(
         self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    ) -> list[app_commands.Choice[str]]:
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         unlockable_queues = [
             name
@@ -341,14 +339,14 @@ class QueueCog(commands.GroupCog, name="queue"):
                 criteria.append(f"Type {queue_type}")
 
             # Filter results by submitted criteria and convert to list
-            all_filtered_queues: Dict[
+            all_filtered_queues: dict[
                 str, QueueEntry
             ] = await self.bot.queue_manager.list_queues(
                 interaction.guild_id,  # type: ignore
                 member=member,
                 queue_type=queue_type,
             )
-            results: List[Tuple[str, QueueEntry]] = [
+            results: list[tuple[str, QueueEntry]] = [
                 (name, entry) for name, entry in all_filtered_queues.items()
             ]
 
@@ -381,8 +379,8 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @staticmethod
     def get_sorted_choices(
-        entries: List[str], current: str
-    ) -> List[app_commands.Choice[str]]:
+        entries: list[str], current: str
+    ) -> list[app_commands.Choice[str]]:
         choices = [
             app_commands.Choice(name=choice, value=choice)
             for choice in entries

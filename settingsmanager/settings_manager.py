@@ -1,5 +1,3 @@
-from typing import List, Union
-
 from base import ManagerBase
 from matchmanager import R6Map
 
@@ -27,14 +25,14 @@ class SettingsManager(ManagerBase):
             wrapper.get_or_create(guild_id)
             await self.write(wrapper)
 
-    async def get_admins(self, guild_id: int, owner_id: int = None) -> List[int]:
+    async def get_admins(self, guild_id: int, owner_id: int | None = None) -> list[int]:
         wrapper = await self.get_or_create_wrapper()
         admin_ids = wrapper.get_or_create(guild_id).admins
         if owner_id is not None and owner_id not in admin_ids:
             admin_ids.append(owner_id)
         return admin_ids
 
-    async def set_admins(self, guild_id: int, user_ids: List[int]) -> None:
+    async def set_admins(self, guild_id: int, user_ids: list[int]) -> None:
         wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).set_admins(user_ids)
         await self.write(wrapper)
@@ -48,7 +46,7 @@ class SettingsManager(ManagerBase):
         wrapper.get_or_create(guild_id).bind_text_channel_id(_id)
         await self.write(wrapper)
 
-    async def get_bound_text_channel_id(self, guild_id: int) -> Union[int, None]:
+    async def get_bound_text_channel_id(self, guild_id: int) -> int | None:
         wrapper = await self.get_or_create_wrapper()
         return wrapper.get_or_create(guild_id).text_channel_id
 
@@ -57,7 +55,7 @@ class SettingsManager(ManagerBase):
         return len(wrapper.get_or_create(guild_id).map_pools) < PER_GUILD_MAP_POOL_LIMIT
 
     async def create_map_pool(
-        self, guild_id: int, owner_id: int, name: str, maps: List[R6Map]
+        self, guild_id: int, owner_id: int, name: str, maps: list[R6Map]
     ) -> CustomMapPool:
         wrapper = await self.get_or_create_wrapper()
         pool = wrapper.get_or_create(guild_id).create_map_pool(
@@ -70,7 +68,7 @@ class SettingsManager(ManagerBase):
         wrapper = await self.get_or_create_wrapper()
         return wrapper.get_or_create(guild_id).get_map_pool(name)
 
-    async def get_all_map_pools(self, guild_id: int) -> List[CustomMapPool]:
+    async def get_all_map_pools(self, guild_id: int) -> list[CustomMapPool]:
         wrapper = await self.get_or_create_wrapper()
         return wrapper.get_or_create(guild_id).map_pools
 
@@ -85,7 +83,7 @@ class SettingsManager(ManagerBase):
         await self.write(wrapper)
 
     async def modify_map_pool_maps(
-        self, guild_id: int, name: int, maps: List[R6Map]
+        self, guild_id: int, name: str, maps: list[R6Map]
     ) -> None:
         wrapper = await self.get_or_create_wrapper()
         wrapper.get_or_create(guild_id).modify_map_pool_maps(name, maps)
