@@ -25,9 +25,6 @@ class Canned(StrEnum):
     # Queues
     ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
     ERR_QUEUE_NO_EXISTS = "ERROR - No queue exists with the specified name"
-    ERR_QUEUE_NAME_LEN = (
-        "ERROR - The specified name must be no longer than 100 characters"
-    )
     ERR_QUEUE_LIMIT = "ERROR - This server has reached the 20 simultaneous queues limit and cannot create more queues at this time"
     ERR_QUEUE_OWNER = (
         "ERROR - Unable to modify the specified queue, as you are not its owner"
@@ -45,6 +42,20 @@ class Canned(StrEnum):
     ERR_QUEUE_NO_LIST_RESULTS = (
         "ERROR - Could not find any queues matching the specified criteria"
     )
+    ERR_QUEUE_CREATE = "ERROR - Unable to create queue"
+    ERR_QUEUE_DELETE = "ERROR - Unable to delete queue"
+    ERR_QUEUE_DELETE_CONFIRM_NAME_MISMATCH = (
+        "ERROR - The provided queue name did not match the selected queue's name"
+    )
+    ERR_QUEUE_NO_DELETABLE = "ERROR - There are no queues you have permission to delete"
+    ERR_QUEUE_NO_JOINABLE = "ERROR - There are no queues you can join"
+    ERR_QUEUE_NO_LEAVEABLE = "ERROR - There are no queues you can leave"
+    ERR_QUEUE_NO_LOCKABLE = "ERROR - There are no queues you can lock"
+    ERR_QUEUE_NO_UNLOCKABLE = "ERROR - There are no queues you can unlock"
+    ERR_QUEUE_JOIN = "ERROR - Could not join queue"
+    ERR_QUEUE_LEAVE = "ERROR - Could not leave queue"
+    ERR_QUEUE_LOCK = "ERROR - Could not lock queue"
+    ERR_QUEUE_UNLOCK = "ERROR - Could not unlock queue"
 
     # R6 Prematch
     ERR_PREMATCH_NO_QUEUE = "ERROR - Please specify a queue"
