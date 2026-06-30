@@ -49,15 +49,15 @@ Queues may be created at any time, even without an active season. Up to 20 queue
 can exist concurrently per server, and upon match completion, the corresponding
 queue entry is destroyed.
 
-| Command                       | Description                                                  | Notes                                                                                                  |
-|-------------------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| `/queue create [type] [name]` | Create a queue of the specified type with the specified name | Any user is able to create a queue                                                                     |
-| `/queue delete [name]`        | Delete a queue with the specified name                       | Only the queue owner or bot administrators may perform this operation                                  |
-| `/queue join [name]`          | Join a queue with the specified name                         | This operation may only be done while the queue is unlocked and no match is in progress for said queue |
-| `/queue leave [name]`         | Leave a queue you have previously joined                     | This operation may only be done while the queue is unlocked and no match is in progress for said queue |
-| `/queue lock [name]`          | Lock a queue with the specified name                         | Only the queue owner or bot administrators may perform this operation                                  |
-| `/queue unlock [name]`        | Unlock a queue with the specified name                       | Only the queue owner or bot administrators may perform this operation                                  |
-| `/queue list`                 | Lists all active queues in the server                        |                                                                                                        |
+| Command         | Description                                                          | Notes                                                                                                                       |
+|-----------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `/queue create` | Opens an interactive panel for individual queue creation             | Any user is able to create a queue                                                                                          |
+| `/queue delete` | Opens an interactive panel for individual queue deletion             | Only the queue owner or bot administrators may perform this operation                                                       |
+| `/queue join`   | Opens an interactive panel for multiple simultaneous queue joining   | This operation may only be done while no match is in progress or locked for the selected queues                             |
+| `/queue leave`  | Opens an interactive panel for multiple simultaneous queue leaving   | This operation may only be done while no match is in progress or locked for the selected queues                             |
+| `/queue lock`   | Opens an interactive panel for multiple simultaneous queue locking   | Only the queue owner or bot administrators may perform this operation while no match is in progress for the selected queues |
+| `/queue unlock` | Opens an interactive panel for multiple simultaneous queue unlocking | Only the queue owner or bot administrators may perform this operation while no match is in progress for the selected queues |
+| `/queue list`   | Lists all active queues in the server                                |                                                                                                                             |
 
 ### Match Management
 
@@ -94,6 +94,31 @@ Give feedback directly to the developers.
 | `/feedback` | Submit feedback via the feedback modal | There is a per-user cooldown of `300`s between uses |
 
 ## Changelog
+
+### 2.1.2-beta
+
+This patch release reworks the majority of the queue-related commands, providing
+an improved user experience while making it harder for users to accidentally 
+submit invalid responses.
+
+#### Added
+
+- Modal-based UI for user input for the following queue-related commands:
+  - `/queue create`
+  - `/queue delete`
+  - `/queue join`
+  - `/queue leave`
+  - `/queue lock`
+  - `/queue unlock`
+
+#### Bugfixes
+
+- Allow bot administrators to delete queues in addition to just the queue owner
+- Signifncantly reduce end user capability to submit malformed/invalid input into the
+QueueManager backend for processing
+  - Cases where this can happen are uncommon race conditions on the human timescale,
+  such as an administrator deleting a queue after a user uses `/queue join`, but before
+  the user submits their response
 
 ### 2.1.1-beta
 
