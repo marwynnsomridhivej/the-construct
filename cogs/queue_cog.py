@@ -10,24 +10,31 @@ from discord.ext import commands
 from canned import Canned
 from event import Event, QueueFilledPayload
 from exceptions import (
-    AlreadyInQueue,
     NoListResults,
-    NotInQueue,
-    NotQueueOwner,
     QueueAlreadyExists,
     QueueDoesNotExist,
     QueueIsFull,
     QueueIsLocked,
-    QueueLimitReached,
     QueueLockStateError,
     QueueProgressStateError,
 )
 from queuemanager import QueueEntry, QueueType
-from ui import QueueFilledDMView, QueueListView
-from util import EventHandlerType
+from ui import (
+    QueueCreateModal,
+    QueueDeleteModal,
+    QueueFilledDMView,
+    QueueJoinModal,
+    QueueLeaveModal,
+    QueueListView,
+    QueueLockModal,
+    QueueUnlockModal,
+)
+from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
+
+    type QueueOperationResult = dict[str, QueueEntry | bool | str | None]
 
 
 @app_commands.guild_only()
@@ -76,245 +83,464 @@ class QueueCog(commands.GroupCog, name="queue"):
     @app_commands.command(
         name="create", description="Creates a new queue for a custom match"
     )
-    @app_commands.rename(queue_type="type")
-    @app_commands.describe(
-        queue_type="The ruleset used for this queue",
-        name="The name given to this queue instance",
-    )
-    async def _create_queue(
-        self, interaction: discord.Interaction, queue_type: QueueType, name: str
-    ):
-        msg = None
-        ephemeral = True
+    async def _create_queue(self, interaction: discord.Interaction):
+        # Check if any queues can be created
+        if not await self.bot.queue_manager.can_create_queue(
+            guild_id=interaction.guild_id  # type: ignore
+        ):
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_LIMIT, **ephemeral()
+            )
+
+        # Send queue create modal
+        queue_create_modal = QueueCreateModal(self.bot)
+        await interaction.response.send_modal(queue_create_modal)
+
+        # Wait until interaction has finished
+        await queue_create_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_create_modal.is_valid:
+            return
+
+        # Attempt to create the queue
         try:
             await self.bot.queue_manager.create_queue(
                 guild_id=interaction.guild_id,  # type: ignore
                 owner_id=interaction.user.id,
-                name=name,
-                queue_type=queue_type,
+                name=queue_create_modal.queue_name,
+                queue_type=queue_create_modal.queue_type,
             )
-            msg = f'The queue "{name}" has been created for {queue_type}'
-            ephemeral = False
-        except QueueLimitReached:
-            msg = Canned.ERR_QUEUE_LIMIT
         except QueueAlreadyExists:
-            msg = Canned.ERR_QUEUE_EXISTS
-        except ValueError:
-            msg = Canned.ERR_QUEUE_NAME_LEN
-        except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
+            return await interaction.followup.send(
+                Canned.ERR_QUEUE_EXISTS,
+                ephemeral=True,
+            )
+        else:
+            return await interaction.followup.send(
+                f"The queue `{queue_create_modal.queue_name.title()} "
+                + f"({queue_create_modal.queue_type.title()})` has been created"
+            )
 
-    @app_commands.command(name="delete", description="Delete a queue you created")
-    @app_commands.describe(name="The name of the queue you are trying to delete")
-    async def _delete_queue(self, interaction: discord.Interaction, name: str):
-        msg = None
-        ephemeral = True
+    @app_commands.command(
+        name="delete", description="Delete a queue you have management permissions on"
+    )
+    async def _delete_queue(self, interaction: discord.Interaction):
+        # Check if any queues can be deleted
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        deletable_queues = [
+            name
+            for name, entry in queues.items()
+            if not entry.locked
+            and (
+                entry.owner_id == interaction.user.id
+                or await self.bot.settings_manager.is_admin(
+                    interaction.guild_id,  # type: ignore
+                    interaction.user.id,
+                )
+            )
+        ]
+        if not deletable_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_NO_DELETABLE, **ephemeral()
+            )
+
+        # Send queue delete modal
+        queue_delete_modal = QueueDeleteModal(self.bot, sorted(deletable_queues))
+        await interaction.response.send_modal(queue_delete_modal)
+
+        # Wait until interaction has finished
+        await queue_delete_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_delete_modal.is_valid:
+            return
+
+        # Attempt to delete the queue
         try:
             await self.bot.queue_manager.delete_queue(
                 interaction.guild_id,  # type: ignore
-                name,
+                queue_delete_modal.queue_name,
                 interaction.user.id,
             )
-            msg = f'Successfully deleted the queue "{name}"'
-            ephemeral = False
-        except QueueDoesNotExist:
-            msg = Canned.ERR_QUEUE_NO_EXISTS
-        except NotQueueOwner:
-            msg = Canned.ERR_QUEUE_OWNER
         except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
-
-    @_delete_queue.autocomplete("name")
-    async def _delete_queue_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
-        owned_queues = [
-            name
-            for name, entry in queues.items()
-            if entry.owner_id == interaction.user.id
-        ]
-        return self.get_sorted_choices(owned_queues, current)
-
-    @app_commands.command(name="join", description="Join an existing queue")
-    @app_commands.describe(name="The name of the queue you are trying to join")
-    async def _join_queue(self, interaction: discord.Interaction, name: str):
-        msg = None
-        ephemeral = True
-        try:
-            q = await self.bot.queue_manager.join_user_to_queue(
-                interaction.guild_id,  # type: ignore
-                interaction.user.id,
-                name,
+            return await interaction.followup.send(
+                f"An error has occurred: {e}", ephemeral=True
             )
-            msg = f'You successfully joined the queue "{name}"'
-        except QueueDoesNotExist:
-            msg = Canned.ERR_QUEUE_NO_EXISTS
-        except AlreadyInQueue:
-            msg = Canned.ERR_QUEUE_ALREADY_IN
-        except QueueIsFull:
-            msg = Canned.ERR_QUEUE_FULL
-        except QueueIsLocked:
-            msg = Canned.ERR_QUEUE_LOCKED_JOIN
-        except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        else:
-            if q.full:
-                # Notify the queue owner that their queue has been filled
-                self.bot.dispatch(
-                    Event.QUEUE_FILLED,
-                    QueueFilledPayload(
-                        {
-                            "guild_id": interaction.guild_id,
-                            "name": name,
-                            "entry": q,
-                        }
-                    ),
-                )
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
 
-    @_join_queue.autocomplete("name")
-    async def _join_queue_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
+        return await interaction.followup.send(
+            f"The queue `{queue_delete_modal.queue_name}` has been successfully deleted"
+        )
+
+    @app_commands.command(name="join", description="Join open queues")
+    async def _join_queue(self, interaction: discord.Interaction):
+        # Check if any queues are joinable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         joinable_queues = [
-            name
+            name.lower()
             for name, entry in queues.items()
-            if len(entry.players) < entry.max_players
+            if not entry.locked
+            and len(entry.players) < entry.max_players
             and interaction.user.id not in entry.players
         ]
-        return self.get_sorted_choices(joinable_queues, current)
-
-    @app_commands.command(name="leave", description="Leave an existing queue")
-    @app_commands.describe(name="The name of the queue you are trying to leave")
-    async def _leave_queue(self, interaction: discord.Interaction, name: str):
-        msg = None
-        ephemeral = True
-        try:
-            await self.bot.queue_manager.leave_user_from_queue(
-                interaction.guild_id,  # type: ignore
-                interaction.user.id,
-                name,
+        if not joinable_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_NO_JOINABLE, **ephemeral()
             )
-            msg = f'You successfully left the queue "{name}"'
-        except QueueDoesNotExist:
-            msg = Canned.ERR_QUEUE_NO_EXISTS
-        except NotInQueue:
-            msg = Canned.ERR_QUEUE_NOT_IN
-        except QueueIsLocked:
-            msg = Canned.ERR_QUEUE_LOCKED_LEAVE
-        except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
 
-    @_leave_queue.autocomplete("name")
-    async def _leave_queue_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
+        # Send queue join modal
+        queue_join_modal = QueueJoinModal(self.bot, sorted(joinable_queues))
+        await interaction.response.send_modal(queue_join_modal)
+
+        # Wait until interaction has finished
+        await queue_join_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_join_modal.is_valid:
+            return
+
+        # Attempt to join all selected queues
+        results: list[QueueOperationResult] = []
+
+        for name in queue_join_modal.selected_queue_names:
+            msg = None
+            joined_queue = None
+            try:
+                joined_queue = await self.bot.queue_manager.join_user_to_queue(
+                    interaction.guild_id,  # type: ignore
+                    interaction.user.id,
+                    name,
+                )
+            except QueueIsFull:
+                msg = Canned.ERR_QUEUE_FULL
+            except QueueIsLocked:
+                msg = Canned.ERR_QUEUE_LOCKED_JOIN
+            except Exception as e:
+                msg = f"An error has occurred: {e}"
+            else:
+                # If the queue is full after joining, notify queue owner
+                if joined_queue.full:
+                    self.bot.dispatch(
+                        Event.QUEUE_FILLED,
+                        QueueFilledPayload(
+                            {
+                                "guild_id": interaction.guild_id,
+                                "name": name,
+                                "entry": joined_queue,
+                            }
+                        ),
+                    )
+            finally:
+                results.append(
+                    {
+                        "name": name.title(),
+                        "entry": joined_queue,
+                        "success": msg is None and joined_queue is not None,
+                        "msg": msg,
+                    }
+                )
+
+        # Craft join summary message
+        content = [
+            "## Queue Join Summary",
+            "*The following is a message detailing all queue join attempts "
+            + "based on the queues you selected*",
+        ]
+
+        # Add any join success names to the summary message
+        join_success = [result for result in results if result["success"]]
+        if join_success:
+            content.append("### Success")
+            content.append(
+                "\n".join(
+                    [
+                        f"- {result['name']} - *`{len(result['entry'].players)}/{result['entry'].max_players}` players*"
+                        for result in join_success
+                    ]
+                )
+            )
+
+        # Add any join fail names and reason to the summary message
+        join_fail = [result for result in results if not result["success"]]
+        if join_fail:
+            content.append("### Fail")
+            content.append(
+                "\n".join(
+                    [
+                        f"- {result['name']} - *`({result['msg']})`*"
+                        for result in join_fail
+                    ]
+                )
+            )
+
+        # Send queue join summary message
+        return await interaction.followup.send("\n".join(content), ephemeral=True)
+
+    @app_commands.command(
+        name="leave", description="Leave open queues that you are a member of"
+    )
+    async def _leave_queue(self, interaction: discord.Interaction):
+        # Check if any queues are leaveable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
         leaveable_queues = [
             name
             for name, entry in queues.items()
-            if interaction.user.id in entry.players
+            if not entry.locked and interaction.user.id in entry.players
         ]
-        return self.get_sorted_choices(leaveable_queues, current)
+        if not leaveable_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_NO_LEAVEABLE, **ephemeral()
+            )
+
+        # Send queue leave modal
+        queue_leave_modal = QueueLeaveModal(self.bot, sorted(leaveable_queues))
+        await interaction.response.send_modal(queue_leave_modal)
+
+        # Wait until interaction has finished
+        await queue_leave_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_leave_modal.is_valid:
+            return
+
+        # Attempt to leave all selected queues
+        results: list[QueueOperationResult] = []
+
+        for name in queue_leave_modal.selected_queue_names:
+            msg = None
+            try:
+                await self.bot.queue_manager.leave_user_from_queue(
+                    interaction.guild_id,  # type: ignore
+                    interaction.user.id,
+                    name,
+                )
+            except QueueDoesNotExist:
+                msg = Canned.ERR_QUEUE_NO_EXISTS
+            except QueueIsLocked:
+                msg = Canned.ERR_QUEUE_LOCKED_LEAVE
+            except Exception as e:
+                msg = f"An error has occurred: {e}"
+            finally:
+                results.append(
+                    {
+                        "name": name.title(),
+                        "success": msg is None,
+                        "msg": msg,
+                    }
+                )
+
+        # Craft leave summary message
+        content = [
+            "## Queue Leave Summary",
+            "*The following is a message detailing all queue leave attempts "
+            + "based on the queues you selected*",
+        ]
+
+        # Add any leave success names to the summary message
+        leave_success = [result for result in results if result["success"]]
+        if leave_success:
+            content.append("### Success")
+            content.append(
+                "\n".join([f"- {result['name']}" for result in leave_success])
+            )
+
+        # Add any leave fail names and reason to the summary message
+        leave_fail = [result for result in results if not result["success"]]
+        if leave_fail:
+            content.append("### Fail")
+            content.append(
+                "\n".join(
+                    [
+                        f"- {result['name']} - *`({result['msg']})`*"
+                        for result in leave_fail
+                    ]
+                )
+            )
+
+        # Send queue leave summary message
+        return await interaction.followup.send("\n".join(content), ephemeral=True)
 
     @app_commands.command(name="lock", description="Lock an existing queue")
-    @app_commands.describe(name="The name of the queue you are trying to lock")
-    async def _lock_queue(self, interaction: discord.Interaction, name: str):
-        msg = None
-        ephemeral = True
-        try:
-            await self.bot.queue_manager.set_queue_lock_state(
-                interaction.guild_id,  # type: ignore
-                interaction.user.id,
-                name,
-                True,
-            )
-            msg = f'Queue "{name}" has been locked'
-            ephemeral = False
-        except QueueDoesNotExist:
-            msg = Canned.ERR_QUEUE_NO_EXISTS
-        except QueueLockStateError:
-            msg = Canned.ERR_QUEUE_LOCKSTATE_L
-        except NotQueueOwner:
-            msg = Canned.ERR_QUEUE_OWNER
-        except QueueProgressStateError:
-            msg = Canned.ERR_QUEUE_PROGSTATE
-        except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
-
-    @_lock_queue.autocomplete("name")
-    async def _lock_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
+    async def _lock_queue(self, interaction: discord.Interaction):
+        # Check if any queues are lockable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        is_admin = await self.bot.settings_manager.is_admin(
+            interaction.guild_id,  # type: ignore
+            interaction.user.id,
+        )
         lockable_queues = [
             name
             for name, entry in queues.items()
-            if not entry.locked and interaction.user.id == entry.owner_id
+            if not entry.locked and (interaction.user.id == entry.owner_id or is_admin)
         ]
-        return self.get_sorted_choices(lockable_queues, current)
+        if not lockable_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_NO_LOCKABLE, **ephemeral()
+            )
+
+        # Send queue lock modal
+        queue_lock_modal = QueueLockModal(self.bot, sorted(lockable_queues))
+        await interaction.response.send_modal(queue_lock_modal)
+
+        # Wait until interaction has finished
+        await queue_lock_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_lock_modal.is_valid:
+            return
+
+        # Attempt to lock all selected queues
+        results: list[QueueOperationResult] = []
+
+        for name in queue_lock_modal.selected_queue_names:
+            msg = None
+            try:
+                await self.bot.queue_manager.set_queue_lock_state(
+                    interaction.guild_id,  # type: ignore
+                    interaction.user.id,
+                    name,
+                    True,
+                    admin=is_admin,
+                )
+            except QueueDoesNotExist:
+                msg = Canned.ERR_QUEUE_NO_EXISTS
+            except QueueLockStateError:
+                msg = Canned.ERR_QUEUE_LOCKSTATE_L
+            except QueueProgressStateError:
+                msg = Canned.ERR_QUEUE_PROGSTATE
+            except Exception as e:
+                msg = f"An error has occurred: {e}"
+            finally:
+                results.append(
+                    {
+                        "name": name.title(),
+                        "success": msg is None,
+                        "msg": msg,
+                    }
+                )
+
+        # Craft lock summary message
+        content = [
+            "## Queue Lock Summary",
+            "*The following is a message detailing all queue lock attempts "
+            + "based on the queues you selected*",
+        ]
+
+        # Add any lock success names to the summary message
+        lock_success = [result for result in results if result["success"]]
+        if lock_success:
+            content.append("### Success")
+            content.append(
+                "\n".join([f"- {result['name']}" for result in lock_success])
+            )
+
+        # Add any lock fail names and reason to the summary message
+        lock_fail = [result for result in results if not result["success"]]
+        if lock_fail:
+            content.append("### Fail")
+            content.append(
+                "\n".join(
+                    [
+                        f"- {result['name']} - *`{result['msg']}`*"
+                        for result in lock_fail
+                    ]
+                )
+            )
+
+        # Send queue lock summary message
+        return await interaction.followup.send("\n".join(content), ephemeral=True)
 
     @app_commands.command(name="unlock", description="Unlock an existing queue")
-    @app_commands.describe(name="The name of the queue you are trying to unlock")
-    async def _unlock_queue(self, interaction: discord.Interaction, name: str):
-        msg = None
-        ephemeral = True
-        try:
-            await self.bot.queue_manager.set_queue_lock_state(
-                interaction.guild_id,  # type: ignore
-                interaction.user.id,
-                name,
-                False,
-            )
-            msg = f'Queue "{name}" has been unlocked'
-            ephemeral = False
-        except QueueDoesNotExist:
-            msg = Canned.ERR_QUEUE_NO_EXISTS
-        except QueueLockStateError:
-            msg = Canned.ERR_QUEUE_LOCKSTATE_U
-        except NotQueueOwner:
-            msg = Canned.ERR_QUEUE_OWNER
-        except QueueProgressStateError:
-            msg = Canned.ERR_QUEUE_PROGSTATE
-        except Exception as e:
-            msg = f"An error has occurred: {e}"
-            ephemeral = False
-        finally:
-            if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
-
-    @_unlock_queue.autocomplete("name")
-    async def _unlock_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
+    async def _unlock_queue(self, interaction: discord.Interaction):
+        # Check if any queues are unlockable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        is_admin = await self.bot.settings_manager.is_admin(
+            interaction.guild_id,  # type: ignore
+            interaction.user.id,
+        )
         unlockable_queues = [
             name
             for name, entry in queues.items()
-            if entry.locked and interaction.user.id == entry.owner_id
+            if entry.locked
+            and not entry.in_progress
+            and (interaction.user.id == entry.owner_id or is_admin)
         ]
-        return self.get_sorted_choices(unlockable_queues, current)
+        if not unlockable_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_NO_UNLOCKABLE, **ephemeral()
+            )
+
+        # Send queue unlock modal
+        queue_unlock_modal = QueueUnlockModal(self.bot, sorted(unlockable_queues))
+        await interaction.response.send_modal(queue_unlock_modal)
+
+        # Wait until interaction has finished
+        await queue_unlock_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_unlock_modal.is_valid:
+            return
+
+        # Attempt to lock all selected queues
+        results: list[QueueOperationResult] = []
+
+        for name in queue_unlock_modal.selected_queue_names:
+            msg = None
+            try:
+                await self.bot.queue_manager.set_queue_lock_state(
+                    interaction.guild_id,  # type: ignore
+                    interaction.user.id,
+                    name,
+                    False,
+                    admin=is_admin,
+                )
+            except QueueDoesNotExist:
+                msg = Canned.ERR_QUEUE_NO_EXISTS
+            except QueueLockStateError:
+                msg = Canned.ERR_QUEUE_LOCKSTATE_U
+            except QueueProgressStateError:
+                msg = Canned.ERR_QUEUE_PROGSTATE
+            except Exception as e:
+                msg = f"An error has occurred: {e}"
+            finally:
+                results.append(
+                    {
+                        "name": name.title(),
+                        "success": msg is None,
+                        "msg": msg,
+                    }
+                )
+
+        # Craft lock summary message
+        content = [
+            "## Queue Unlock Summary",
+            "*The following is a message detailing all queue unlock attempts "
+            + "based on the queues you selected*",
+        ]
+
+        # Add any unlock success names to the summary message
+        unlock_success = [result for result in results if result["success"]]
+        if unlock_success:
+            content.append("### Success")
+            content.append(
+                "\n".join([f"- {result['name']}" for result in unlock_success])
+            )
+
+        # Add any unlock fail names and reason to the summary message
+        unlock_fail = [result for result in results if not result["success"]]
+        if unlock_fail:
+            content.append("### Fail")
+            content.append(
+                "\n".join(
+                    [
+                        f"- {result['name']} - *`{result['msg']}`*"
+                        for result in unlock_fail
+                    ]
+                )
+            )
+
+        # Send queue unlock summary message
+        return await interaction.followup.send("\n".join(content), ephemeral=True)
 
     @app_commands.command(name="list", description="List all queues with filters")
     @app_commands.rename(queue_type="type")
@@ -376,17 +602,6 @@ class QueueCog(commands.GroupCog, name="queue"):
         finally:
             if msg:
                 await interaction.response.send_message(msg, ephemeral=ephemeral)
-
-    @staticmethod
-    def get_sorted_choices(
-        entries: list[str], current: str
-    ) -> list[app_commands.Choice[str]]:
-        choices = [
-            app_commands.Choice(name=choice, value=choice)
-            for choice in entries
-            if current.lower() in choice.lower()
-        ]
-        return sorted(choices, key=lambda x: x.name)
 
 
 async def setup(bot):
