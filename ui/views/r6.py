@@ -200,8 +200,16 @@ class R6ViewButtons(discord.ui.ActionRow):
                 Canned.ERR_R6DRAFT_DRAFT_TURN, **ephemeral()
             )
 
-        draft_modal = R6DraftModal(view=self.r6view)
+        # Get other team
+        other_team = self.r6view.match.get_team_of_user(
+            self.r6view.other_captain_id(interaction.user.id)
+        )
+
+        # Send draft modal
+        draft_modal = R6DraftModal(view=self.r6view, other_team=other_team)
         await interaction.response.send_modal(draft_modal)
+
+        # Wait for interaction to complete
         await draft_modal.wait()
 
         # Increment draft index
