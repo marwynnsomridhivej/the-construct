@@ -5,6 +5,7 @@ __all__ = (
     "R6Side",
     "R6_RANKED",
     "R6_QUICKMATCH",
+    "R6_MAX_PLAYERS_PER_TEAM",
 )
 
 
@@ -93,6 +94,8 @@ R6_QUICKMATCH: list[R6Map] = sorted(
         R6Map.STADIUM,
     ]
 )
+
+R6_MAX_PLAYERS_PER_TEAM: int = 5
 
 
 # Sanity checks
