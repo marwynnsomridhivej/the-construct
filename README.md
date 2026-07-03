@@ -95,6 +95,17 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.1.3-beta
+
+This patch introduces a small feature addition to the drafting process.
+
+#### Added
+- Option to finalise your team's draft early and give the rest of the players
+in the draft pool to the other team
+  - This option will only appear when the amount of players left in the draft
+  pool (excluding your selection) is less than or equal to the remaining player
+  slots available in the other team
+
 ### 2.1.2-beta
 
 This patch release reworks the majority of the queue-related commands, providing
