@@ -37,13 +37,14 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
 
         # Will be changed in init_components
         self.main_buttons = None
-        self.container_id: int = None
+        self.container_id: int | None = None
         self.is_guild_owner: bool = False
         self.is_bot_admin: bool = False
 
     async def init_components(self) -> None:
         # Prep section with text and thumbnail
-        guild_icon = self.bot.get_guild(self.guild_id).icon
+        guild = self.bot.get_guild(self.guild_id)
+        guild_icon = guild.icon if guild is not None else None
         section = discord.ui.Section(
             discord.ui.TextDisplay(await self.get_text_content()),
             accessory=discord.ui.Thumbnail(
@@ -56,6 +57,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
             section,
             accent_color=discord.Color.blurple(),
         )
+        assert isinstance(container.id, int)
         self.container_id = container.id
 
         # Show admin message if user is server owner or bot admin
