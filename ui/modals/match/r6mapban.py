@@ -16,9 +16,9 @@ __all__ = ("R6MapBanModal",)
 
 
 class R6MapBanModal(discord.ui.Modal):
-    def __init__(self, *, view):
+    def __init__(self, *, view: R6View):
         super().__init__(title="Ban Map")
-        self.r6view: R6View = view
+        self.r6view = view
 
         for item in self.init_components():
             self.add_item(item)
@@ -43,6 +43,8 @@ class R6MapBanModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.map_ban.component, discord.ui.RadioGroup)
+        assert isinstance(interaction.channel, discord.Thread)
+        assert (guild_id := interaction.guild_id) is not None
 
         captain_id = interaction.user.id
         map_banned = R6Map(self.map_ban.component.value)
@@ -50,7 +52,7 @@ class R6MapBanModal(discord.ui.Modal):
 
         # Use MatchManager.ban_map to write to disk
         await self.r6view.bot.match_manager.ban_map(
-            interaction.guild_id,
+            guild_id,
             self.r6view.payload.match_name,
             captain_id,
             map_banned,
@@ -69,7 +71,7 @@ class R6MapBanModal(discord.ui.Modal):
         # Detect if 4 bans were done in total (each side completed their two bans)
         if len(maps_remaining) == len(self.r6view.map_pool) - 4:
             await self.r6view.bot.match_manager.select_map(
-                interaction.guild_id,
+                guild_id,
                 self.r6view.payload.match_name,
                 random.choice(maps_remaining),
             )

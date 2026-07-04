@@ -40,7 +40,7 @@ class R6ResultModal(discord.ui.Modal):
                 options=[
                     discord.RadioGroupOption(
                         label=f"Team {self.get_captain_name(team)}",
-                        value=team.captain_id,
+                        value=str(team.captain_id),
                     )
                     for team in self.r6view.teams
                 ],
@@ -71,11 +71,15 @@ class R6ResultModal(discord.ui.Modal):
         ]
 
     def get_captain_name(self, team: MatchTeam) -> str:
-        return (
-            self.r6view.bot.get_guild(self.r6view.payload.guild_id)
-            .get_member(team.captain_id)
-            .display_name
-        )
+        assert team.captain_id is not None
+
+        guild = self.r6view.bot.get_guild(self.r6view.payload.guild_id)
+        assert guild is not None
+
+        member = guild.get_member(team.captain_id)
+        assert member is not None
+
+        return member.display_name
 
     def get_rounds_won(self, winning_captain_id: int) -> tuple[int, int]:
         assert isinstance(self.team_a_rounds_won.component, discord.ui.TextInput)
@@ -105,6 +109,7 @@ class R6ResultModal(discord.ui.Modal):
         winning_team = discord.utils.find(
             lambda t: t.captain_id == winning_captain_id, self.r6view.teams
         )
+        assert winning_team is not None
 
         # Ensure winning team won more rounds
         if self.r6view.teams.index(winning_team) == 0 and rounds_won_a <= rounds_won_b:
@@ -118,6 +123,8 @@ class R6ResultModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.result.component, discord.ui.RadioGroup)
+        assert self.result.component.value is not None
+        assert (guild_id := interaction.guild_id) is not None
 
         # Get the winning team captain ID
         winning_team_captain_id = int(self.result.component.value)
@@ -127,13 +134,15 @@ class R6ResultModal(discord.ui.Modal):
 
         # If validation passes, actually write changes
         await self.r6view.bot.match_manager.set_winning_team(
-            interaction.guild_id,
+            guild_id,
             self.r6view.payload.match_name,
             winning_team_captain_id,
         )
         for team, rounds_won in zip(self.r6view.teams, rw):
+            assert team.captain_id is not None
+
             await self.r6view.bot.match_manager.set_team_rounds_won(
-                interaction.guild_id,
+                guild_id,
                 self.r6view.payload.match_name,
                 team.captain_id,
                 rounds_won,
@@ -144,6 +153,8 @@ class R6ResultModal(discord.ui.Modal):
 
         # Craft and send final result message
         rounds_won_winner, rounds_won_loser = sorted(rw, reverse=True)
+        assert self.r6view.match.winning_team is not None
+
         winners = (
             f"The winner of **{self.r6view.payload.match_name}** "
             + f"is **Team {self.r6view.match.winning_team.name}** "
