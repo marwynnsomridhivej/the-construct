@@ -1,3 +1,5 @@
+from typing import Literal, overload
+
 from base import WrapperBase
 from exceptions import (
     CaptainAlreadyAssigned,
@@ -29,6 +31,17 @@ class MatchWrapper(WrapperBase):
             int(guild_id): MatchGuildContainer.parse(guild_containers)
             for guild_id, guild_containers in data.items()
         }
+
+    @overload
+    def get(self, guild_id: int, *, throw: Literal[True]) -> "MatchGuildContainer": ...
+
+    @overload
+    def get(
+        self, guild_id: int, *, throw: Literal[False]
+    ) -> "MatchGuildContainer | None": ...
+
+    @overload
+    def get(self, guild_id: int) -> "MatchGuildContainer | None": ...
 
     def get(self, guild_id: int, throw: bool = False) -> "MatchGuildContainer | None":
         """Get a MatchGuildContainer (MGC) of the specified guild
@@ -83,6 +96,15 @@ class MatchGuildContainer(WrapperBase):
         self.__data: dict[str, MatchEntry] = {
             name: MatchEntry.parse(entry) for name, entry in data.items()
         }
+
+    @overload
+    def get(self, name: str, throw: Literal[True]) -> "MatchEntry": ...
+
+    @overload
+    def get(self, name: str, throw: Literal[False]) -> "MatchEntry | None": ...
+    
+    @overload
+    def get(self, name: str) -> "MatchEntry | None": ...
 
     def get(self, name: str, throw: bool = False) -> "MatchEntry | None":
         """Get a MatchEntry with the specified name
@@ -257,7 +279,9 @@ class MatchEntry(WrapperBase):
 
     @property
     def captains(self) -> list[int]:
-        return [self.team_a.captain_id, self.team_b.captain_id]  # type: ignore
+        if self.team_a.captain_id is None or self.team_b.captain_id is None:
+            raise ValueError
+        return [self.team_a.captain_id, self.team_b.captain_id]
 
     @property
     def banned_maps(self) -> list[R6Map]:
@@ -397,7 +421,10 @@ class MatchTeam(WrapperBase):
 
     def reset_player_draft(self) -> None:
         """Resets the player draft state to default"""
-        self.players = [self.captain_id]  # type: ignore
+        if self.captain_id is None:
+            raise ValueError
+
+        self.players = [self.captain_id]
 
     def reset_map_bans(self) -> None:
         """Resets the map ban state to default"""
