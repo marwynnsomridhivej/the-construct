@@ -228,7 +228,7 @@ class AutoDraftPayload(WrapperBase):
 
     @classmethod
     def create(
-        cls, captains: tuple[int, int], players: tuple[list[int], list[int]]
+        cls, captains: tuple[int, ...], players: tuple[list[int], ...]
     ) -> "AutoDraftPayload":
         return cls(
             {
