@@ -307,7 +307,7 @@ class QueueEntry(WrapperBase):
 
 
 class QueueOperationResult(WrapperBase):
-    def __init__(self, *, data: dict):
+    def __init__(self, data: dict):
         self.name: str = data["name"]
         self.entry: QueueEntry | None = data.get("entry")
         self.success: bool = data["success"]
