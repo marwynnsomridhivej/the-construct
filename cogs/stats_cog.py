@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -43,6 +43,14 @@ class StatsCog(commands.Cog):
         )
 
     async def calc_stats(self, payload: MatchFinalisedPayload):
+        # Typehint assertions for attributes that should already have values
+        assert (
+            payload.winning_team.mvp_id is not None
+            and payload.winning_team.rounds_won is not None
+            and payload.losing_team.mvp_id is not None
+            and payload.losing_team.rounds_won is not None
+        )
+
         # Create rating objects from StatsPlayer mu and sigma for both teams
         winning_team: list[PlackettLuceRating] = [
             await self._create_openskill_rating_object(
@@ -114,10 +122,11 @@ class StatsCog(commands.Cog):
     async def _leaderboard_command(
         self,
         interaction: discord.Interaction,
-        name: Optional[str] = None,
-        queue_type: Optional[QueueType] = QueueType.R6_5V5,
+        name: str | None = None,
+        queue_type: QueueType = QueueType.R6_5V5,
     ):
-        guild_id = interaction.guild_id
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Ensure an active season exists if not named
         try:
@@ -161,7 +170,10 @@ class StatsCog(commands.Cog):
     async def _leaderboard_autocomplete(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
-        seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
+        seasons = await self.bot.stats_manager.get_all_seasons(guild_id)
         return sorted(
             [
                 app_commands.Choice(name=s.name.title(), value=s.name)
