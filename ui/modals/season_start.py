@@ -19,7 +19,7 @@ class SeasonStartModal(discord.ui.Modal):
         self.bot: Bot = bot
 
         # Check this for the finalised name
-        self.name: str | None = None
+        self.name: str
 
         self.init_components()
 
