@@ -21,6 +21,7 @@ class Canned(StrEnum):
     ERR_PERMS = "ERROR - You do not have permission to run this command"
     ERR_BOT_USER = "ERROR - This operation cannot be done on bot users"
     ERR_COOLDOWN = "ERROR - The command is on cooldown for another `{}`s"
+    ERR_OUTSIDE_GUILD_CTX = "ERROR - This command may only be executed in servers"
 
     # Queues
     ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
