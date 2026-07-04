@@ -65,11 +65,18 @@ class PlayerCog(commands.GroupCog, name="player"):
         member: discord.Member,
         queue_type: QueueType,
     ) -> bool:
+        # Typehint assert, we know this is true anyway
+        assert (
+            (guild_id := interaction.guild_id) is not None
+            and interaction.guild is not None
+            and (owner_id := interaction.guild.owner_id) is not None
+        )
+
         # Must be server owner or bot administrator
         if not (
-            interaction.user.id == interaction.guild.owner_id
+            interaction.user.id == owner_id
             or await self.bot.settings_manager.is_admin(
-                interaction.guild_id,
+                guild_id,
                 interaction.user.id,
             )
         ):
@@ -83,7 +90,7 @@ class PlayerCog(commands.GroupCog, name="player"):
 
         # Ensure there is an active season
         try:
-            await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
+            await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             await interaction.response.send_message(
                 Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
@@ -92,7 +99,7 @@ class PlayerCog(commands.GroupCog, name="player"):
 
         # Ensure specified member has stats (is ranked)
         all_players = await self.bot.stats_manager.get_guild_players(
-            interaction.guild_id, queue_type
+            guild_id, queue_type
         )
         if not any([player.id == member.id for player in all_players]):
             await interaction.response.send_message(
@@ -118,6 +125,9 @@ class PlayerCog(commands.GroupCog, name="player"):
         member: discord.Member,
         queue_type: QueueType,
     ):
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
         # Must pass all checks before confirmation modal is sent
         if not await self._perform_checks(interaction, member, queue_type):
             return
@@ -138,7 +148,7 @@ class PlayerCog(commands.GroupCog, name="player"):
 
         # Reset stats and send confirmation messages
         await self.bot.stats_manager.reset_player(
-            guild_id=interaction.guild_id, queue_type=queue_type, user_id=member.id
+            guild_id=guild_id, queue_type=queue_type, user_id=member.id
         )
         await interaction.followup.send(
             f"Player {member.mention}'s stats have been successfully reset for {queue_type}",
@@ -148,7 +158,7 @@ class PlayerCog(commands.GroupCog, name="player"):
             Event.PLAYER_STATS_RESET,
             PlayerStatsResetPayload.create(
                 user_id=member.id,
-                guild_id=interaction.guild_id,
+                guild_id=guild_id,
                 queue_type=queue_type,
             ),
         )
@@ -168,6 +178,9 @@ class PlayerCog(commands.GroupCog, name="player"):
         member: discord.Member,
         queue_type: QueueType,
     ):
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
         # Must pass all checks before confirmation modal is sent
         if not await self._perform_checks(interaction, member, queue_type):
             return
@@ -188,7 +201,7 @@ class PlayerCog(commands.GroupCog, name="player"):
 
         # Delete stats and send confirmation messages
         await self.bot.stats_manager.delete_player(
-            guild_id=interaction.guild_id, queue_type=queue_type, user_id=member.id
+            guild_id=guild_id, queue_type=queue_type, user_id=member.id
         )
         await interaction.followup.send(
             f"Player {member.mention}'s stats have been successfully deleted for {queue_type}",
@@ -198,7 +211,7 @@ class PlayerCog(commands.GroupCog, name="player"):
             Event.PLAYER_STATS_DELETE,
             PlayerStatsResetPayload.create(
                 user_id=member.id,
-                guild_id=interaction.guild_id,
+                guild_id=guild_id,
                 queue_type=queue_type,
             ),
         )
