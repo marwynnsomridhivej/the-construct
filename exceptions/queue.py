@@ -27,7 +27,9 @@ class AlreadyInQueue(Exception):
 
 class NoListResults(Exception):
     def __init__(
-        self, member: Optional[discord.Member] = None, queue_type: Optional[str] = None
+        self,
+        member: Optional[discord.Member | discord.User] = None,
+        queue_type: Optional[str] = None,
     ):
         self.member = member
         self.queue_type = queue_type

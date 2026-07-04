@@ -108,7 +108,7 @@ class QueueManager(ManagerBase):
     async def list_queues(
         self,
         guild_id: int,
-        member: Optional[discord.Member] = None,
+        member: Optional[discord.Member | discord.User] = None,
         queue_type: Optional[QueueType] = None,
     ) -> dict[str, QueueEntry]:
         wrapper = await self.get_or_create_wrapper()

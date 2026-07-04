@@ -145,18 +145,21 @@ class QueueGuildContainer(WrapperBase):
         return self.__data.pop(name)
 
     def filter(
-        self, *, member: discord.Member | None, queue_type: QueueType | None = None
+        self,
+        *,
+        member: discord.Member | discord.User | None,
+        queue_type: QueueType | None = None,
     ) -> dict[str, "QueueEntry"]:
         """Filter all stored QueueEntry by user presence or queue type
 
         Args:
-            member (discord.Member | None): The ID of the user to filter by
+            member (discord.Member | discord.User | None): The ID of the user to filter by
             queue_type (QueueType | None): The QueueType to filter by
 
         Returns:
             dict[str, QueueEntry]: dict containing queue name and QueueEntry instance
         """
-        user_id = member.id if hasattr(member, "id") else None  # type: ignore
+        user_id = member.id if member is not None else None
         return {
             name: entry
             for name, entry in self.__data.items()
