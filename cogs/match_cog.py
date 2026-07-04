@@ -40,11 +40,13 @@ class MatchCog(commands.GroupCog, name="match"):
             if user is None:
                 continue
             try:
+                # Check to see if the bot can find guild based on guild id
+                guild = self.bot.get_guild(payload.guild_id)
+                if guild is None:
+                    continue
+
                 message = await user.send(
-                    view=MatchStartDMView(
-                        guild=self.bot.get_guild(payload.guild_id),
-                        payload=payload,
-                    )
+                    view=MatchStartDMView(guild=guild, payload=payload)
                 )
                 await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
             except discord.Forbidden:
@@ -54,7 +56,7 @@ class MatchCog(commands.GroupCog, name="match"):
 
     async def _perform_auto_draft(
         self, payload: MatchPayload
-    ) -> tuple[tuple[int, int], tuple[list[int], list[int]]]:
+    ) -> tuple[tuple[int, ...], tuple[list[int], ...]]:
         players = [
             await self.bot.stats_manager.get_or_create_player(
                 guild_id=payload.guild_id,
@@ -92,7 +94,7 @@ class MatchCog(commands.GroupCog, name="match"):
                 best_delta = delta
                 most_balanced_teams = [
                     [
-                        int(player.name)
+                        int(player.name)  # type: ignore
                         for player in sorted(
                             team,
                             key=lambda p: p.ordinal(),
@@ -101,6 +103,7 @@ class MatchCog(commands.GroupCog, name="match"):
                     ]
                     for team in teams
                 ]
+        assert most_balanced_teams is not None
 
         # Isolate captains and non-captains
         captains = tuple([team[0] for team in most_balanced_teams])
@@ -131,6 +134,7 @@ class MatchCog(commands.GroupCog, name="match"):
 
         # Create thread channel
         tc = self.bot.get_channel(payload.text_channel_id)
+        assert isinstance(tc, discord.TextChannel)
         thread_channel = await tc.create_thread(
             name=f"{payload.match_name} - {payload.queue_entry.type}",
         )
@@ -151,8 +155,6 @@ class MatchCog(commands.GroupCog, name="match"):
                     continue
                 await thread_channel.add_user(user)
             except discord.HTTPException:
-                pass
-            except discord.Forbidden:
                 self.bot.logger.error(
                     f"Unable to add admin id {user.id} to thread_channel "
                     + f"{thread_channel.name} (id={thread_channel.id})"
@@ -183,6 +185,7 @@ class MatchCog(commands.GroupCog, name="match"):
         )
 
     async def is_admin_including_owner(self, interaction: discord.Interaction) -> bool:
+        assert interaction.guild_id is not None
         guild = self.bot.get_guild(interaction.guild_id)
         owner_id = guild.owner_id if guild is not None else None
         return (
@@ -197,6 +200,8 @@ class MatchCog(commands.GroupCog, name="match"):
         name="start", description="Enter pre-match configuration details"
     )
     async def _start_match(self, interaction: discord.Interaction):
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
         guild_id = interaction.guild_id
         owner_id = interaction.user.id
 
@@ -246,6 +251,7 @@ class MatchCog(commands.GroupCog, name="match"):
             )
 
         # Check if the bot can send messages in the bound text channel
+        assert self.bot.user is not None
         bot_member = interaction.guild.get_member(self.bot.user.id)
         can_send_messages_in_threads = (
             tc.permissions_for(bot_member).send_messages_in_threads
