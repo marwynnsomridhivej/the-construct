@@ -90,6 +90,9 @@ class Bot(commands.Bot):
         if not self.dm_wipe:
             return
 
+        # More for the typechecker, as we have already logged in at this point
+        assert self.user is not None
+
         # Delete any stragglers
         for user in self.users:
             # Don't do bots
