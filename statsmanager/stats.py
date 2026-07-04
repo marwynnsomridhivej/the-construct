@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal, overload
 from warnings import deprecated
 
 from base import WrapperBase
@@ -100,6 +101,8 @@ class StatsGuildContainer(WrapperBase):
         if not self.has_active_season():
             raise ValueError("No active season exists")
 
+        assert self.current is not None
+
         self.current.stop_season()
         self.history.append(self.current)
         self.current = None
@@ -166,6 +169,21 @@ class StatsSeason(WrapperBase):
     def stop_season(self) -> None:
         self.end_timestamp = int(datetime.now().timestamp())
         self.archived = True
+
+    @overload
+    def get_player(
+        self, queue_type: QueueType, user_id: int, throw: Literal[True]
+    ) -> "StatsPlayer": ...
+
+    @overload
+    def get_player(
+        self, queue_type: QueueType, user_id: int, throw: Literal[False]
+    ) -> "StatsPlayer | None": ...
+
+    @overload
+    def get_player(
+        self, queue_type: QueueType, user_id: int
+    ) -> "StatsPlayer | None": ...
 
     def get_player(
         self, queue_type: QueueType, user_id: int, throw: bool = False
@@ -410,7 +428,7 @@ class StatsPlayer(WrapperBase):
             else Decimal()
         )
 
-    def __eq__(self, other: "StatsPlayer") -> bool:
+    def __eq__(self, other) -> bool:
         return all(
             [
                 getattr(self, attr) == getattr(other, attr)
@@ -430,7 +448,7 @@ class StatsPlayer(WrapperBase):
             ]
         )
 
-    def __ne__(self, other: "StatsPlayer") -> bool:
+    def __ne__(self, other) -> bool:
         return not self == other
 
     def award(self, win: bool, mvp: bool, mu: float, sigma: float) -> Decimal:
@@ -480,7 +498,7 @@ class StatsPlayer(WrapperBase):
         Returns:
             dict: Dictionary representation of the StatsPlayer instance
         """
-        data = {
+        data: dict[str, int | float] = {
             "id": self.id,
             "wins": self.wins,
             "losses": self.losses,
@@ -488,6 +506,8 @@ class StatsPlayer(WrapperBase):
         }
 
         if self.is_legacy:
+            assert self.__points is not None and self.__max_points is not None
+
             # Return legacy format if v1.x data only
             data["points"] = self.__points
             data["max_points"] = self.__max_points
