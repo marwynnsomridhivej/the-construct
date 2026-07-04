@@ -37,6 +37,7 @@ class StatsManager(ManagerBase):
     ) -> StatsPlayer:
         wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
 
         try:
             player = sgc.current.get_player(queue_type, user_id, throw=True)
@@ -50,27 +51,34 @@ class StatsManager(ManagerBase):
         self, guild_id: int, queue_type: QueueType
     ) -> list[StatsPlayer]:
         wrapper = await self.get_or_create_wrapper()
+        sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
+
         return [
             player
-            for player in wrapper.get_or_create(guild_id)
-            .current.get_data_by_queue_type(queue_type)
-            .players.values()
+            for player in sgc.current.get_data_by_queue_type(
+                queue_type
+            ).players.values()
         ]
 
     async def reset_player(
         self, *, guild_id: int, queue_type: QueueType, user_id: int
     ) -> None:
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).current.get_player(
-            queue_type, user_id, throw=True
-        ).reset()
+        sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
+
+        sgc.current.get_player(queue_type, user_id, throw=True).reset()
         await self.write(wrapper)
 
     async def delete_player(
         self, *, guild_id: int, queue_type: QueueType, user_id: int
     ) -> None:
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).current.delete_player(queue_type, user_id)
+        sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
+
+        sgc.current.delete_player(queue_type, user_id)
         await self.write(wrapper)
 
     async def award_team(
@@ -83,9 +91,14 @@ class StatsManager(ManagerBase):
         win: bool,
     ):
         wrapper = await self.get_or_create_wrapper()
+        sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
+
         for rating in ratings:
+            assert rating.name is not None
+
             player_id = int(rating.name)
-            wrapper.get_or_create(guild_id).current.award_player(
+            sgc.current.award_player(
                 queue_type,
                 player_id,
                 mvp_id == player_id,
@@ -118,6 +131,8 @@ class StatsManager(ManagerBase):
         sgc = wrapper.get_or_create(guild_id)
         sgc.set_current_season(name)
         await self.write(wrapper)
+        assert sgc.current is not None
+
         return sgc.current
 
     async def stop_season(self, *, guild_id: int) -> None:
@@ -125,22 +140,30 @@ class StatsManager(ManagerBase):
         wrapper.get_or_create(guild_id).stop_current_season()
         await self.write(wrapper)
 
-    async def get_season(self, *, guild_id: int, name: str = None) -> StatsSeason:
+    async def get_season(
+        self, *, guild_id: int, name: str | None = None
+    ) -> StatsSeason:
         wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
         # If no name specified, return current season details
         if name is None:
+            assert sgc.current is not None
+
             return sgc.current
 
         # Find first instance of season which matches the specified name
         seasons = copy.deepcopy(sgc.history)
         if isinstance(sgc.current, StatsSeason):
             seasons.insert(0, sgc.current)
-        return discord.utils.find(lambda s: s.name == name, seasons)
+
+        first_match_season = discord.utils.find(lambda s: s.name == name, seasons)
+        assert first_match_season is not None
+
+        return first_match_season
 
     async def get_season_rankings(
-        self, *, guild_id: int, queue_type: QueueType, name: str = None
+        self, *, guild_id: int, queue_type: QueueType, name: str | None = None
     ) -> list[tuple[int, StatsPlayer]]:
         wrapper = await self.get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
@@ -217,7 +240,8 @@ class StatsManager(ManagerBase):
         self, guild_id: int, queue_type: QueueType
     ) -> None:
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).current.get_data_by_queue_type(
-            queue_type
-        ).match_count += 1
+        sgc = wrapper.get_or_create(guild_id)
+        assert sgc.current is not None
+
+        sgc.current.get_data_by_queue_type(queue_type).match_count += 1
         await self.write(wrapper)
