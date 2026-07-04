@@ -83,6 +83,7 @@ class MonitoringCog(commands.Cog):
 
     async def _delete_dms(self, guild_id: int, players: list[int]) -> None:
         for player in players:
+            message_id = None
             try:
                 message_id = await self.bot.dm_manager.delete(guild_id, player)
                 user = self.bot.get_user(player)
@@ -99,16 +100,16 @@ class MonitoringCog(commands.Cog):
                 )
             except discord.NotFound:
                 self.bot.logger.info(
-                    f"Message ID {message_id} for user {player} was already deleted"  # type: ignore
+                    f"Message ID {message_id} for user {player} was already deleted"
                 )
             except discord.HTTPException as e:
                 self.bot.logger.error(
-                    f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}"  # type: ignore
+                    f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}"
                 )
             except Exception as e:
                 self.bot.logger.error(
                     "An exception occurred when trying to delete "
-                    + f"message ID {message_id} for user {player}: {e}"  # type: ignore
+                    + f"message ID {message_id} for user {player}: {e}"
                 )
                 traceback.print_exception(type(e), e, e.__traceback__)
 
@@ -132,25 +133,32 @@ class MonitoringCog(commands.Cog):
             return
 
         for team in payload.teams:
+            # Ensure team voice channel ID is set
+            team_vc_id = team.voice_channel_id
+            if team_vc_id is None:
+                continue
+
             try:
                 await self._move_everyone_to_lobby_vc(
-                    team.voice_channel_id,  # type: ignore
+                    team_vc_id,
                     payload.lobby_vc_id,
                     Reason.MATCH_FINALISED_LOBBY_MOVE,
                 )
             except discord.HTTPException:
                 self.bot.logger.error(
-                    f"Unable to move voice clients from voice channel ID {team.voice_channel_id} to {payload.lobby_vc_id}"
+                    f"Unable to move voice clients from voice channel ID {team_vc_id} to {payload.lobby_vc_id}"
                 )
 
             # After moving everyone, THEN delete the VC
+            team_vc = self.bot.get_channel(team_vc_id)
+            if not isinstance(team_vc, discord.VoiceChannel):
+                continue
+
             try:
-                await self.bot.get_channel(team.voice_channel_id).delete(  # type: ignore
-                    reason=Reason.MATCH_FINALISED_DEL_TEMP
-                )
+                await team_vc.delete(reason=Reason.MATCH_FINALISED_DEL_TEMP)
             except discord.HTTPException:
                 self.bot.logger.error(
-                    f"Unable to delete the voice channel with ID: {team.voice_channel_id}"
+                    f"Unable to delete the voice channel with ID: {team_vc_id}"
                 )
 
     async def queue_match_cleanup(self, payload: MatchFinalisedPayload) -> None:
@@ -198,25 +206,30 @@ class MonitoringCog(commands.Cog):
     async def reset_move_back(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
             await self._move_everyone_to_lobby_vc(
-                team.voice_channel_id,  # type: ignore
+                team.voice_channel_id,
                 payload.lobby_vc_id,
                 Reason.VIEW_RESET_STATE,
             )
 
     async def vc_delete_reset_cancel(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
+            # Ensure team voice channel ID is set
+            team_vc_id = team.voice_channel_id
+            if team_vc_id is None:
+                continue
+
             await self._move_everyone_to_lobby_vc(
-                team.voice_channel_id,  # type: ignore
+                team_vc_id,
                 payload.lobby_vc_id,
                 Reason.VIEW_RESET_STATE,
             )
 
-            team_voice_channel = self.bot.get_channel(team.voice_channel_id)  # type: ignore
-            if not isinstance(team_voice_channel, discord.VoiceChannel):
+            team_vc = self.bot.get_channel(team_vc_id)
+            if not isinstance(team_vc, discord.VoiceChannel):
                 continue
 
             try:
-                await team_voice_channel.delete(reason=Reason.VC_DECONSTRUCT)
+                await team_vc.delete(reason=Reason.VC_DECONSTRUCT)
             except discord.HTTPException:
                 self.bot.logger.error(
                     f"Unable to delete the team voice channel with ID: {team.voice_channel_id}"
@@ -243,7 +256,7 @@ class MonitoringCog(commands.Cog):
         try:
             queues = await self.bot.queue_manager.list_queues(
                 payload.guild_id,
-                member=payload.user,  # type: ignore
+                member=payload.user,
             )
             for name in queues.keys():
                 try:
@@ -322,15 +335,16 @@ class MonitoringCog(commands.Cog):
             data_payload.r6view.stop()
 
             # Teardown any created voice channels
-            self.bot.dispatch(
-                Event.CANCEL_BUTTON_PRESSED,
-                VCResetPayload.create(
-                    data_payload.guild_id,
-                    data_payload.match_entry.voice_channel_id,  # type: ignore
-                    data_payload.r6view.teams,
-                    data_payload.r6view.match.type,
-                ),
-            )
+            if data_payload.match_entry is not None:
+                self.bot.dispatch(
+                    Event.CANCEL_BUTTON_PRESSED,
+                    VCResetPayload.create(
+                        data_payload.guild_id,
+                        data_payload.match_entry.voice_channel_id,
+                        data_payload.r6view.teams,
+                        data_payload.r6view.match.type,
+                    ),
+                )
 
             # Clean up the thread
             self.bot.dispatch(Event.THREAD_CLEANUP, data_payload)

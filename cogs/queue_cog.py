@@ -84,10 +84,15 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="create", description="Creates a new queue for a custom match"
     )
     async def _create_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues can be created
-        if not await self.bot.queue_manager.can_create_queue(
-            guild_id=interaction.guild_id  # type: ignore
-        ):
+        if not await self.bot.queue_manager.can_create_queue(guild_id=guild_id):
             return await interaction.response.send_message(
                 Canned.ERR_QUEUE_LIMIT, **ephemeral()
             )
@@ -106,7 +111,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         # Attempt to create the queue
         try:
             await self.bot.queue_manager.create_queue(
-                guild_id=interaction.guild_id,  # type: ignore
+                guild_id=guild_id,
                 owner_id=interaction.user.id,
                 name=queue_create_modal.queue_name,
                 queue_type=queue_create_modal.queue_type,
@@ -126,8 +131,15 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="delete", description="Delete a queue you have management permissions on"
     )
     async def _delete_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues can be deleted
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        queues = await self.bot.queue_manager.get_all_queues(guild_id)
         deletable_queues = [
             name
             for name, entry in queues.items()
@@ -135,8 +147,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             and (
                 entry.owner_id == interaction.user.id
                 or await self.bot.settings_manager.is_admin(
-                    interaction.guild_id,  # type: ignore
-                    interaction.user.id,
+                    guild_id, interaction.user.id
                 )
             )
         ]
@@ -159,7 +170,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         # Attempt to delete the queue
         try:
             await self.bot.queue_manager.delete_queue(
-                interaction.guild_id,  # type: ignore
+                guild_id,
                 queue_delete_modal.queue_name,
                 interaction.user.id,
             )
@@ -174,8 +185,15 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="join", description="Join open queues")
     async def _join_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues are joinable
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        queues = await self.bot.queue_manager.get_all_queues(guild_id)
         joinable_queues = [
             name.lower()
             for name, entry in queues.items()
@@ -207,7 +225,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             joined_queue = None
             try:
                 joined_queue = await self.bot.queue_manager.join_user_to_queue(
-                    interaction.guild_id,  # type: ignore
+                    guild_id,
                     interaction.user.id,
                     name,
                 )
@@ -280,8 +298,15 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="leave", description="Leave open queues that you are a member of"
     )
     async def _leave_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues are leaveable
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        queues = await self.bot.queue_manager.get_all_queues(guild_id)
         leaveable_queues = [
             name
             for name, entry in queues.items()
@@ -310,7 +335,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.leave_user_from_queue(
-                    interaction.guild_id,  # type: ignore
+                    guild_id,
                     interaction.user.id,
                     name,
                 )
@@ -362,10 +387,17 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="lock", description="Lock an existing queue")
     async def _lock_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues are lockable
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        queues = await self.bot.queue_manager.get_all_queues(guild_id)
         is_admin = await self.bot.settings_manager.is_admin(
-            interaction.guild_id,  # type: ignore
+            guild_id,
             interaction.user.id,
         )
         lockable_queues = [
@@ -396,7 +428,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.set_queue_lock_state(
-                    interaction.guild_id,  # type: ignore
+                    guild_id,
                     interaction.user.id,
                     name,
                     True,
@@ -452,10 +484,17 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="unlock", description="Unlock an existing queue")
     async def _unlock_queue(self, interaction: discord.Interaction):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         # Check if any queues are unlockable
-        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)  # type: ignore
+        queues = await self.bot.queue_manager.get_all_queues(guild_id)
         is_admin = await self.bot.settings_manager.is_admin(
-            interaction.guild_id,  # type: ignore
+            guild_id,
             interaction.user.id,
         )
         unlockable_queues = [
@@ -488,7 +527,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.set_queue_lock_state(
-                    interaction.guild_id,  # type: ignore
+                    guild_id,
                     interaction.user.id,
                     name,
                     False,
@@ -554,8 +593,15 @@ class QueueCog(commands.GroupCog, name="queue"):
         member: Optional[discord.Member] = None,
         queue_type: Optional[QueueType] = None,
     ):
+        # If interaction done outside of guild context, do not proceed
+        guild_id = interaction.guild_id
+        if guild_id is None:
+            return await interaction.response.send_message(
+                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
+            )
+
         msg = None
-        ephemeral = True
+        _ephemeral = True
         try:
             # Obtain list of criteria submitted
             criteria = []
@@ -568,7 +614,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             all_filtered_queues: dict[
                 str, QueueEntry
             ] = await self.bot.queue_manager.list_queues(
-                interaction.guild_id,  # type: ignore
+                guild_id,
                 member=member,
                 queue_type=queue_type,
             )
@@ -588,7 +634,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             await interaction.response.send_message(
                 view=qlview,
                 allowed_mentions=discord.AllowedMentions.none(),
-                ephemeral=ephemeral,
+                ephemeral=_ephemeral,
             )
         except NoListResults:
             msg = Canned.ERR_QUEUE_NO_LIST_RESULTS
@@ -598,10 +644,10 @@ class QueueCog(commands.GroupCog, name="queue"):
                 f"An exception occurred when trying to list queue: {e}"
             )
             traceback.print_exception(type(e), e, e.__traceback__)
-            ephemeral = False
+            _ephemeral = False
         finally:
             if msg:
-                await interaction.response.send_message(msg, ephemeral=ephemeral)
+                await interaction.response.send_message(msg, ephemeral=_ephemeral)
 
 
 async def setup(bot):

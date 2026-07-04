@@ -30,7 +30,7 @@ class ManagerBase(ABC):
         if not os.path.exists(self.__dir):
             os.mkdir(self.__dir)
 
-        await self.get_or_create_wrapper()  # type: ignore
+        await self.get_or_create_wrapper()
         self._logger.info(f"[{name}] Successfully loaded")
 
     async def __get_wrapper_data(self) -> dict:
@@ -60,7 +60,7 @@ class ManagerBase(ABC):
             await afile.write(json.dumps(data, indent=4))
 
     @abstractmethod
-    async def get_or_create_wrapper(self) -> WrapperBaseType:  # type: ignore
+    async def get_or_create_wrapper(self) -> WrapperBase:
         pass
 
     async def _get_or_create_wrapper(

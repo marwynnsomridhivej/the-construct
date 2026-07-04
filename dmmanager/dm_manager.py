@@ -17,7 +17,7 @@ class DMManager(ManagerBase):
         super().__init__(dm_loc, "dms")
         self.bot: Bot = bot
 
-    async def load(self):  # type: ignore
+    async def load(self):
         await super()._load(name="DMManager")
 
     async def get_or_create_wrapper(self) -> DMWrapper:
