@@ -33,8 +33,11 @@ class SettingsCog(commands.Cog):
 
     @app_commands.command(name="settings", description="Configure various settings")
     async def _settings(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
         view = SettingsSelectView(
-            guild_id=interaction.guild_id,
+            guild_id=guild_id,
             user_id=interaction.user.id,
             source_interaction=interaction,
             bot=self.bot,
