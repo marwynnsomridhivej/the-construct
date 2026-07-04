@@ -205,6 +205,9 @@ class MonitoringCog(commands.Cog):
 
     async def reset_move_back(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
+            if team.voice_channel_id is None:
+                continue
+
             await self._move_everyone_to_lobby_vc(
                 team.voice_channel_id,
                 payload.lobby_vc_id,
