@@ -1,3 +1,5 @@
+from typing import Literal, overload
+
 import discord
 
 from base import WrapperBase
@@ -34,6 +36,17 @@ class QueueWrapper(WrapperBase):
             int(guild_id): QueueGuildContainer.parse(queues)
             for guild_id, queues in data.items()
         }
+
+    @overload
+    def get(self, guild_id: int, throw: Literal[True]) -> "QueueGuildContainer": ...
+
+    @overload
+    def get(
+        self, guild_id: int, throw: Literal[False]
+    ) -> "QueueGuildContainer | None": ...
+
+    @overload
+    def get(self, guild_id: int) -> "QueueGuildContainer | None": ...
 
     def get(self, guild_id: int, throw: bool = False) -> "QueueGuildContainer | None":
         """Get a QueueGuildContainer (QGC) of the specified guild
@@ -88,6 +101,15 @@ class QueueGuildContainer(WrapperBase):
 
     def __init__(self, data: dict):
         self.__data = {name: QueueEntry.parse(entry) for name, entry in data.items()}
+
+    @overload
+    def get(self, name: str, throw: Literal[True]) -> "QueueEntry": ...
+
+    @overload
+    def get(self, name: str, throw: Literal[False]) -> "QueueEntry | None": ...
+
+    @overload
+    def get(self, name: str) -> "QueueEntry | None": ...
 
     def get(self, name: str, throw: bool = False) -> "QueueEntry | None":
         """Get a QueueEntry with the specified name
