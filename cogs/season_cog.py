@@ -31,11 +31,18 @@ class SeasonCog(commands.GroupCog, name="season"):
         self.bot.logger.info("[SeasonCog] Successfully loaded")
 
     async def _ensure_perms(self, interaction: discord.Interaction) -> bool:
+        # Typehint assert, we know this is true anyway
+        assert (
+            (guild_id := interaction.guild_id) is not None
+            and interaction.guild is not None
+            and (owner_id := interaction.guild.owner_id) is not None
+        )
+
         # Make sure user is either the server owner or is a bot administrator
         return (
-            interaction.guild.owner_id == interaction.user.id
+            owner_id == interaction.user.id
             or await self.bot.settings_manager.is_admin(
-                interaction.guild_id,
+                guild_id,
                 interaction.user.id,
             )
         )
@@ -56,10 +63,15 @@ class SeasonCog(commands.GroupCog, name="season"):
                 }
 
         for user, data in users_data.items():
+            # Ensure guild is not None
+            guild = self.bot.get_guild(payload.guild_id)
+            if guild is None:
+                continue
+
             try:
                 await user.send(
                     view=SeasonEndDMView(
-                        guild=self.bot.get_guild(payload.guild_id),
+                        guild=guild,
                         season=payload.season,
                         data=data,
                     )
@@ -71,6 +83,9 @@ class SeasonCog(commands.GroupCog, name="season"):
 
     @app_commands.command(name="start", description="Starts a new season")
     async def _start_season(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
         if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(
                 Canned.ERR_PERMS, **ephemeral()
@@ -78,7 +93,7 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         try:
             # Check if a season exists
-            await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
+            await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             # Error means no season, which is what we want
             pass
@@ -97,9 +112,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         if any(
             [
                 name == season.name
-                for season in await self.bot.stats_manager.get_all_seasons(
-                    interaction.guild_id
-                )
+                for season in await self.bot.stats_manager.get_all_seasons(guild_id)
             ]
         ):
             return await interaction.followup.send(
@@ -108,7 +121,7 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         # Start a season in the guild with the specified name
         await self.bot.stats_manager.start_season(
-            guild_id=interaction.guild_id, name=season_start_modal.name
+            guild_id=guild_id, name=season_start_modal.name
         )
         await interaction.followup.send(
             f'Season "{season_start_modal.name}" has been started', ephemeral=True
@@ -116,6 +129,9 @@ class SeasonCog(commands.GroupCog, name="season"):
 
     @app_commands.command(name="stop", description="Stops the current active season")
     async def _stop_season(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
         if not await self._ensure_perms(interaction):
             return await interaction.response.send_message(
                 Canned.ERR_PERMS, **ephemeral()
@@ -123,7 +139,7 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         try:
             # Ensure a season exists (so we can stop it lol)
-            await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
+            await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             # If no season, send error message
             return await interaction.response.send_message(
@@ -142,8 +158,6 @@ class SeasonCog(commands.GroupCog, name="season"):
         # Don't proceed if they cancel
         if not season_end_modal.proceed:
             return
-
-        guild_id = interaction.guild_id
 
         # Don't proceed if there are active matches in the current season
         if await self.bot.match_manager.has_running_match(guild_id):
@@ -186,7 +200,10 @@ class SeasonCog(commands.GroupCog, name="season"):
         description="List information about all current and previous seasons",
     )
     async def _list_season(self, interaction: discord.Interaction):
-        seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
+
+        seasons = await self.bot.stats_manager.get_all_seasons(guild_id)
 
         seasons_list_view = SeasonsListView(
             source_interaction=interaction,
