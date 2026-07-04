@@ -170,7 +170,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
 
         return await interaction.followup.send(
-            f"The queue `{queue_delete_modal.queue_name}` has been successfully deleted"
+            f"The queue `{queue_delete_modal.queue_name.title()}` has been successfully deleted"
         )
 
     @app_commands.command(name="join", description="Join open queues")
