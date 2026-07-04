@@ -18,7 +18,7 @@ from exceptions import (
     QueueLockStateError,
     QueueProgressStateError,
 )
-from queuemanager import QueueEntry, QueueType
+from queuemanager import QueueEntry, QueueOperationResult, QueueType
 from ui import (
     QueueCreateModal,
     QueueDeleteModal,
@@ -33,8 +33,6 @@ from util import EventHandlerType, ephemeral
 
 if TYPE_CHECKING:
     from bot import Bot
-
-    type QueueOperationResult = dict[str, QueueEntry | bool | str | None]
 
 
 @app_commands.guild_only()
@@ -238,12 +236,14 @@ class QueueCog(commands.GroupCog, name="queue"):
                     )
             finally:
                 results.append(
-                    {
-                        "name": name.title(),
-                        "entry": joined_queue,
-                        "success": msg is None and joined_queue is not None,
-                        "msg": msg,
-                    }
+                    QueueOperationResult.parse(
+                        {
+                            "name": name.title(),
+                            "entry": joined_queue,
+                            "success": msg is None and joined_queue is not None,
+                            "msg": msg,
+                        }
+                    )
                 )
 
         # Craft join summary message
@@ -254,28 +254,26 @@ class QueueCog(commands.GroupCog, name="queue"):
         ]
 
         # Add any join success names to the summary message
-        join_success = [result for result in results if result["success"]]
+        join_success = [result for result in results if result.success]
         if join_success:
             content.append("### Success")
             content.append(
                 "\n".join(
                     [
-                        f"- {result['name']} - *`{len(result['entry'].players)}/{result['entry'].max_players}` players*"
+                        f"- {result.name} - *`{len(result.entry.players)}/{result.entry.max_players}` players*"
                         for result in join_success
+                        if result.entry is not None
                     ]
                 )
             )
 
         # Add any join fail names and reason to the summary message
-        join_fail = [result for result in results if not result["success"]]
+        join_fail = [result for result in results if not result.success]
         if join_fail:
             content.append("### Fail")
             content.append(
                 "\n".join(
-                    [
-                        f"- {result['name']} - *`({result['msg']})`*"
-                        for result in join_fail
-                    ]
+                    [f"- {result.name} - *`({result.msg})`*" for result in join_fail]
                 )
             )
 
@@ -331,11 +329,13 @@ class QueueCog(commands.GroupCog, name="queue"):
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
-                    {
-                        "name": name.title(),
-                        "success": msg is None,
-                        "msg": msg,
-                    }
+                    QueueOperationResult.parse(
+                        {
+                            "name": name.title(),
+                            "success": msg is None,
+                            "msg": msg,
+                        }
+                    )
                 )
 
         # Craft leave summary message
@@ -346,23 +346,18 @@ class QueueCog(commands.GroupCog, name="queue"):
         ]
 
         # Add any leave success names to the summary message
-        leave_success = [result for result in results if result["success"]]
+        leave_success = [result for result in results if result.success]
         if leave_success:
             content.append("### Success")
-            content.append(
-                "\n".join([f"- {result['name']}" for result in leave_success])
-            )
+            content.append("\n".join([f"- {result.name}" for result in leave_success]))
 
         # Add any leave fail names and reason to the summary message
-        leave_fail = [result for result in results if not result["success"]]
+        leave_fail = [result for result in results if not result.success]
         if leave_fail:
             content.append("### Fail")
             content.append(
                 "\n".join(
-                    [
-                        f"- {result['name']} - *`({result['msg']})`*"
-                        for result in leave_fail
-                    ]
+                    [f"- {result.name} - *`({result.msg})`*" for result in leave_fail]
                 )
             )
 
@@ -424,11 +419,13 @@ class QueueCog(commands.GroupCog, name="queue"):
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
-                    {
-                        "name": name.title(),
-                        "success": msg is None,
-                        "msg": msg,
-                    }
+                    QueueOperationResult.parse(
+                        {
+                            "name": name.title(),
+                            "success": msg is None,
+                            "msg": msg,
+                        }
+                    )
                 )
 
         # Craft lock summary message
@@ -439,23 +436,18 @@ class QueueCog(commands.GroupCog, name="queue"):
         ]
 
         # Add any lock success names to the summary message
-        lock_success = [result for result in results if result["success"]]
+        lock_success = [result for result in results if result.success]
         if lock_success:
             content.append("### Success")
-            content.append(
-                "\n".join([f"- {result['name']}" for result in lock_success])
-            )
+            content.append("\n".join([f"- {result.name}" for result in lock_success]))
 
         # Add any lock fail names and reason to the summary message
-        lock_fail = [result for result in results if not result["success"]]
+        lock_fail = [result for result in results if not result.success]
         if lock_fail:
             content.append("### Fail")
             content.append(
                 "\n".join(
-                    [
-                        f"- {result['name']} - *`{result['msg']}`*"
-                        for result in lock_fail
-                    ]
+                    [f"- {result.name} - *`{result.msg}`*" for result in lock_fail]
                 )
             )
 
@@ -519,11 +511,13 @@ class QueueCog(commands.GroupCog, name="queue"):
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
-                    {
-                        "name": name.title(),
-                        "success": msg is None,
-                        "msg": msg,
-                    }
+                    QueueOperationResult.parse(
+                        {
+                            "name": name.title(),
+                            "success": msg is None,
+                            "msg": msg,
+                        }
+                    )
                 )
 
         # Craft lock summary message
@@ -534,23 +528,18 @@ class QueueCog(commands.GroupCog, name="queue"):
         ]
 
         # Add any unlock success names to the summary message
-        unlock_success = [result for result in results if result["success"]]
+        unlock_success = [result for result in results if result.success]
         if unlock_success:
             content.append("### Success")
-            content.append(
-                "\n".join([f"- {result['name']}" for result in unlock_success])
-            )
+            content.append("\n".join([f"- {result.name}" for result in unlock_success]))
 
         # Add any unlock fail names and reason to the summary message
-        unlock_fail = [result for result in results if not result["success"]]
+        unlock_fail = [result for result in results if not result.success]
         if unlock_fail:
             content.append("### Fail")
             content.append(
                 "\n".join(
-                    [
-                        f"- {result['name']} - *`{result['msg']}`*"
-                        for result in unlock_fail
-                    ]
+                    [f"- {result.name} - *`{result.msg}`*" for result in unlock_fail]
                 )
             )
 

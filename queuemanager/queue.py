@@ -20,6 +20,7 @@ __all__ = (
     "QueueWrapper",
     "QueueGuildContainer",
     "QueueEntry",
+    "QueueOperationResult",
 )
 
 
@@ -302,4 +303,20 @@ class QueueEntry(WrapperBase):
             "max_players": self.max_players,
             "locked": self.locked,
             "in_progress": self.in_progress,
+        }
+
+
+class QueueOperationResult(WrapperBase):
+    def __init__(self, *, data: dict):
+        self.name: str = data["name"]
+        self.entry: QueueEntry | None = data.get("entry")
+        self.success: bool = data["success"]
+        self.msg: str | None = data["msg"]
+
+    def serialise(self) -> dict:
+        return {
+            "name": self.name,
+            "entry": self.entry,
+            "success": self.success,
+            "msg": self.msg,
         }
