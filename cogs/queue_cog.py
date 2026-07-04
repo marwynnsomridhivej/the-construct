@@ -84,12 +84,8 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="create", description="Creates a new queue for a custom match"
     )
     async def _create_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues can be created
         if not await self.bot.queue_manager.can_create_queue(guild_id=guild_id):
@@ -131,12 +127,8 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="delete", description="Delete a queue you have management permissions on"
     )
     async def _delete_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues can be deleted
         queues = await self.bot.queue_manager.get_all_queues(guild_id)
@@ -185,12 +177,8 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="join", description="Join open queues")
     async def _join_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues are joinable
         queues = await self.bot.queue_manager.get_all_queues(guild_id)
@@ -298,12 +286,8 @@ class QueueCog(commands.GroupCog, name="queue"):
         name="leave", description="Leave open queues that you are a member of"
     )
     async def _leave_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues are leaveable
         queues = await self.bot.queue_manager.get_all_queues(guild_id)
@@ -387,12 +371,8 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="lock", description="Lock an existing queue")
     async def _lock_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues are lockable
         queues = await self.bot.queue_manager.get_all_queues(guild_id)
@@ -484,12 +464,8 @@ class QueueCog(commands.GroupCog, name="queue"):
 
     @app_commands.command(name="unlock", description="Unlock an existing queue")
     async def _unlock_queue(self, interaction: discord.Interaction):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         # Check if any queues are unlockable
         queues = await self.bot.queue_manager.get_all_queues(guild_id)
@@ -593,12 +569,8 @@ class QueueCog(commands.GroupCog, name="queue"):
         member: Optional[discord.Member] = None,
         queue_type: Optional[QueueType] = None,
     ):
-        # If interaction done outside of guild context, do not proceed
-        guild_id = interaction.guild_id
-        if guild_id is None:
-            return await interaction.response.send_message(
-                Canned.ERR_OUTSIDE_GUILD_CTX, **ephemeral()
-            )
+        # Typehint assert, we know this is true anyway
+        assert (guild_id := interaction.guild_id) is not None
 
         msg = None
         _ephemeral = True
