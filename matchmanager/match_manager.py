@@ -27,7 +27,7 @@ class MatchManager(ManagerBase):
         return choice if team.captain_id == captain_id else flip[choice]
 
     async def create_match(
-        self, *, payload: MatchPayload, auto_draft: AutoDraftPayload = None
+        self, *, payload: MatchPayload, auto_draft: AutoDraftPayload | None = None
     ) -> None:
         wrapper = await self.get_or_create_wrapper()
 
