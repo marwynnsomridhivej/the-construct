@@ -334,10 +334,9 @@ class StatsPlayer(WrapperBase):
         self.times_mvp: int = data["times_mvp"]
 
         # New v2.x+ OpenSkill rating parameters.
-        # These values can be None when handling v1.x data
-        self.mu: float | None = data.get("mu", 25)
-        self.sigma: float | None = data.get("sigma", 25 / 3)
-        self.max_ordinal: float | None = data.get("max_ordinal", 0)
+        self.mu: float = data.get("mu", 25)
+        self.sigma: float = data.get("sigma", 25 / 3)
+        self.max_ordinal: float = data.get("max_ordinal", 0)
 
         # Legacy v1.x points system
         self.__points: int | None = data.get("points")
