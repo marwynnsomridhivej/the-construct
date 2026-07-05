@@ -44,6 +44,7 @@ class SettingsMapPoolView(SettingsBaseView):
             # Check if the server has custom map pools
             map_pools = await self.bot.settings_manager.get_all_map_pools(self.guild_id)
             pool_names = [pool.name for pool in map_pools]
+            assert self.container_id is not None
             container = self.find_item(self.container_id)
 
             # If the server has custom map pools, show pool selector
@@ -57,6 +58,7 @@ class SettingsMapPoolView(SettingsBaseView):
                 container.add_item(self.map_pool_name_select)
 
             # Enable or disable edit and delete buttons based on existence of owned pols
+            assert self.main_buttons is not None
             for item in self.main_buttons.children:
                 assert isinstance(item, discord.ui.Button)
                 if item.label in ["Edit", "Delete"]:
