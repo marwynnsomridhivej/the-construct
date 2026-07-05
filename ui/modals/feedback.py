@@ -63,7 +63,12 @@ class FeedbackModal(discord.ui.Modal):
 
         # Send to all owners as a silent message
         for owner_id in self.bot.config.owner_ids:
-            await self.bot.get_user(owner_id).send(
+            # Ensure the bot can get the user object for the owner ID
+            owner_user = self.bot.get_user(owner_id)
+            if owner_user is None:
+                continue
+
+            await owner_user.send(
                 view=feedback_view,
                 silent=True,
                 allowed_mentions=discord.AllowedMentions.none(),
