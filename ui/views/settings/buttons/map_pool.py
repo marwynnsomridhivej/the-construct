@@ -70,9 +70,11 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
             self.add_item(button)
 
     async def create_button_callback(self, interaction: discord.Interaction):
+        assert (guild_id := interaction.guild_id) is not None
+
         # Check if any map pools can be created
         if not await self.parent_view.bot.settings_manager.can_create_map_pool(
-            interaction.guild_id
+            guild_id
         ):
             return await interaction.response.send_message(
                 Canned.ERR_SETTINGS_MAP_POOL_CAP, **ephemeral()
@@ -90,7 +92,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         # Create the custom map pool
         try:
             pool = await self.parent_view.bot.settings_manager.create_map_pool(
-                interaction.guild_id,
+                guild_id,
                 interaction.user.id,
                 create_modal.name,
                 create_modal.maps,
@@ -109,6 +111,8 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         await self.parent_view.update()
 
     async def edit_button_callback(self, interaction: discord.Interaction):
+        assert (guild_id := interaction.guild_id) is not None
+
         # Get selected map pool name from the selector
         name = self.parent_view.get_selected_map_pool_name()
         if not name:
@@ -117,9 +121,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
             )
 
         # Edit the specified map pool instance and wait until interaction completes
-        pool = await self.parent_view.bot.settings_manager.get_map_pool(
-            interaction.guild_id, name
-        )
+        pool = await self.parent_view.bot.settings_manager.get_map_pool(guild_id, name)
         edit_modal = SettingsMapPoolEditModal(self.parent_view.bot, pool)
         await interaction.response.send_modal(edit_modal)
         await edit_modal.wait()
@@ -135,7 +137,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         if pool.name != edit_modal.name:
             try:
                 await self.parent_view.bot.settings_manager.name_map_pool(
-                    interaction.guild_id,
+                    guild_id,
                     pool.name,
                     edit_modal.name,
                 )
@@ -149,7 +151,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         # Update maps if maps list was modified
         if sorted(pool.maps) != sorted(edit_modal.maps):
             await self.parent_view.bot.settings_manager.modify_map_pool_maps(
-                interaction.guild_id,
+                guild_id,
                 edit_modal.name,
                 edit_modal.maps,
             )
@@ -180,6 +182,8 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
         await self.parent_view.update()
 
     async def delete_button_callback(self, interaction: discord.Interaction):
+        assert (guild_id := interaction.guild_id) is not None
+
         # Get selected map pool name from the selector
         name = self.parent_view.get_selected_map_pool_name()
         if not name:
@@ -198,7 +202,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
 
         # Delete specified custom map pool
         await self.parent_view.bot.settings_manager.delete_map_pool(
-            interaction.guild_id,
+            guild_id,
             name,
         )
 
