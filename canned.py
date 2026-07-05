@@ -109,6 +109,9 @@ class Canned(StrEnum):
     SETTINGS_BIND_CHANNEL_ALREADY_BOUND = (
         "NO CHANGES MADE - The specified text channel is already bound"
     )
+    SETTINGS_MAP_POOL_NO_CHANGE = (
+        "NO CHANGES MADE - The map pool {} was not modified"
+    )
     ERR_SETTINGS_SELECTION_GEN = "ERROR - Could not choose a setting"
     ERR_SETTINGS_SET_ADMIN = "ERROR - Could not set bot administrators"
     ERR_SETTINGS_SET_ADMIN_BOT_USER = (
