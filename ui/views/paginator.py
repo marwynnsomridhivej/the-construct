@@ -15,7 +15,7 @@ class Paginator(discord.ui.LayoutView, ABC):
         source_interaction: discord.Interaction,
         data: dict,
         per_page: int,
-        timeout: float = None,
+        timeout: float | None = None,
     ):
         super().__init__(timeout=timeout)
 
@@ -30,7 +30,7 @@ class Paginator(discord.ui.LayoutView, ABC):
         self.max_pages = (len(self._data) + self.per_page - 1) // self.per_page
 
         # References for existing components
-        self.action_buttons: discord.ui.ActionRow = None
+        self.action_buttons: PaginatorButtonRow | None = None
 
     @abstractmethod
     def init_components(self) -> None:
