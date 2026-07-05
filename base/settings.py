@@ -56,6 +56,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         container = discord.ui.Container(
             section,
             accent_color=discord.Color.blurple(),
+            id=67,
         )
         assert isinstance(container.id, int)
         self.container_id = container.id
