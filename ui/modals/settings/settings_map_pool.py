@@ -21,12 +21,12 @@ __all__ = (
 
 
 class SettingsMapPoolCreateModal(discord.ui.Modal):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot):
         super().__init__(title="Create Custom Map Pool")
-        self.__bot: Bot = bot
-        self.is_valid = True
-        self.name: str = None
-        self.maps: list[R6Map] = None
+        self.bot = bot
+        self.is_valid = False
+        self.name: str
+        self.maps: list[R6Map]
 
         self.init_components()
 
@@ -73,6 +73,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
         if self.name in DEFAULT_MAP_POOL_NAMES:
             raise InvalidMapPoolName(self.name)
 
+        self.is_valid = True
         await interaction.response.defer()
         self.stop()
 
@@ -82,7 +83,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
                 Canned.ERR_SETTINGS_CREATE_MAP_POOL_NAME, **ephemeral()
             )
         else:
-            self.__bot.logger.error(
+            self.bot.logger.error(
                 f"An exception occurred when creating custom map pool: {error}"
             )
             traceback.print_exception(type(error), error, error.__traceback__)
@@ -90,7 +91,6 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
                 Canned.ERR_SETTINGS_CREATE_MAP_POOL, **ephemeral()
             )
 
-        self.is_valid = False
         self.stop()
 
 
@@ -99,9 +99,9 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
         super().__init__(title="Edit Custom Map Pool")
         self.__bot: Bot = bot
         self.previous = previous
-        self.is_valid = True
-        self.name: str = None
-        self.maps: list[R6Map] = None
+        self.is_valid = False
+        self.name: str
+        self.maps: list[R6Map]
 
         self.init_components()
 
@@ -150,8 +150,13 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
         if self.name == self.previous.name and sorted(self.maps) == sorted(
             self.previous.maps
         ):
-            self.is_valid = False
+            await interaction.response.send_message(
+                Canned.SETTINGS_MAP_POOL_NO_CHANGE.format(f"*`{self.name.title()}`*"),
+                **ephemeral(),
+            )
+            return
 
+        self.is_valid = True
         await interaction.response.defer()
         self.stop()
 
@@ -164,5 +169,4 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
         await interaction.response.send_message(
             Canned.ERR_SETTINGS_CREATE_MAP_POOL, **ephemeral()
         )
-        self.is_valid = False
         self.stop()
