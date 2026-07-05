@@ -126,12 +126,14 @@ class StatsCog(commands.Cog):
         queue_type: QueueType = QueueType.R6_5V5,
     ):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Ensure an active season exists if not named
         try:
             if name is None:
-                await self.bot.stats_manager.ensure_season(guild_id=guild_id)
+                await self.bot.stats_manager.ensure_season(
+                    guild_id=interaction.guild_id
+                )
         except ValueError:
             return await interaction.response.send_message(
                 Canned.ERR_SEASON_NO_EXISTS, **ephemeral()
@@ -140,7 +142,7 @@ class StatsCog(commands.Cog):
         # Ensure we have rankings and the season isn't empty (aka stats exist)
         try:
             ranked_players = await self.bot.stats_manager.get_season_rankings(
-                guild_id=guild_id, queue_type=queue_type, name=name
+                guild_id=interaction.guild_id, queue_type=queue_type, name=name
             )
         except ValueError:
             return await interaction.response.send_message(
@@ -156,7 +158,7 @@ class StatsCog(commands.Cog):
             source_interaction=interaction,
             queue_type=queue_type,
             season=await self.bot.stats_manager.get_season(
-                guild_id=guild_id, name=name.lower() if name else None
+                guild_id=interaction.guild_id, name=name.lower() if name else None
             ),
             rankings=ranked_players,
         )
@@ -171,9 +173,9 @@ class StatsCog(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
-        seasons = await self.bot.stats_manager.get_all_seasons(guild_id)
+        seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
         return sorted(
             [
                 app_commands.Choice(name=titlecase(s.name), value=s.name)

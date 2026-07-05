@@ -78,8 +78,8 @@ class R6DraftModal(discord.ui.Modal):
         assert isinstance(self.mark_final_draft.component, discord.ui.Select)
         assert isinstance(interaction.channel, discord.Thread)
         assert self.draft.component.value is not None
-        assert (guild_id := interaction.guild_id) is not None
-        assert (other_captain_id := self.other_team.captain_id) is not None
+        assert interaction.guild_id is not None
+        assert self.other_team.captain_id is not None
 
         captain_id = interaction.user.id
         drafted_id = int(self.draft.component.value)
@@ -91,16 +91,16 @@ class R6DraftModal(discord.ui.Modal):
 
         # Use MatchManager.draft to write to disk
         await self.r6view.bot.match_manager.draft_player(
-            guild_id, self.r6view.payload.match_name, captain_id, drafted_id
+            interaction.guild_id, self.r6view.payload.match_name, captain_id, drafted_id
         )
 
         # If finalise draft is selected, draft all remaining players in the pool to the other team
         if self.team_draft_finalised:
             for player_id in remaining_player_ids:
                 await self.r6view.bot.match_manager.draft_player(
-                    guild_id,
+                    interaction.guild_id,
                     self.r6view.payload.match_name,
-                    other_captain_id,
+                    self.other_team.captain_id,
                     player_id,
                 )
 
@@ -154,7 +154,7 @@ class R6DraftModal(discord.ui.Modal):
 
         # Draft the last remaining player
         await self.r6view.bot.match_manager.draft_player(
-            guild_id, self.r6view.payload.match_name, captain_id, drafted_id
+            interaction.guild_id, self.r6view.payload.match_name, captain_id, drafted_id
         )
 
         # Update local MatchEntry instnace attached to R6View

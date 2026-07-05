@@ -39,7 +39,7 @@ class R6SideModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.side_select.component, discord.ui.RadioGroup)
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
         assert self.side_select.component.value is not None
 
         captain_id = interaction.user.id
@@ -47,7 +47,7 @@ class R6SideModal(discord.ui.Modal):
 
         # Set starting side according to selection
         await self.r6view.bot.match_manager.select_starting_side(
-            guild_id,
+            interaction.guild_id,
             self.r6view.payload.match_name,
             captain_id,
             R6Side(choice),

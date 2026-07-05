@@ -25,9 +25,8 @@ class R6MVPModal(discord.ui.Modal):
 
     def init_components(self, captain_id: int) -> list[discord.ui.Item]:
         # Assemble a list of players that are on the team of the specified captain id
-        assert (
-            guild := self.r6view.bot.get_guild(self.r6view.payload.guild_id)
-        ) is not None
+        guild = self.r6view.bot.get_guild(self.r6view.payload.guild_id)
+        assert guild is not None
 
         players: list[discord.Member] = [
             member
@@ -51,14 +50,14 @@ class R6MVPModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.mvp_select.component, discord.ui.RadioGroup)
         assert self.mvp_select.component.value is not None
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         captain_id = interaction.user.id
         mvp_id = int(self.mvp_select.component.value)
 
         try:
             await self.r6view.bot.match_manager.designate_mvp(
-                guild_id,
+                interaction.guild_id,
                 self.r6view.payload.match_name,
                 mvp_id,
             )

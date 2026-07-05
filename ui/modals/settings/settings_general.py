@@ -109,10 +109,14 @@ class SettingsBindTextChannelModal(discord.ui.Modal):
         assert isinstance(self.channel_select.component, discord.ui.ChannelSelect)
         channel = self.channel_select.component.values[0]
 
-        assert (guild := interaction.guild) is not None
-        assert (resolved_channel := channel.resolve()) is not None
+        resolved_channel = channel.resolve()
+        assert resolved_channel is not None
+
+        assert interaction.guild is not None
         assert self.bot.user is not None
-        assert (bot_member := guild.get_member(self.bot.user.id)) is not None
+
+        bot_member = interaction.guild.get_member(self.bot.user.id)
+        assert bot_member is not None
 
         msg = None
 

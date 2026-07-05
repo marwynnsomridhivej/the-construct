@@ -110,8 +110,8 @@ class R6ViewButtons(discord.ui.ActionRow):
         return interaction.user.id in self.r6view.match.captains
 
     async def can_interact(self, interaction: discord.Interaction) -> bool:
-        assert (guild_id := interaction.guild_id) is not None
-        assert (guild := interaction.guild) is not None
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
 
         # Let the user interact if they are:
         #   - A captain of a team
@@ -120,14 +120,14 @@ class R6ViewButtons(discord.ui.ActionRow):
         return (
             self.is_captain(interaction)
             or await self.r6view.bot.settings_manager.is_admin(
-                guild_id, interaction.user.id
+                interaction.guild_id, interaction.user.id
             )
-            or guild.owner_id == interaction.user.id
+            or interaction.guild.owner_id == interaction.user.id
         )
 
     async def can_admin_interact(self, interaction: discord.Interaction) -> bool:
-        assert (guild_id := interaction.guild_id) is not None
-        assert (guild := interaction.guild) is not None
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
 
         # Let the user interact if they are:
         #   - The queue owner
@@ -138,20 +138,24 @@ class R6ViewButtons(discord.ui.ActionRow):
         return (
             self.is_queue_owner(interaction)
             or await self.r6view.bot.settings_manager.is_admin(
-                guild_id, interaction.user.id
+                interaction.guild_id, interaction.user.id
             )
-            or guild.owner_id == interaction.user.id
+            or interaction.guild.owner_id == interaction.user.id
         )
 
     def is_queue_owner(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.r6view.payload.queue_entry.owner_id
 
     async def reset_to_default(self, interaction: discord.Interaction) -> None:
-        assert (guild_id := interaction.guild_id) is not None
-        assert (message := interaction.message) is not None
-        assert isinstance((channel := interaction.channel), discord.Thread)
+        assert interaction.guild_id is not None
+        assert interaction.message is not None
 
-        await self.r6view.bot.match_manager.reset_draft(guild_id, self.r6view.payload)
+        channel = interaction.channel
+        assert isinstance(channel, discord.Thread)
+
+        await self.r6view.bot.match_manager.reset_draft(
+            interaction.guild_id, self.r6view.payload
+        )
         await self.r6view.update_match()
         await channel.send(
             content="Player draft, map bans, and starting side selection have been reset",
@@ -160,26 +164,26 @@ class R6ViewButtons(discord.ui.ActionRow):
 
         # Set view buttons to default state
         self.reset_to_default_state()
-        await message.edit(view=self.r6view)
+        await interaction.message.edit(view=self.r6view)
 
     async def cancel(self, interaction: discord.Interaction) -> None:
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Delete match entry
         await self.r6view.bot.match_manager.delete_match(
-            guild_id, self.r6view.payload.match_name
+            interaction.guild_id, self.r6view.payload.match_name
         )
 
         # Set in_progress to False
         await self.r6view.bot.queue_manager.set_progress_state(
-            guild_id,
+            interaction.guild_id,
             self.r6view.payload.match_name,
             False,
         )
 
         # Unlock queue
         await self.r6view.bot.queue_manager.set_queue_lock_state(
-            guild_id,
+            interaction.guild_id,
             interaction.user.id,
             self.r6view.payload.match_name,
             False,
@@ -194,7 +198,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         self.r6view.bot.dispatch(
             Event.PREMATCH_DM_DELETE,
             DMDeletePayload.create(
-                guild_id=guild_id,
+                guild_id=interaction.guild_id,
                 players=self.r6view.payload.queue_entry.players,
             ),
         )
@@ -245,7 +249,8 @@ class R6ViewButtons(discord.ui.ActionRow):
             await self.r6view.update_text_content(interaction)
 
             # Send followup message to let players know vcs are being made
-            assert isinstance((channel := interaction.channel), discord.Thread)
+            channel = interaction.channel
+            assert isinstance(channel, discord.Thread)
             await channel.send(Canned.R6DRAFT_VC_CREATION, delete_after=10)
 
             # Perform potentially laggy operations here
@@ -293,7 +298,8 @@ class R6ViewButtons(discord.ui.ActionRow):
             await self.r6view.update_text_content(interaction)
 
             # Announce the selected map
-            assert isinstance((channel := interaction.channel), discord.Thread)
+            channel = interaction.channel
+            assert isinstance(channel, discord.Thread)
             assert self.r6view.match.map is not None
             await channel.send(
                 f"The selected map is: **{titlecase(self.r6view.match.map.replace('_', ' '))}**",
@@ -349,7 +355,7 @@ class R6ViewButtons(discord.ui.ActionRow):
     async def _designate_mvp_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Allow bot admins and team captains to interact
         if not await self.can_interact(interaction):
@@ -369,16 +375,15 @@ class R6ViewButtons(discord.ui.ActionRow):
         #   - They are a captain AND their team already
         #     has an MVP designation (captain_id will be overwritten to the other team's captain ID)
         if await self.r6view.bot.settings_manager.is_admin(
-            guild_id, interaction.user.id
+            interaction.guild_id, interaction.user.id
         ):
             if (
                 captain_id is None
                 or self.r6view.match.get_team_of_user(interaction.user.id).mvp_id
                 is not None
             ):
-                assert (
-                    team_awaiting_mvp := self.r6view.get_team_awaiting_mvp()
-                ) is not None
+                team_awaiting_mvp = self.r6view.get_team_awaiting_mvp()
+                assert team_awaiting_mvp is not None
                 captain_id = team_awaiting_mvp.captain_id
 
         assert captain_id is not None
@@ -449,7 +454,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
     async def _reset_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
@@ -465,10 +470,10 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
             return
 
         if self.draft_row.r6view.match.finalised:
-            assert (message := interaction.message) is not None
+            assert interaction.message is not None
 
             button.disabled = True
-            await message.edit(view=self.draft_row.r6view)
+            await interaction.message.edit(view=self.draft_row.r6view)
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_FINAL, **ephemeral()
             )
@@ -480,7 +485,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
         self.r6view.bot.dispatch(
             Event.RESET_BUTTON_PRESSED,
             VCResetPayload.create(
-                guild_id,
+                interaction.guild_id,
                 self.r6view.match.voice_channel_id,
                 [self.r6view.match.team_a, self.r6view.match.team_b],
                 self.r6view.match.type,
@@ -491,7 +496,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
     async def _cancel_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         if not await self.draft_row.can_admin_interact(interaction):
             return await interaction.response.send_message(
@@ -507,10 +512,10 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
             return
 
         if self.draft_row.r6view.match.finalised:
-            assert (message := interaction.message) is not None
+            assert interaction.message is not None
 
             button.disabled = True
-            await message.edit(view=self.draft_row.r6view)
+            await interaction.message.edit(view=self.draft_row.r6view)
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_FINAL, **ephemeral()
             )
@@ -546,7 +551,7 @@ class R6ViewAdminButtons(discord.ui.ActionRow):
         self.r6view.bot.dispatch(
             Event.CANCEL_BUTTON_PRESSED,
             VCResetPayload.create(
-                guild_id,
+                interaction.guild_id,
                 self.r6view.match.voice_channel_id,
                 self.r6view.teams,
                 self.r6view.match.type,
@@ -883,15 +888,15 @@ class R6View(discord.ui.LayoutView):
 
     async def update_text_content(self, interaction: discord.Interaction) -> None:
         self.about_text.content = await self.get_text_content()
-        assert (message := interaction.message) is not None
-        await message.edit(view=self)
+        assert interaction.message is not None
+        await interaction.message.edit(view=self)
 
     async def create_team_vcs(self) -> None:
-        assert isinstance(
-            (parent_vc := self.bot.get_channel(self.payload.voice_channel_id)),
-            discord.VoiceChannel,
-        )
-        assert (guild := self.bot.get_guild(self.payload.guild_id)) is not None
+        parent_vc = self.bot.get_channel(self.payload.voice_channel_id)
+        assert isinstance(parent_vc, discord.VoiceChannel)
+
+        guild = self.bot.get_guild(self.payload.guild_id)
+        assert guild is not None
 
         exclude_ids = self.match.captains + [self.payload.queue_entry.owner_id]
         for offset, team in enumerate(self.teams):
@@ -936,7 +941,8 @@ class R6View(discord.ui.LayoutView):
                 await self.update_match()
 
     async def move_to_team_vcs(self) -> None:
-        assert (guild := self.bot.get_guild(self.payload.guild_id))
+        guild = self.bot.get_guild(self.payload.guild_id)
+        assert guild is not None
 
         for team in self.teams:
             # Try to move individual players first
@@ -995,8 +1001,8 @@ class R6View(discord.ui.LayoutView):
             if isinstance(child, discord.ui.Button):
                 child.disabled = True
 
-        assert (message := interaction.message) is not None
-        await message.edit(view=self)
+        assert interaction.message is not None
+        await interaction.message.edit(view=self)
 
     def other_captain_id(self, captain_id: int) -> int:
         idx = self.match.captains.index(captain_id) - 1

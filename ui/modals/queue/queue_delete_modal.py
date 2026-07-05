@@ -46,7 +46,9 @@ class QueueDeleteModal(discord.ui.Modal):
             description="Select the name of the queue you wish to delete",
             component=discord.ui.Select(
                 options=[
-                    discord.SelectOption(label=titlecase(option), value=titlecase(option))
+                    discord.SelectOption(
+                        label=titlecase(option), value=titlecase(option)
+                    )
                     for option in self.options
                 ],
                 required=True,

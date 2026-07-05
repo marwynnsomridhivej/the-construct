@@ -151,7 +151,9 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
             self.previous.maps
         ):
             await interaction.response.send_message(
-                Canned.SETTINGS_MAP_POOL_NO_CHANGE.format(f"*`{titlecase(self.name)}`*"),
+                Canned.SETTINGS_MAP_POOL_NO_CHANGE.format(
+                    f"*`{titlecase(self.name)}`*"
+                ),
                 **ephemeral(),
             )
             return

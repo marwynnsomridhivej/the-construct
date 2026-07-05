@@ -83,10 +83,12 @@ class QueueCog(commands.GroupCog, name="queue"):
     )
     async def _create_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues can be created
-        if not await self.bot.queue_manager.can_create_queue(guild_id=guild_id):
+        if not await self.bot.queue_manager.can_create_queue(
+            guild_id=interaction.guild_id
+        ):
             return await interaction.response.send_message(
                 Canned.ERR_QUEUE_LIMIT, **ephemeral()
             )
@@ -105,7 +107,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         # Attempt to create the queue
         try:
             await self.bot.queue_manager.create_queue(
-                guild_id=guild_id,
+                guild_id=interaction.guild_id,
                 owner_id=interaction.user.id,
                 name=queue_create_modal.queue_name,
                 queue_type=queue_create_modal.queue_type,
@@ -126,10 +128,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     )
     async def _delete_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues can be deleted
-        queues = await self.bot.queue_manager.get_all_queues(guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         deletable_queues = [
             name
             for name, entry in queues.items()
@@ -137,7 +139,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             and (
                 entry.owner_id == interaction.user.id
                 or await self.bot.settings_manager.is_admin(
-                    guild_id, interaction.user.id
+                    interaction.guild_id, interaction.user.id
                 )
             )
         ]
@@ -160,7 +162,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         # Attempt to delete the queue
         try:
             await self.bot.queue_manager.delete_queue(
-                guild_id,
+                interaction.guild_id,
                 queue_delete_modal.queue_name,
                 interaction.user.id,
             )
@@ -176,10 +178,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     @app_commands.command(name="join", description="Join open queues")
     async def _join_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues are joinable
-        queues = await self.bot.queue_manager.get_all_queues(guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         joinable_queues = [
             name.lower()
             for name, entry in queues.items()
@@ -211,7 +213,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             joined_queue = None
             try:
                 joined_queue = await self.bot.queue_manager.join_user_to_queue(
-                    guild_id,
+                    interaction.guild_id,
                     interaction.user.id,
                     name,
                 )
@@ -285,10 +287,10 @@ class QueueCog(commands.GroupCog, name="queue"):
     )
     async def _leave_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues are leaveable
-        queues = await self.bot.queue_manager.get_all_queues(guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         leaveable_queues = [
             name
             for name, entry in queues.items()
@@ -317,7 +319,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.leave_user_from_queue(
-                    guild_id,
+                    interaction.guild_id,
                     interaction.user.id,
                     name,
                 )
@@ -367,12 +369,12 @@ class QueueCog(commands.GroupCog, name="queue"):
     @app_commands.command(name="lock", description="Lock an existing queue")
     async def _lock_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues are lockable
-        queues = await self.bot.queue_manager.get_all_queues(guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         is_admin = await self.bot.settings_manager.is_admin(
-            guild_id,
+            interaction.guild_id,
             interaction.user.id,
         )
         lockable_queues = [
@@ -403,7 +405,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.set_queue_lock_state(
-                    guild_id,
+                    interaction.guild_id,
                     interaction.user.id,
                     name,
                     True,
@@ -457,12 +459,12 @@ class QueueCog(commands.GroupCog, name="queue"):
     @app_commands.command(name="unlock", description="Unlock an existing queue")
     async def _unlock_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Check if any queues are unlockable
-        queues = await self.bot.queue_manager.get_all_queues(guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         is_admin = await self.bot.settings_manager.is_admin(
-            guild_id,
+            interaction.guild_id,
             interaction.user.id,
         )
         unlockable_queues = [
@@ -495,7 +497,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = None
             try:
                 await self.bot.queue_manager.set_queue_lock_state(
-                    guild_id,
+                    interaction.guild_id,
                     interaction.user.id,
                     name,
                     False,
@@ -559,7 +561,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         queue_type: Optional[QueueType] = None,
     ):
         # Typehint assert, we know this is true anyway
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         msg = None
         _ephemeral = True
@@ -575,7 +577,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             all_filtered_queues: dict[
                 str, QueueEntry
             ] = await self.bot.queue_manager.list_queues(
-                guild_id,
+                interaction.guild_id,
                 member=member,
                 queue_type=queue_type,
             )

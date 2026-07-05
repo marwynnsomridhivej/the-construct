@@ -23,7 +23,8 @@ class FeedbackView(discord.ui.LayoutView):
         self.init_components()
 
     def init_components(self) -> None:
-        assert (guild := self.interaction.guild) is not None
+        guild = self.interaction.guild
+        assert guild is not None
 
         container = discord.ui.Container(
             discord.ui.Section(

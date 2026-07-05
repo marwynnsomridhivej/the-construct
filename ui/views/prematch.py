@@ -304,8 +304,8 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 raise ValueError(mode)
 
     async def submit_button_callback(self, interaction: discord.Interaction) -> None:
-        assert (guild_id := interaction.guild_id) is not None
-        assert (guild := interaction.guild) is not None
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
 
         # Check if a queue has been specified
         if self.parent_view.queue is None:
@@ -350,7 +350,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
         # Check if a text channel has been bound
         bound_text_channel_id = (
             await self.parent_view.bot.settings_manager.get_bound_text_channel_id(
-                guild_id
+                interaction.guild_id
             )
         )
         if bound_text_channel_id is None:
@@ -360,7 +360,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             return
 
         # Check if the bound text channel exists
-        bound_text_channel = guild.get_channel(bound_text_channel_id)
+        bound_text_channel = interaction.guild.get_channel(bound_text_channel_id)
         if bound_text_channel is None:
             await interaction.response.send_message(
                 Canned.ERR_MATCH_START_INVALID_TC, **ephemeral()
@@ -369,7 +369,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
 
         # Check if the bot can send messages in the bound text channel
         assert self.parent_view.bot.user is not None
-        bot_member = guild.get_member(self.parent_view.bot.user.id)
+        bot_member = interaction.guild.get_member(self.parent_view.bot.user.id)
         can_send_messages_in_threads = (
             bound_text_channel.permissions_for(bot_member).send_messages_in_threads
             if bot_member
@@ -386,7 +386,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
         try:
             if self.parent_view.queue is not None:
                 queue_entry = await self.parent_view.bot.queue_manager.start_match(
-                    guild_id,
+                    interaction.guild_id,
                     interaction.user.id,
                     self.parent_view.queue,
                     admin=self.admin_or_owner,
@@ -411,7 +411,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             case _:
                 assert self.parent_view.map_pool_name is not None
                 map_pool = await self.parent_view.bot.settings_manager.get_map_pool(
-                    guild_id, self.parent_view.map_pool_name
+                    interaction.guild_id, self.parent_view.map_pool_name
                 )
 
         # Get captains based on select mode
@@ -420,7 +420,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             captains = tuple(user.id for user in self.parent_view.manual_captain)
         else:
             captains = await self.select_captains(
-                guild_id=guild_id,
+                guild_id=interaction.guild_id,
                 queue_type=queue_entry.type,
                 player_ids=queue_entry.players,
                 mode=self.parent_view.captain_mode,

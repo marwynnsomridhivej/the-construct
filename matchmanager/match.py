@@ -102,7 +102,7 @@ class MatchGuildContainer(WrapperBase):
 
     @overload
     def get(self, name: str, throw: Literal[False]) -> "MatchEntry | None": ...
-    
+
     @overload
     def get(self, name: str) -> "MatchEntry | None": ...
 

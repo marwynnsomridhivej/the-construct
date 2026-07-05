@@ -124,7 +124,7 @@ class R6ResultModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.result.component, discord.ui.RadioGroup)
         assert self.result.component.value is not None
-        assert (guild_id := interaction.guild_id) is not None
+        assert interaction.guild_id is not None
 
         # Get the winning team captain ID
         winning_team_captain_id = int(self.result.component.value)
@@ -134,7 +134,7 @@ class R6ResultModal(discord.ui.Modal):
 
         # If validation passes, actually write changes
         await self.r6view.bot.match_manager.set_winning_team(
-            guild_id,
+            interaction.guild_id,
             self.r6view.payload.match_name,
             winning_team_captain_id,
         )
@@ -142,7 +142,7 @@ class R6ResultModal(discord.ui.Modal):
             assert team.captain_id is not None
 
             await self.r6view.bot.match_manager.set_team_rounds_won(
-                guild_id,
+                interaction.guild_id,
                 self.r6view.payload.match_name,
                 team.captain_id,
                 rounds_won,
