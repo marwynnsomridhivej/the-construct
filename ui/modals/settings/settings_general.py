@@ -77,7 +77,7 @@ class SettingsSetAdminModal(discord.ui.Modal):
 
 
 class SettingsBindTextChannelModal(discord.ui.Modal):
-    def __init__(self, bot: Bot, previous: int):
+    def __init__(self, bot: Bot, previous: int | None):
         super().__init__(title="Bind Text Channel")
         self.previous = previous
         self.bot = bot
@@ -87,7 +87,9 @@ class SettingsBindTextChannelModal(discord.ui.Modal):
         self.init_components()
 
     def init_components(self) -> None:
-        default_text_channel = self.bot.get_channel(self.previous)
+        default_text_channel = (
+            self.bot.get_channel(self.previous) if self.previous is not None else None
+        )
 
         self.channel_select = discord.ui.Label(
             text="Select Text Channel",
