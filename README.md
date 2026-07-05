@@ -100,6 +100,7 @@ Give feedback directly to the developers.
 This patch introduces a small feature addition to the drafting process.
 
 #### Added
+
 - Option to finalise your team's draft early and give the rest of the players
 in the draft pool to the other team
   - This option will only appear when the amount of players left in the draft
@@ -109,7 +110,7 @@ in the draft pool to the other team
 ### 2.1.2-beta
 
 This patch release reworks the majority of the queue-related commands, providing
-an improved user experience while making it harder for users to accidentally 
+an improved user experience while making it harder for users to accidentally
 submit invalid responses.
 
 #### Added
