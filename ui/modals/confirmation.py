@@ -40,6 +40,7 @@ class ConfirmationModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.confirm.component, discord.ui.RadioGroup)
+        assert self.confirm.component.value is not None
 
         self.proceed = int(self.confirm.component.value) == 1
         await interaction.response.defer()
