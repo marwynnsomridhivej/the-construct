@@ -14,9 +14,8 @@ __all__ = ("SettingsGeneralButtons",)
 
 
 class SettingsGeneralButtons(SettingsBaseButtons):
-    def __init__(self, *, view, show_admin_buttons: bool = False):
+    def __init__(self, *, view: SettingsGeneralView, show_admin_buttons: bool = False):
         super().__init__(view=view, show_admin_buttons=show_admin_buttons)
-        self.parent_view: SettingsGeneralView
 
         self.init_buttons()
 
@@ -53,9 +52,11 @@ class SettingsGeneralButtons(SettingsBaseButtons):
             self.add_item(button)
 
     async def set_admins_button_callback(self, interaction: discord.Interaction):
+        assert (guild_id := interaction.guild_id) is not None
+
         # Get a list of currently set admin user IDs
         previous_admins = await self.parent_view.bot.settings_manager.get_admins(
-            interaction.guild_id
+            guild_id
         )
 
         # Create admin modal and wait until execution is finished
@@ -72,7 +73,7 @@ class SettingsGeneralButtons(SettingsBaseButtons):
 
         # Set admins
         await self.parent_view.bot.settings_manager.set_admins(
-            interaction.guild_id,
+            guild_id,
             set_admin_modal.admins,
         )
 
@@ -80,10 +81,12 @@ class SettingsGeneralButtons(SettingsBaseButtons):
         await self.parent_view.update()
 
     async def bind_text_channel_button_callback(self, interaction: discord.Interaction):
+        assert (guild_id := interaction.guild_id) is not None
+
         # Get the currently bound channel
         previous_channel_id = (
             await self.parent_view.bot.settings_manager.get_bound_text_channel_id(
-                interaction.guild_id
+                guild_id
             )
         )
 
@@ -101,7 +104,7 @@ class SettingsGeneralButtons(SettingsBaseButtons):
 
         # Bind channel
         await self.parent_view.bot.settings_manager.bind_text_channel(
-            interaction.guild_id,
+            guild_id,
             bind_channel_modal.channel_id,
         )
 
