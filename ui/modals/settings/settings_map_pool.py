@@ -9,7 +9,7 @@ from canned import Canned
 from exceptions import InvalidMapPoolName
 from matchmanager import R6_QUICKMATCH, R6Map
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, PER_MAP_POOL_LIMIT, CustomMapPool
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -49,7 +49,7 @@ class SettingsMapPoolCreateModal(discord.ui.Modal):
                 max_values=PER_MAP_POOL_LIMIT,
                 options=[
                     discord.SelectOption(
-                        label=r6map.replace("_", " ").title(),
+                        label=titlecase(r6map.replace("_", " ")),
                         value=r6map.value,
                     )
                     for r6map in sorted(R6_QUICKMATCH)
@@ -125,7 +125,7 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
                 max_values=PER_MAP_POOL_LIMIT,
                 options=[
                     discord.SelectOption(
-                        label=r6map.replace("_", " ").title(),
+                        label=titlecase(r6map.replace("_", " ")),
                         value=r6map.value,
                         default=r6map in self.previous.maps,
                     )
@@ -151,7 +151,7 @@ class SettingsMapPoolEditModal(discord.ui.Modal):
             self.previous.maps
         ):
             await interaction.response.send_message(
-                Canned.SETTINGS_MAP_POOL_NO_CHANGE.format(f"*`{self.name.title()}`*"),
+                Canned.SETTINGS_MAP_POOL_NO_CHANGE.format(f"*`{titlecase(self.name)}`*"),
                 **ephemeral(),
             )
             return

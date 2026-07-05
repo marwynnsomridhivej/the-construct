@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -46,7 +46,7 @@ class QueueDeleteModal(discord.ui.Modal):
             description="Select the name of the queue you wish to delete",
             component=discord.ui.Select(
                 options=[
-                    discord.SelectOption(label=option.title(), value=option.title())
+                    discord.SelectOption(label=titlecase(option), value=titlecase(option))
                     for option in self.options
                 ],
                 required=True,

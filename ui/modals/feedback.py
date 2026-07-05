@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from util import ephemeral
+from util import ephemeral, titlecase
 
 from ..feedback_type import FEEDBACK_TYPES, FeedbackType
 
@@ -30,7 +30,7 @@ class FeedbackModal(discord.ui.Modal):
             description="Please designate the type of feedback you are giving",
             component=discord.ui.RadioGroup(
                 options=[
-                    discord.RadioGroupOption(label=opt.title(), value=opt)
+                    discord.RadioGroupOption(label=titlecase(opt), value=opt)
                     for opt in FEEDBACK_TYPES
                 ]
             ),

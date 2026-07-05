@@ -12,7 +12,7 @@ from ui import (
     SettingsMapPoolCreateModal,
     SettingsMapPoolEditModal,
 )
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from ..settings_map_pool import SettingsMapPoolView
@@ -164,7 +164,7 @@ class SettingsMapPoolButtons(SettingsBaseButtons):
             changes_text += "\n### Maps\n" + "\n".join(
                 sorted(
                     [
-                        f"[{'+' if r6map in edit_modal.maps else '-'}] {r6map.replace('_', ' ').title()}"
+                        f"[{'+' if r6map in edit_modal.maps else '-'}] {titlecase(r6map.replace('_', ' '))}"
                         for r6map in diff
                     ]
                 )
@@ -231,7 +231,7 @@ class SettingsMapPoolSelectRow(SettingsBaseButtons):
             max_values=1,
             options=[
                 discord.SelectOption(
-                    label=name.title(),
+                    label=titlecase(name),
                     value=name,
                 )
                 for name in names

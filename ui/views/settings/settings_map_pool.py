@@ -6,6 +6,7 @@ import discord
 
 from base import SettingsBaseView
 from settingsmanager import PER_GUILD_MAP_POOL_LIMIT
+from util import titlecase
 
 from .buttons import SettingsMapPoolButtons, SettingsMapPoolSelectRow
 
@@ -81,7 +82,7 @@ class SettingsMapPoolView(SettingsBaseView):
             [
                 "\n".join(
                     [
-                        f"### {pool.name.title()}",
+                        f"### {titlecase(pool.name)}",
                         f"> Owner: <@{pool.owner_id}>",
                         f"> Created: <t:{pool.created_timestamp}:f>",
                         f"> Modified: <t:{pool.modified_timestamp}:f>",

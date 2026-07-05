@@ -1,11 +1,13 @@
 import discord
 
+from util import titlecase
+
 __all__ = ("ConfirmationModal",)
 
 
 class ConfirmationModal(discord.ui.Modal):
     def __init__(self, *, operation: str, custom: dict[str, str] = {}):
-        super().__init__(title=f"{operation.title()} Confirmation")
+        super().__init__(title=f"{titlecase(operation)} Confirmation")
 
         # Allow for custom UI text
         self.custom_text = custom.get("text")

@@ -8,7 +8,7 @@ import discord
 from canned import Canned
 from exceptions import QueueAlreadyExists
 from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -60,7 +60,7 @@ class QueueCreateModal(discord.ui.Modal):
             component=discord.ui.Select(
                 options=[
                     discord.SelectOption(
-                        label=queue_type.title(),
+                        label=titlecase(queue_type),
                         value=queue_type,
                         default=queue_type == QueueType.R6_5V5,
                     )
@@ -81,7 +81,9 @@ class QueueCreateModal(discord.ui.Modal):
         self.is_valid = True
         self.stop()
 
-    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
         self.bot.logger.error(f"An exception occurred when creating queue: {error}")
         traceback.print_exception(type(error), error, error.__traceback__)
 

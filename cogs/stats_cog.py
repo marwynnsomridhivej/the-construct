@@ -11,7 +11,7 @@ from canned import Canned
 from event import Event, MatchFinalisedPayload
 from queuemanager import QueueType
 from ui import LeaderboardView
-from util import EventHandlerType, ephemeral
+from util import EventHandlerType, ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -176,7 +176,7 @@ class StatsCog(commands.Cog):
         seasons = await self.bot.stats_manager.get_all_seasons(guild_id)
         return sorted(
             [
-                app_commands.Choice(name=s.name.title(), value=s.name)
+                app_commands.Choice(name=titlecase(s.name), value=s.name)
                 for s in seasons
                 if current.lower() in s.name
             ],

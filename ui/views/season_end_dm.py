@@ -2,7 +2,7 @@ import discord
 
 from queuemanager import QueueType
 from statsmanager import StatsPlayer, StatsSeason
-from util import ICON
+from util import ICON, titlecase
 
 __all__ = ("SeasonEndDMView",)
 
@@ -39,7 +39,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
         header = discord.ui.TextDisplay(
             "\n".join(
                 [
-                    f"## End of Season Summary - {self._season.name.title()}",
+                    f"## End of Season Summary - {titlecase(self._season.name)}",
                     f"The administrators for *{self._guild.name}* have ended the "
                     + "current season. Here is a recap on your performance and server rank.",
                 ]

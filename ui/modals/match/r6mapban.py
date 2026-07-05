@@ -8,6 +8,7 @@ import discord
 
 from canned import Canned
 from matchmanager import R6Map
+from util import titlecase
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -30,7 +31,7 @@ class R6MapBanModal(discord.ui.Modal):
             component=discord.ui.RadioGroup(
                 options=[
                     discord.RadioGroupOption(
-                        label=r6map.replace("_", " ").title(),
+                        label=titlecase(r6map.replace("_", " ")),
                         value=r6map.value,
                     )
                     for r6map in self.r6view.map_pool
@@ -48,7 +49,7 @@ class R6MapBanModal(discord.ui.Modal):
 
         captain_id = interaction.user.id
         map_banned = R6Map(self.map_ban.component.value)
-        map_string = map_banned.replace("_", " ").title()
+        map_string = titlecase(map_banned.replace("_", " "))
 
         # Use MatchManager.ban_map to write to disk
         await self.r6view.bot.match_manager.ban_map(

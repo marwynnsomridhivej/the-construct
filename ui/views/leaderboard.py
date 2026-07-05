@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import discord
 
+from util import titlecase
+
 from .paginator import Paginator, PaginatorButtonRow
 
 if TYPE_CHECKING:
@@ -71,7 +73,7 @@ class LeaderboardView(Paginator):
             discord.ui.TextDisplay(
                 "\n".join(
                     [
-                        f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]",
+                        f"## Leaderboard - {titlecase(self._season.name)} [Page {self.current_page + 1}/{self.max_pages}]",
                         f"Queue Type: *{self.queue_type}*",
                     ]
                 )

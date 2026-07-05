@@ -1,5 +1,7 @@
 import discord
 
+from util import titlecase
+
 from ..feedback_type import FeedbackType
 
 __all__ = ("FeedbackView",)
@@ -24,7 +26,7 @@ class FeedbackView(discord.ui.LayoutView):
         container = discord.ui.Container(
             discord.ui.Section(
                 discord.ui.TextDisplay(
-                    f"## Feedback Submission - {self.feedback_type.title()}"
+                    f"## Feedback Submission - {titlecase(self.feedback_type)}"
                 ),
                 discord.ui.TextDisplay(
                     "\n".join(

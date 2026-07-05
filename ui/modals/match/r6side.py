@@ -7,6 +7,7 @@ import discord
 
 from canned import Canned
 from matchmanager import R6Side
+from util import titlecase
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -28,7 +29,7 @@ class R6SideModal(discord.ui.Modal):
             description="Select whether your team would like to attack or defend first",
             component=discord.ui.RadioGroup(
                 options=[
-                    discord.RadioGroupOption(label=side.title(), value=side.value)
+                    discord.RadioGroupOption(label=titlecase(side), value=side.value)
                     for side in [R6Side.ATTACKER, R6Side.DEFENDER]
                 ],
                 required=True,

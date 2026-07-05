@@ -19,7 +19,7 @@ from event import (
 from matchmanager import MatchEntry, MatchTeam, R6Map
 from queuemanager import QueueType
 from statsmanager import StatsPlayer
-from util import ICON, ephemeral
+from util import ICON, ephemeral, titlecase
 
 from ..modals import (
     ConfirmationModal,
@@ -278,7 +278,7 @@ class R6ViewButtons(discord.ui.ActionRow):
 
             # Announce the selected map
             await self.r6view.bot.get_channel(self.r6view.payload.text_channel_id).send(
-                f"The selected map is: **{self.r6view.match.map.replace('_', ' ').title()}**",
+                f"The selected map is: **{titlecase(self.r6view.match.map.replace('_', ' '))}**",
                 delete_after=10.0,
             )
 
@@ -610,7 +610,7 @@ class R6View(discord.ui.LayoutView):
         )
 
         # Save map pool name for display
-        self.map_pool_name = self.payload.map_pool.name.title()
+        self.map_pool_name = titlecase(self.payload.map_pool.name)
 
         # Initialise buttons first, as main text depends on referencing
         # the class index attribute
@@ -722,8 +722,8 @@ class R6View(discord.ui.LayoutView):
         items = []
 
         # Always put title
-        title = f"## {self.payload.match_name.upper()} [{self.match.type.upper()}]"
-        items.append(title)
+        view_title = f"## {self.payload.match_name.upper()} [{self.match.type.upper()}]"
+        items.append(view_title)
 
         # If canceled, show cancelation message
         if self.match_canceled:
@@ -798,7 +798,7 @@ class R6View(discord.ui.LayoutView):
             # where banned maps are denoted by strikethrough
             pool = f"### Map Pool [{self.map_pool_name}]\n" + "\n".join(
                 [
-                    f"- {'~~' if r6map in self.match.banned_maps else ''}{r6map.replace('_', ' ').title()}{'~~' if r6map in self.match.banned_maps else ''}"
+                    f"- {'~~' if r6map in self.match.banned_maps else ''}{titlecase(r6map.replace('_', ' '))}{'~~' if r6map in self.match.banned_maps else ''}"
                     for r6map in self.map_pool
                 ]
             )
@@ -807,7 +807,7 @@ class R6View(discord.ui.LayoutView):
         else:
             # Display final selected map once bans are done
             selected_map = (
-                "### Selected Map\n" + f"{self.match.map.replace('_', ' ').title()}"
+                "### Selected Map\n" + f"{titlecase(self.match.map.replace('_', ' '))}"
             )
             items.append(selected_map)
 
@@ -824,8 +824,8 @@ class R6View(discord.ui.LayoutView):
             starting_sides = "\n".join(
                 [
                     "### Starting Sides",
-                    f"Team A: {self.match.team_a.starting_side.title()}s",
-                    f"Team B: {self.match.team_b.starting_side.title()}s",
+                    f"Team A: {titlecase(self.match.team_a.starting_side)}s",
+                    f"Team B: {titlecase(self.match.team_b.starting_side)}s",
                 ]
             )
             items.append(starting_sides)

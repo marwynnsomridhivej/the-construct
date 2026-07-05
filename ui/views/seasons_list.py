@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from queuemanager import QueueType
+from util import titlecase
 
 from .paginator import Paginator, PaginatorButtonRow
 
@@ -36,7 +37,7 @@ class SeasonsListView(Paginator):
                     discord.ui.TextDisplay(
                         "\n".join(
                             [
-                                f"### {season.name.title()}{' (Current)' if season.is_current else ''}",
+                                f"### {titlecase(season.name)}{' (Current)' if season.is_current else ''}",
                                 f"> - Started: <t:{season.start_timestamp}:f>",
                                 f"> - Ended: {f'<t:{season.end_timestamp}:f>' if season.end_timestamp is not None else '`ONGOING`'}",
                                 "> - Ranked Players",

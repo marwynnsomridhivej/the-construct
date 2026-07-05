@@ -11,7 +11,7 @@ from exceptions import QueueProgressStateError
 from queuemanager import ALL_CAPT_SELECT_MODES, CaptSelect, QueueEntry, QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool, MapPoolName
 from statsmanager import StatsPlayer
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -125,7 +125,7 @@ class PrematchView(discord.ui.LayoutView):
         self.map_pool_select = discord.ui.Select(
             options=[
                 discord.SelectOption(
-                    label=pool.name.title(),
+                    label=titlecase(pool.name),
                     value=pool.name,
                     default=pool.name == DEFAULT_MAP_POOL_NAMES[0],
                 )
@@ -144,7 +144,7 @@ class PrematchView(discord.ui.LayoutView):
         self.auto_draft_select = discord.ui.Select(
             options=[
                 discord.SelectOption(
-                    label=choice.title(),
+                    label=titlecase(choice),
                     value=choice,
                     default=choice == "no",
                 )
@@ -163,7 +163,7 @@ class PrematchView(discord.ui.LayoutView):
         self.captain_mode_select = discord.ui.Select(
             options=[
                 discord.SelectOption(
-                    label=mode.title(),
+                    label=titlecase(mode),
                     value=mode,
                     default=mode == ALL_CAPT_SELECT_MODES[0],
                 )

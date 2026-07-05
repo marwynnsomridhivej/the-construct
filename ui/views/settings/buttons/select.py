@@ -6,6 +6,7 @@ import discord
 
 from base import SettingsBaseButtons
 from settingsmanager import SettingsChoice
+from util import titlecase
 
 from ..settings_general import SettingsGeneralView
 from ..settings_map_pool import SettingsMapPoolView
@@ -22,7 +23,7 @@ class SettingsSelectButtons(SettingsBaseButtons):
         self.parent_view: SettingsSelectView
 
     @discord.ui.button(
-        label=SettingsChoice.GENERAL.title(), style=discord.ButtonStyle.blurple
+        label=titlecase(SettingsChoice.GENERAL), style=discord.ButtonStyle.blurple
     )
     async def _select_general(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -45,7 +46,7 @@ class SettingsSelectButtons(SettingsBaseButtons):
         )
 
     @discord.ui.button(
-        label=SettingsChoice.MAP_POOL.title(), style=discord.ButtonStyle.blurple
+        label=titlecase(SettingsChoice.MAP_POOL), style=discord.ButtonStyle.blurple
     )
     async def _select_map_pool(
         self, interaction: discord.Interaction, button: discord.ui.Button

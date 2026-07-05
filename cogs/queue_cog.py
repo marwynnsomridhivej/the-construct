@@ -29,7 +29,7 @@ from ui import (
     QueueLockModal,
     QueueUnlockModal,
 )
-from util import EventHandlerType, ephemeral
+from util import EventHandlerType, ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -117,8 +117,8 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
         else:
             return await interaction.followup.send(
-                f"The queue `{queue_create_modal.queue_name.title()} "
-                + f"({queue_create_modal.queue_type.title()})` has been created"
+                f"The queue `{titlecase(queue_create_modal.queue_name)} "
+                + f"({titlecase(queue_create_modal.queue_type)})` has been created"
             )
 
     @app_commands.command(
@@ -170,7 +170,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
 
         return await interaction.followup.send(
-            f"The queue `{queue_delete_modal.queue_name.title()}` has been successfully deleted"
+            f"The queue `{titlecase(queue_delete_modal.queue_name)}` has been successfully deleted"
         )
 
     @app_commands.command(name="join", description="Join open queues")
@@ -238,7 +238,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 results.append(
                     QueueOperationResult.parse(
                         {
-                            "name": name.title(),
+                            "name": titlecase(name),
                             "entry": joined_queue,
                             "success": msg is None and joined_queue is not None,
                             "msg": msg,
@@ -331,7 +331,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 results.append(
                     QueueOperationResult.parse(
                         {
-                            "name": name.title(),
+                            "name": titlecase(name),
                             "success": msg is None,
                             "msg": msg,
                         }
@@ -421,7 +421,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 results.append(
                     QueueOperationResult.parse(
                         {
-                            "name": name.title(),
+                            "name": titlecase(name),
                             "success": msg is None,
                             "msg": msg,
                         }
@@ -513,7 +513,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 results.append(
                     QueueOperationResult.parse(
                         {
-                            "name": name.title(),
+                            "name": titlecase(name),
                             "success": msg is None,
                             "msg": msg,
                         }

@@ -1,7 +1,7 @@
 import discord
 
 from queuemanager import QueueEntry
-from util import ICON
+from util import ICON, titlecase
 
 __all__ = ("QueueFilledDMView",)
 
@@ -30,7 +30,7 @@ class QueueFilledDMView(discord.ui.LayoutView):
                     "A queue you created has just reached maximum occupancy. Details are as follows:",
                     "### Details",
                     f"- Server: `{self._guild.name}`",
-                    f"- Name: `{self._name.title()}`",
+                    f"- Name: `{titlecase(self._name)}`",
                     f"- Created at: <t:{self._entry.created_timestamp}:f>",
                     f"- Queue Type: `{self._entry.type}`",
                     "- Players:",

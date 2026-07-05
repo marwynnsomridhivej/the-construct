@@ -7,6 +7,7 @@ import discord
 
 from canned import Canned
 from matchmanager import R6_MAX_PLAYERS_PER_TEAM, MatchTeam
+from util import titlecase
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -56,7 +57,7 @@ class R6DraftModal(discord.ui.Modal):
             component=discord.ui.Select(
                 options=[
                     discord.SelectOption(
-                        label=opt.title(), value=opt, default=opt == "no"
+                        label=titlecase(opt), value=opt, default=opt == "no"
                     )
                     for opt in ["yes", "no"]
                 ],

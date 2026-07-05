@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from util import ephemeral
+from util import ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -39,7 +39,7 @@ class QueueJoinModal(discord.ui.Modal):
             description="Select the name of any queues you wish to join",
             component=discord.ui.Select(
                 options=[
-                    discord.SelectOption(label=name.title(), value=name.lower())
+                    discord.SelectOption(label=titlecase(name), value=name.lower())
                     for name in self.joinable_queues
                 ],
                 placeholder="Please select at least one queue",

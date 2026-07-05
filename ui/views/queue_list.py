@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import discord
 
+from util import titlecase
+
 from .paginator import Paginator, PaginatorButtonRow
 
 if TYPE_CHECKING:
@@ -46,7 +48,7 @@ class QueueListView(Paginator):
                     discord.ui.TextDisplay(
                         "\n".join(
                             [
-                                f"### {index + 1}. {name.title()} [{entry.type}]",
+                                f"### {index + 1}. {titlecase(name)} [{entry.type}]",
                                 f"- Created On: <t:{entry.created_timestamp}:f>",
                                 f"- Owner: <@{entry.owner_id}>",
                                 players,
