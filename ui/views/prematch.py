@@ -67,8 +67,8 @@ class PrematchView(discord.ui.LayoutView):
         )
 
     @property
-    def captain_mode(self) -> str | None:
-        return (
+    def captain_mode(self) -> CaptSelect | None:
+        return CaptSelect(
             self.captain_mode_select.values[0]
             if self.captain_mode_select.values
             else ALL_CAPT_SELECT_MODES[0]
@@ -193,6 +193,7 @@ class PrematchView(discord.ui.LayoutView):
         )
 
         # Add fixed header section
+        assert self.bot.user is not None and self.bot.user.avatar is not None
         container.add_item(
             discord.ui.Section(
                 discord.ui.TextDisplay(
@@ -230,7 +231,7 @@ class PrematchView(discord.ui.LayoutView):
 
     def generate_label(
         self, *, text: str, description: str, component: discord.ui.Item
-    ) -> list[type[discord.ui.Item]]:
+    ) -> list[discord.ui.Item]:
         component.callback = self.generic_callback
         return [
             discord.ui.TextDisplay(
@@ -245,7 +246,8 @@ class PrematchView(discord.ui.LayoutView):
         ]
 
     async def generic_callback(self, interaction: discord.Interaction) -> None:
-        return await interaction.response.defer()
+        await interaction.response.defer()
+        return
 
 
 class PrematchViewButtons(discord.ui.ActionRow):
@@ -280,7 +282,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
         queue_type: QueueType,
         player_ids: list[int],
         mode: CaptSelect,
-    ) -> tuple[int, int]:
+    ) -> tuple[int, ...]:
         match mode:
             case CaptSelect.RANDOM:
                 return tuple(random.sample(player_ids, 2))
@@ -292,7 +294,9 @@ class PrematchViewButtons(discord.ui.ActionRow):
                         )
                         for _id in player_ids
                     ],
-                    key=lambda p: p.ordinal if not p.is_legacy else p.points,
+                    key=lambda p: (
+                        p.ordinal if not p.is_legacy else float(p.points or 0)
+                    ),
                     reverse=True,
                 )
                 return (captains[0].id, captains[1].id)
@@ -300,85 +304,100 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 raise ValueError(mode)
 
     async def submit_button_callback(self, interaction: discord.Interaction) -> None:
+        assert (guild_id := interaction.guild_id) is not None
+        assert (guild := interaction.guild) is not None
 
         # Check if a queue has been specified
         if self.parent_view.queue is None:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_PREMATCH_NO_QUEUE, **ephemeral()
             )
+            return
 
         # Check if a voice channel has been selected
         if self.parent_view.voice_channel_id is None:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_PREMATCH_NO_VC, **ephemeral()
             )
+            return
 
         # Check if manual captain select was filled correctly
         if self.parent_view.captain_mode == CaptSelect.MANUAL:
             # Ensure only two users were selected
             if len(self.parent_view.manual_captain) != 2:
-                return await interaction.response.send_message(
+                await interaction.response.send_message(
                     Canned.ERR_PREMATCH_MANUAL_CAPTAIN, **ephemeral()
                 )
+                return
 
             # Ensure no bots in selected users
             if any([user.bot for user in self.parent_view.manual_captain]):
-                return await interaction.response.send_message(
+                await interaction.response.send_message(
                     Canned.ERR_PREMATCH_BOT_USER, **ephemeral()
                 )
+                return
 
             # Ensure the users selected are in the player pool
             player_ids = self.parent_view.queues[self.parent_view.queue].players
             if not all(
                 [user.id in player_ids for user in self.parent_view.manual_captain]
             ):
-                return await interaction.response.send_message(
+                await interaction.response.send_message(
                     Canned.ERR_PREMATCH_INVALID_USER, **ephemeral()
                 )
+                return
 
         # Check if a text channel has been bound
         bound_text_channel_id = (
             await self.parent_view.bot.settings_manager.get_bound_text_channel_id(
-                interaction.guild_id
+                guild_id
             )
         )
         if bound_text_channel_id is None:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_MATCH_START_NO_TC_BOUND, **ephemeral()
             )
+            return
 
         # Check if the bound text channel exists
-        bound_text_channel = interaction.guild.get_channel(bound_text_channel_id)
+        bound_text_channel = guild.get_channel(bound_text_channel_id)
         if bound_text_channel is None:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_MATCH_START_INVALID_TC, **ephemeral()
             )
+            return
 
         # Check if the bot can send messages in the bound text channel
-        bot_member = interaction.guild.get_member(self.parent_view.bot.user.id)
+        assert self.parent_view.bot.user is not None
+        bot_member = guild.get_member(self.parent_view.bot.user.id)
         can_send_messages_in_threads = (
             bound_text_channel.permissions_for(bot_member).send_messages_in_threads
             if bot_member
             else False
         )
         if not can_send_messages_in_threads:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_MATCH_START_TC_PERMS, **ephemeral()
             )
+            return
 
         # Check if the queue entry can be started
+        queue_entry = None
         try:
             if self.parent_view.queue is not None:
                 queue_entry = await self.parent_view.bot.queue_manager.start_match(
-                    interaction.guild_id,
+                    guild_id,
                     interaction.user.id,
                     self.parent_view.queue,
                     admin=self.admin_or_owner,
                 )
         except QueueProgressStateError:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 Canned.ERR_MATCH_IN_PROGRESS, **ephemeral()
             )
+            return
+        else:
+            assert queue_entry is not None
 
         # Delete the original message if all checks passed
         await self.original_interaction.delete_original_response()
@@ -390,16 +409,18 @@ class PrematchViewButtons(discord.ui.ActionRow):
             case MapPoolName.QUICKMATCH:
                 map_pool = self.parent_view.pools[1]
             case _:
+                assert self.parent_view.map_pool_name is not None
                 map_pool = await self.parent_view.bot.settings_manager.get_map_pool(
-                    interaction.guild_id, self.parent_view.map_pool_name
+                    guild_id, self.parent_view.map_pool_name
                 )
 
         # Get captains based on select mode
+        assert self.parent_view.captain_mode is not None
         if self.parent_view.captain_mode == CaptSelect.MANUAL:
             captains = tuple(user.id for user in self.parent_view.manual_captain)
         else:
             captains = await self.select_captains(
-                guild_id=interaction.guild_id,
+                guild_id=guild_id,
                 queue_type=queue_entry.type,
                 player_ids=queue_entry.players,
                 mode=self.parent_view.captain_mode,
