@@ -23,6 +23,8 @@ class FeedbackView(discord.ui.LayoutView):
         self.init_components()
 
     def init_components(self) -> None:
+        assert (guild := self.interaction.guild) is not None
+
         container = discord.ui.Container(
             discord.ui.Section(
                 discord.ui.TextDisplay(
@@ -33,7 +35,7 @@ class FeedbackView(discord.ui.LayoutView):
                         [
                             "### User Information",
                             f"- User: {self.interaction.user.mention} | `{self.interaction.user.id}`",
-                            f"- Guild: `{self.interaction.guild.name}` | `{self.interaction.guild_id}`",
+                            f"- Guild: `{guild.name}` | `{guild.id}`",
                             f"- Sent at: <t:{int(self.interaction.created_at.timestamp())}:f>",
                         ]
                     ),
@@ -41,7 +43,7 @@ class FeedbackView(discord.ui.LayoutView):
                 accessory=discord.ui.Thumbnail(
                     self.interaction.user.avatar.url
                     if self.interaction.user.avatar is not None
-                    else self.interaction.user.default_avatar
+                    else self.interaction.user.default_avatar.url
                 ),
             ),
             discord.ui.Separator(),
