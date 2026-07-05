@@ -100,8 +100,8 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
 
 
 class SettingsBaseButtons(discord.ui.ActionRow, ABC):
-    def __init__(self, *, view, show_admin_buttons: bool = False):
+    def __init__(self, *, view: SettingsBaseView, show_admin_buttons: bool = False):
         super().__init__()
 
-        self.parent_view: type[SettingsBaseView] = view
+        self.parent_view = view
         self.show_admin_buttons = show_admin_buttons
