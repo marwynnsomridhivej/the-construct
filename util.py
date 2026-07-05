@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
+from string import capwords
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -22,6 +23,7 @@ __all__ = (
     "ICON",
     # Functions
     "ephemeral",
+    "title",
     # Typehints
     "CoroType",
     "EventHandlerType",
@@ -38,6 +40,10 @@ def ephemeral(*, seconds: int = 5) -> dict:
         "ephemeral": True,
         "delete_after": seconds,
     }
+
+
+def title(input: str) -> str:
+    return capwords(input, " ")
 
 
 # Typehints
