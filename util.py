@@ -23,7 +23,7 @@ __all__ = (
     "ICON",
     # Functions
     "ephemeral",
-    "title",
+    "titlecase",
     # Typehints
     "CoroType",
     "EventHandlerType",
@@ -42,7 +42,7 @@ def ephemeral(*, seconds: int = 5) -> dict:
     }
 
 
-def title(input: str) -> str:
+def titlecase(input: str) -> str:
     return capwords(input, " ")
 
 
