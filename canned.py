@@ -103,8 +103,17 @@ class Canned(StrEnum):
     ERR_STATS_PLAYER_EDIT = "ERROR - All values must be integers"
 
     # Settings
+    SETTINGS_SET_ADMIN_ALREADY_SET = (
+        "NO CHANGES MADE - The selected users are already set as bot administrators"
+    )
+    SETTINGS_BIND_CHANNEL_ALREADY_BOUND = (
+        "NO CHANGES MADE - The specified text channel is already bound"
+    )
     ERR_SETTINGS_SELECTION_GEN = "ERROR - Could not choose a setting"
     ERR_SETTINGS_SET_ADMIN = "ERROR - Could not set bot administrators"
+    ERR_SETTINGS_SET_ADMIN_BOT_USER = (
+        "ERROR - Cannot select a bot user to administer this bot"
+    )
     ERR_SETTINGS_BIND_CHANNEL = "ERROR - Could not bind a text channel"
     ERR_SETTINGS_BIND_CHANNEL_PERMS = "ERROR - Bot does not have permission to create private threads in the selected text channel"
     ERR_SETTINGS_CREATE_MAP_POOL = "ERROR - Could not create a custom map pool"
