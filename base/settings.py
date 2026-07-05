@@ -24,7 +24,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         user_id: int,
         source_interaction: discord.Interaction,
         button_cls: type["SettingsBaseButtons"],
-        parent_view: discord.ui.LayoutView,
+        parent_view: discord.ui.LayoutView | None,
         bot,
     ):
         super().__init__(timeout=None)
