@@ -770,7 +770,7 @@ class R6View(discord.ui.LayoutView):
         view_title = f"## {self.payload.match_name.upper()} [{self.match.type.upper()}]"
         items.append(view_title)
 
-        # If canceled, show cancelation message
+        # If canceled, show cancellation message
         if self.match_canceled:
             items.append(Canned.R6DRAFT_MATCH_CANCEL)
             return "\n".join(items)
