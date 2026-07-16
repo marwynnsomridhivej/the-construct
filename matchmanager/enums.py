@@ -10,6 +10,8 @@ __all__ = (
 
 
 class R6Map(StrEnum):
+    """Standardised text representation for Rainbow Six Siege maps."""
+
     # fmt: off
     CASINO =        "calypso_casino"
     BORDER =        "border"
@@ -43,6 +45,8 @@ class R6Map(StrEnum):
 
 
 class R6Side(StrEnum):
+    """Standardised text representation for Rainbow Six Siege sides."""
+
     ATTACKER = "attacker"
     DEFENDER = "defender"
 
@@ -64,6 +68,9 @@ R6_RANKED: list[R6Map] = sorted(
         R6Map.OUTBACK,
     ]
 )
+"""Complete list of all Rainbow Six Siege maps in the current
+ranked rotation.
+"""
 
 R6_QUICKMATCH: list[R6Map] = sorted(
     [
@@ -94,8 +101,12 @@ R6_QUICKMATCH: list[R6Map] = sorted(
         R6Map.STADIUM,
     ]
 )
+"""Complete list of all Rainbow Six Siege maps in the current
+quickmatch rotation.
+"""
 
 R6_MAX_PLAYERS_PER_TEAM: int = 5
+"""Maximum amount of players in a Rainbow Six Siege team."""
 
 
 # Sanity checks

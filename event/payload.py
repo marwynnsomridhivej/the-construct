@@ -31,6 +31,10 @@ __all__ = (
 
 
 class QueueFilledPayload(WrapperBase):
+    """A wrapped payload containing data needed for functions and
+    operations that occur when a queue has reached maximum capacity.
+    """
+
     slots = (
         "__guild_id",
         "__name",

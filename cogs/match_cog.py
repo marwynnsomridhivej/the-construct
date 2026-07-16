@@ -35,6 +35,13 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot.logger.info("[MatchCog] Successfully loaded")
 
     async def _prematch_dm(self, payload: PrematchDMPayload) -> None:
+        """Craft and send the prematch DM to all players participating
+        in the match.
+
+        Args:
+            payload (PrematchDMPayload): The PrematchDMPayload containing
+                the player IDs of all participating players.
+        """
         for user_id in payload.queue_entry.players:
             user = self.bot.get_user(user_id)
             if user is None:
@@ -57,6 +64,19 @@ class MatchCog(commands.GroupCog, name="match"):
     async def _perform_auto_draft(
         self, payload: MatchPayload
     ) -> tuple[tuple[int, ...], tuple[list[int], ...]]:
+        """Automatically find the most balanced teams possible from
+        the player pool of a match.
+
+        Args:
+            payload (MatchPayload): The MatchPayload generated
+                upon completion of prematch setup.
+
+        Returns:
+            tuple[tuple[int, ...], tuple[list[int], ...]]: A tuple
+                containing a tuple with team captains and a tuple
+                with the players of each respective teams (excluding
+                captains).
+        """
         players = [
             await self.bot.stats_manager.get_or_create_player(
                 guild_id=payload.guild_id,
@@ -112,6 +132,15 @@ class MatchCog(commands.GroupCog, name="match"):
         return (captains, non_captains)
 
     async def _init_match_data(self, payload: MatchPayload) -> None:
+        """Create a thread in the server's bound text channel, create
+        the match panel in the newly created thread, and register the
+        message ID of the newly created match panel for automatic
+        restoration if prematurely deleted.
+
+        Args:
+            payload (MatchPayload): The MatchPayload generated upon
+                completion of prematch setup.
+        """
         # Correct for QueueType mismatch based on playercount
         if len(payload.queue_entry.players) == 2:
             payload.queue_entry.type = QueueType.R6_1V1
@@ -185,6 +214,20 @@ class MatchCog(commands.GroupCog, name="match"):
         )
 
     async def is_admin_including_owner(self, interaction: discord.Interaction) -> bool:
+        """Utility function to determine if the user of the interaction
+        has permission to perform operations restricted to only bot
+        administrators.
+
+        This function returns True if any of these are satisfied:
+            - The user is the server owner
+            - The user has been designated bot administrator
+
+        Args:
+            interaction (discord.Interaction): The interaction context.
+
+        Returns:
+            bool: Whether or not the user of the interaction has permission.
+        """
         assert interaction.guild_id is not None
         guild = self.bot.get_guild(interaction.guild_id)
         owner_id = guild.owner_id if guild is not None else None

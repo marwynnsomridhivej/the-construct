@@ -7,6 +7,12 @@ __all__ = (
 
 
 class Event(StrEnum):
+    """Custom events the bot dispatches that are outside the scope of
+    native Discord events. These enums define only the event name, so
+    handlers should listen to `on_{EVENT_NAME}` in order to perform
+    actions upon a custom event dispatch.
+    """
+
     # Dispatched after a queue is filled to maximum occupancy
     QUEUE_FILLED = "queue_filled"
 
@@ -51,6 +57,10 @@ class Event(StrEnum):
 
 
 class Reason(StrEnum):
+    """Predefined reasons used in audit logs for certain standard actions
+    to ensure consistency.
+    """
+
     MATCH_CANCELED_LOBBY_MOVE = "Match was canceled, moved back to lobby voice channel."
     MATCH_FINALISED_DEL_TEMP = "Match was finalised, temp channel no longer needed."
     MATCH_FINALISED_LOBBY_MOVE = (

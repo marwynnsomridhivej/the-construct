@@ -10,11 +10,22 @@ WrapperBaseType = TypeVar("WrapperBaseType", bound="WrapperBase")
 
 
 class WrapperBase(ABC):
+    """ABC that all wrappers should inherit from."""
+
     def __init__(self, *args, **kwargs):
         pass
 
     @abstractmethod
     def serialise(self) -> dict:
+        """Convert Wrapper instance into a JSON serialisable dict
+
+        Raises:
+            NotImplementedError: Only if a subclass neglects to implement.
+
+        Returns:
+            dict: The dict representation of data contained within
+                the wrapper.
+        """
         raise NotImplementedError
 
     @classmethod

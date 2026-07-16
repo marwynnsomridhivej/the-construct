@@ -5,6 +5,10 @@ __all__ = (
 
 
 class PlayerAlreadyExists(Exception):
+    """Exception raised when attempting to create a new StatsPlayer
+    instance when one already exists with the same user ID.
+    """
+
     def __init__(self, user_id: int):
         self.user_id = user_id
 
@@ -13,6 +17,10 @@ class PlayerAlreadyExists(Exception):
 
 
 class PlayerDoesNotExist(Exception):
+    """Exception raised when attempting to reference a StatsPlayer
+    instance that does not exist.
+    """
+
     def __init__(self, user_id: int):
         self.user_id = user_id
 

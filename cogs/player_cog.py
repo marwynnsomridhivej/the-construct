@@ -31,7 +31,15 @@ class PlayerCog(commands.GroupCog, name="player"):
 
         self.bot.logger.info("[PlayerCog] Successfully loaded")
 
-    async def send_player_stats_reset_dm(self, payload: PlayerStatsResetPayload):
+    async def send_player_stats_reset_dm(
+        self, payload: PlayerStatsResetPayload
+    ) -> None:
+        """Send a DM to the player that just had their stats reset.
+
+        Args:
+            payload (PlayerStatsResetPayload): The PlayerStatsResetPayload
+                generated from the /player reset command.
+        """
         user = self.bot.get_user(payload.user_id)
         guild = self.bot.get_guild(payload.guild_id)
         if user is None or guild is None:
@@ -45,7 +53,15 @@ class PlayerCog(commands.GroupCog, name="player"):
             )
         )
 
-    async def send_player_stats_delete_dm(self, payload: PlayerStatsResetPayload):
+    async def send_player_stats_delete_dm(
+        self, payload: PlayerStatsResetPayload
+    ) -> None:
+        """Send a DM to the player that just had their stats deleted.
+
+        Args:
+            payload (PlayerStatsResetPayload): The PlayerStatsResetPayload
+                generated from the /player delete command.
+        """
         user = self.bot.get_user(payload.user_id)
         guild = self.bot.get_guild(payload.guild_id)
         if user is None or guild is None:
@@ -65,6 +81,16 @@ class PlayerCog(commands.GroupCog, name="player"):
         member: discord.Member,
         queue_type: QueueType,
     ) -> bool:
+        """Perform checks before allowing any player command to execute.
+
+        Args:
+            interaction (discord.Interaction): The interaction context.
+            member (discord.Member): The member that is being checked.
+            queue_type (QueueType): The queue type of the stats to check.
+
+        Returns:
+            bool: Whether or not the command can be executed.
+        """
         # Typehint assert, we know this is true anyway
         assert (
             interaction.guild_id is not None

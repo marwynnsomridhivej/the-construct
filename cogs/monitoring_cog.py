@@ -64,6 +64,15 @@ class MonitoringCog(commands.Cog):
     async def _move_everyone_to_lobby_vc(
         self, temp_vc_id: int, lobby_vc_id: int, reason: Reason
     ) -> None:
+        """Helper function that moves every connected voice client
+        from the temporary voice channel to the lobby voice channel.
+
+        Args:
+            temp_vc_id (int): The ID of the temporary voice channel.
+            lobby_vc_id (int): The ID of the lobby voice channel.
+            reason (Reason): Reason that will show up in audit logs
+                for the move event.
+        """
         temp_vc = self.bot.get_channel(temp_vc_id)
         lobby_vc = self.bot.get_channel(lobby_vc_id)
 
@@ -82,6 +91,14 @@ class MonitoringCog(commands.Cog):
                 )
 
     async def _delete_dms(self, guild_id: int, players: list[int]) -> None:
+        """Delete stored prematch DMs for players when a match concludes.
+
+        Args:
+            guild_id (int): The ID of the guild the match took place in.
+            players (list[int]): A list of player IDs that participated
+                in the match and were sent a prematch DM when the match
+                was started
+        """
         for player in players:
             message_id = None
             try:
@@ -118,16 +135,33 @@ class MonitoringCog(commands.Cog):
     # =============================================
 
     async def register_r6view_to_watch(self, payload: MatchPayload) -> None:
-        # Add payload to match panels to watch so the bot can detect
-        # prematurely deleted R6View panels
+        """Add the message ID of a match panel to be checked for upon
+        receiving a on_raw_message_delete event. This allows for detection
+        and restoration of prematurely deleted match panels.
+
+        Args:
+            payload (MatchPayload): The MatchPayload instance.
+        """
         self.r6view_to_watch[payload.r6view_message_id] = payload
 
     async def unregister_r6view_to_watch(self, message_id: int) -> None:
-        # Remove the payload associated with the provided message_id if one exists
+        """Remove the message ID of a match panel from the watchlist.
+        This allows its permanent deletion without restoration.
+
+        Args:
+            message_id (int): The ID of the message containing the
+                match panel.
+        """
         if message_id in self.r6view_to_watch.keys():
             del self.r6view_to_watch[message_id]
 
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
+        """Delete team voice channels upon match completion.
+
+        Args:
+            payload (MatchFinalisedPayload): The MatchFinalisedPayload
+                generated upon match completion.
+        """
         # Don't do anything if it is a 1v1, since no separate VCs were created
         if payload.queue_type == QueueType.R6_1V1:
             return
@@ -162,6 +196,12 @@ class MonitoringCog(commands.Cog):
                 )
 
     async def queue_match_cleanup(self, payload: MatchFinalisedPayload) -> None:
+        """Delete a queue entry from the database upon match completion.
+
+        Args:
+            payload (MatchFinalisedPayload): The MatchFinalisedPayload
+                generated upon match completion.
+        """
         await self.bot.queue_manager.delete_queue(
             payload.guild_id,
             payload.name,
@@ -174,18 +214,46 @@ class MonitoringCog(commands.Cog):
         del self.r6view_to_watch[payload.r6view_message_id]
 
     async def delete_dms_after_match(self, payload: MatchFinalisedPayload) -> None:
+        """Delete prematch DMs sent to all players participating in the
+        match upon match completion.
+
+        Args:
+            payload (MatchFinalisedPayload): The MatchFinalisedPayload
+                generated upon match completion.
+        """
         for team in payload.teams:
             await self._delete_dms(payload.guild_id, team.players)
 
     async def explicit_delete_dms(self, payload: DMDeletePayload) -> None:
+        """Delete prematch DMs sent to all players participating in the
+        match upon match cancellation.
+
+        Args:
+            payload (DMDeletePayload): The DMDeletePayload generated
+                upon match cancellation.
+        """
         await self._delete_dms(payload.guild_id, payload.players)
 
     async def increment_match_count(self, payload: MatchFinalisedPayload) -> None:
+        """Increment the match count in the current active season upon
+        match completion.
+
+        Args:
+            payload (MatchFinalisedPayload): The MatchFinalisedPayload
+                generated upon match completion.
+        """
         await self.bot.stats_manager.increment_season_match_count(
             payload.guild_id, queue_type=payload.queue_type
         )
 
     async def thread_cleanup(self, payload: MatchPayload) -> None:
+        """Close and lock the thread containing the match panel upon
+        match completion or cancellation.
+
+        Args:
+            payload (MatchPayload): The MatchPayload generated upon
+                prematch setup completion.
+        """
         thread_channel = self.bot.get_channel(payload.text_channel_id)
         if not isinstance(thread_channel, discord.Thread):
             return self.bot.logger.error(
@@ -204,6 +272,12 @@ class MonitoringCog(commands.Cog):
             )
 
     async def reset_move_back(self, payload: VCResetPayload) -> None:
+        """Move all players back to the lobby voice channel.
+
+        Args:
+            payload (VCResetPayload): The VCResetPayload generated
+                (can occur in multiple instances)
+        """
         for team in payload.teams:
             if team.voice_channel_id is None:
                 continue
@@ -215,6 +289,13 @@ class MonitoringCog(commands.Cog):
             )
 
     async def vc_delete_reset_cancel(self, payload: VCResetPayload) -> None:
+        """Delete team specific voice channels upon resetting the match
+        panel or match cancellation.
+
+        Args:
+            payload (VCResetPayload): The VCResetPayload generated upon
+            resetting the match panel or match cancellation.
+        """
         for team in payload.teams:
             # Ensure team voice channel ID is set
             team_vc_id = team.voice_channel_id
@@ -243,6 +324,13 @@ class MonitoringCog(commands.Cog):
     # =============================================
 
     async def _on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent):
+        """Handle players leaving the server. If they left due to a ban,
+        their stats for the current active season are completely deleted.
+
+        Args:
+            payload (discord.RawMemberRemoveEvent): The payload
+                dispatched when a user leaves a server.
+        """
         guild = self.bot.get_guild(payload.guild_id)
         if not guild:
             return
@@ -295,6 +383,13 @@ class MonitoringCog(commands.Cog):
     async def _on_raw_message_delete(
         self, event_payload: discord.RawMessageDeleteEvent
     ) -> None:
+        """Check for premature deletions of any active match panel
+        and restore it if necessary.
+
+        Args:
+            event_payload (discord.RawMessageDeleteEvent): The payload
+                dispatched when a message is deleted.
+        """
         # If the message ID isn't one that was watched, disregard
         if event_payload.message_id not in self.r6view_to_watch.keys():
             return

@@ -27,9 +27,11 @@ __all__ = (
 
 
 class QueueWrapper(WrapperBase):
+    """Wrapper class that wraps queue related data from the database into
+    a python object.
+    """
+
     __slots__ = ("__data",)
-    # Queue object:
-    # {guild_id: QueueGuildContainer}
 
     def __init__(self, data: dict):
         self.__data: dict[int, QueueGuildContainer] = {
@@ -83,6 +85,11 @@ class QueueWrapper(WrapperBase):
 
     @property
     def data(self) -> dict[int, "QueueGuildContainer"]:
+        """Obtain python dictionary data.
+
+        Returns:
+            dict[int, QueueGuildContainer]: The underlying python dict object.
+        """
         return self.__data
 
     def serialise(self) -> dict:
@@ -95,9 +102,11 @@ class QueueWrapper(WrapperBase):
 
 
 class QueueGuildContainer(WrapperBase):
+    """Wrapper class that wraps guild specific queue data from the database into
+    a python object.
+    """
+
     __slots__ = ("__data",)
-    # QueueGuildContainer object:
-    # {name: QueueEntry}
 
     def __init__(self, data: dict):
         self.__data = {name: QueueEntry.parse(entry) for name, entry in data.items()}
@@ -192,6 +201,11 @@ class QueueGuildContainer(WrapperBase):
 
     @property
     def data(self) -> dict[str, "QueueEntry"]:
+        """Obtain python dictionary data.
+
+        Returns:
+            dict[str, QueueEntry]: The underlying python dict object.
+        """
         return self.__data
 
     def serialise(self) -> dict:
@@ -204,6 +218,10 @@ class QueueGuildContainer(WrapperBase):
 
 
 class QueueEntry(WrapperBase):
+    """Wrapper class that wraps queue entry data from the database into
+    a python object.
+    """
+
     __slots__ = (
         "owner_id",
         "created_timestamp",
@@ -224,7 +242,7 @@ class QueueEntry(WrapperBase):
         self.in_progress: bool = data["in_progress"]
 
     def add_player(self, user_id: int) -> None:
-        """Adds a user ID to the player list
+        """Add a user ID to the player list
 
         Args:
             user_id (int): The ID of the user to add
@@ -246,7 +264,7 @@ class QueueEntry(WrapperBase):
         self.players.append(user_id)
 
     def remove_player(self, user_id: int, force: bool) -> None:
-        """Removes a user ID from the player list
+        """Remove a user ID from the player list
 
         Args:
             user_id (int): The ID of the user to remove
@@ -294,7 +312,7 @@ class QueueEntry(WrapperBase):
         self.locked = state
 
     def set_progress(self, state: bool) -> None:
-        """Sets the queue's in_progress flag
+        """Set the queue's in_progress flag
 
         Args:
             state (bool): The value to set the queue's in_progress flag
@@ -309,6 +327,11 @@ class QueueEntry(WrapperBase):
 
     @property
     def full(self) -> bool:
+        """Check if the queue has reached maximum capacity.
+
+        Returns:
+            bool: Whether or not the queue is full.
+        """
         return len(self.players) >= self.max_players
 
     def serialise(self) -> dict:
@@ -329,6 +352,10 @@ class QueueEntry(WrapperBase):
 
 
 class QueueOperationResult(WrapperBase):
+    """Wrapper class that wraps queue operation result data into a
+    python object.
+    """
+
     def __init__(self, data: dict):
         self.name: str = data["name"]
         self.entry: QueueEntry | None = data.get("entry")
@@ -336,6 +363,12 @@ class QueueOperationResult(WrapperBase):
         self.msg: str | None = data["msg"]
 
     def serialise(self) -> dict:
+        """Convert QueueOperationResult instance representation into a dict.
+
+        Returns:
+            dict: Dictionary representation of the QueueOperationResult
+                instance.
+        """
         return {
             "name": self.name,
             "entry": self.entry,

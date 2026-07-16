@@ -28,6 +28,12 @@ class SettingsCog(commands.Cog):
         self.bot.logger.info("[SettingsCog] Successfully loaded")
 
     async def _create_settings_on_guild_join(self, guild: discord.Guild) -> None:
+        """Create server settings entry in the database upon joining a
+        server.
+
+        Args:
+            guild (discord.Guild): The guild that was just joined.
+        """
         # Create default settings for new guilds upon join
         await self.bot.settings_manager.create_guild_settings(guild.id)
 

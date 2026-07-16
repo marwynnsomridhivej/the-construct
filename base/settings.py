@@ -17,6 +17,8 @@ __all__ = (
 
 
 class SettingsBaseView(discord.ui.LayoutView, ABC):
+    """ABC that all views used in the /settings command should inherit from."""
+
     def __init__(
         self,
         *,
@@ -42,6 +44,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         self.is_bot_admin: bool = False
 
     async def init_components(self) -> None:
+        """Create all view components and adds them to the view instance."""
         # Prep section with text and thumbnail
         guild = self.bot.get_guild(self.guild_id)
         guild_icon = guild.icon if guild is not None else None
@@ -82,9 +85,20 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
 
     @abstractmethod
     async def get_text_content(self) -> str:
+        """Get the text content that is used for the content in the
+        TextDisplay component (part of the Section component). Must be
+        overridden by subclasses.
+
+        Raises:
+            NotImplementedError: Only if a subclass neglects to implement.
+
+        Returns:
+            str: The text content for the TextDisplay component
+        """
         raise NotImplementedError
 
     async def update(self) -> None:
+        """Update the view when changes are made to any component."""
         self.clear_items()
         await self.init_components()
         await self.source_interaction.edit_original_response(
@@ -93,6 +107,7 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
         )
 
     async def go_back(self):
+        """Display the parent view."""
         await self.source_interaction.edit_original_response(
             view=self.parent_view,
             allowed_mentions=discord.AllowedMentions.none(),
@@ -100,6 +115,9 @@ class SettingsBaseView(discord.ui.LayoutView, ABC):
 
 
 class SettingsBaseButtons(discord.ui.ActionRow, ABC):
+    """ABC that all buttons attached to views used in the /settings
+    command should inherit from."""
+
     def __init__(self, *, view: SettingsBaseView, show_admin_buttons: bool = False):
         super().__init__()
 

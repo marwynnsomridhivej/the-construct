@@ -24,6 +24,10 @@ __all__ = (
 
 
 class MatchWrapper(WrapperBase):
+    """Wrapper class that wraps match related data from the database into
+    a python object.
+    """
+
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
@@ -78,6 +82,11 @@ class MatchWrapper(WrapperBase):
 
     @property
     def data(self) -> dict[int, "MatchGuildContainer"]:
+        """Obtain python dictionary data.
+
+        Returns:
+            dict[int, MatchGuildContainer]: The underlying python dict object.
+        """
         return self.__data
 
     def serialise(self) -> dict:
@@ -90,6 +99,10 @@ class MatchWrapper(WrapperBase):
 
 
 class MatchGuildContainer(WrapperBase):
+    """Wrapper class that wraps guild specific match data from the database into
+    a python object.
+    """
+
     __slots__ = ("__data",)
 
     def __init__(self, data: dict):
@@ -158,6 +171,11 @@ class MatchGuildContainer(WrapperBase):
 
     @property
     def data(self) -> dict[str, "MatchEntry"]:
+        """Obtain python dictionary data.
+
+        Returns:
+            dict[int, MatchEntry]: The underlying python dict object.
+        """
         return self.__data
 
     def serialise(self) -> dict:
@@ -170,6 +188,10 @@ class MatchGuildContainer(WrapperBase):
 
 
 class MatchEntry(WrapperBase):
+    """Wrapper class that wraps match entry data from the database into
+    a python object.
+    """
+
     __slots__ = (
         "created_timestamp",
         "type",
@@ -275,24 +297,54 @@ class MatchEntry(WrapperBase):
             team.reset_mvp_designation()
 
     def set_rounds_won(self, captain_id: int, rounds_won: int) -> None:
+        """Set the rounds won for the team of the specified captain ID.
+
+        Args:
+            captain_id (int): The ID of the captain of the team.
+            rounds_won (int): The amount of rounds won.
+        """
         self.get_team_of_user(captain_id).set_rounds_won(rounds_won)
 
     @property
     def captains(self) -> list[int]:
+        """A two-element list containing the captains of both teams.
+
+        Raises:
+            ValueError: At least one team does not have a captain.
+
+        Returns:
+            list[int]: The captains of both teams.
+        """
         if self.team_a.captain_id is None or self.team_b.captain_id is None:
             raise ValueError
         return [self.team_a.captain_id, self.team_b.captain_id]
 
     @property
     def banned_maps(self) -> list[R6Map]:
+        """A list of all maps banned by either team.
+
+        Returns:
+            list[R6Map]: The maps banned by either team.
+        """
         return self.team_a.map_bans + self.team_b.map_bans
 
     @property
     def has_map(self) -> bool:
+        """Check if a match currently has a set map that will be played on.
+
+        Returns:
+            bool: Whether or not a map has been selected.
+        """
         return self.map is not None
 
     @property
     def sides_selected(self) -> bool:
+        """Check if side selection has been completed and each team has
+        a valid starting side.
+
+        Returns:
+            bool: Whether or not side selection has been completed.
+        """
         return (
             self.team_a.starting_side is not None
             and self.team_b.starting_side is not None
@@ -300,20 +352,41 @@ class MatchEntry(WrapperBase):
 
     @property
     def mvps_set(self) -> bool:
+        """Check if team MVPs have been designated by their respective captains.
+
+        Returns:
+            bool: Whether or not MVP designation has been completed.
+        """
         return isinstance(self.team_a.mvp_id, int) and isinstance(
             self.team_b.mvp_id, int
         )
 
     @property
     def wins_set(self) -> bool:
+        """Check if the winner of the match has been set.
+
+        Returns:
+            bool: Whether or not the winner has been set.
+        """
         return isinstance(self.team_a.win, bool) and isinstance(self.team_b.win, bool)
 
     @property
     def finalised(self) -> bool:
+        """Check if the match has been finalised (MVPs and winner set).
+
+        Returns:
+            bool: Whether or not the match has been finalised.
+        """
         return self.wins_set and self.mvps_set
 
     @property
     def winning_team(self) -> "MatchTeam | None":
+        """Check and obtain the team that won the match, if it has been set.
+
+        Returns:
+            MatchTeam | None: The team that won the match, if any. This
+                may change over the course of the match.
+        """
         if not self.wins_set:
             return None
 
@@ -321,6 +394,12 @@ class MatchEntry(WrapperBase):
 
     @property
     def losing_team(self) -> "MatchTeam | None":
+        """Check and obtain the team that lost the match, if it has been set.
+
+        Returns:
+            MatchTeam | None: The team that lost the match, if any. This
+                may change over the course of the match.
+        """
         if not self.wins_set:
             return None
 
@@ -343,6 +422,10 @@ class MatchEntry(WrapperBase):
 
 
 class MatchTeam(WrapperBase):
+    """Wrapper class that wraps match team data from the database into
+    a python object.
+    """
+
     __slots__ = (
         "name",
         "voice_channel_id",
@@ -369,7 +452,7 @@ class MatchTeam(WrapperBase):
         self.rounds_won: int | None = data["rounds_won"]
 
     def assign_captain(self, user_id: int) -> None:
-        """Designates a captain by user ID
+        """Designate a captain by user ID
 
         Args:
             user_id (int): The ID of the user to be made captain
@@ -384,7 +467,7 @@ class MatchTeam(WrapperBase):
         self.players.append(user_id)
 
     def draft_player(self, user_id: int) -> None:
-        """Drafts a player to the team by user ID
+        """Draft a player to the team by user ID
 
         Args:
             user_id (int): The ID of the user to be drafted
@@ -398,7 +481,7 @@ class MatchTeam(WrapperBase):
         self.players.append(user_id)
 
     def ban_map(self, choice: R6Map) -> None:
-        """Bans a map by name
+        """Ban a map by name
 
         Args:
             choice (R6Map): The map to ban
@@ -406,7 +489,7 @@ class MatchTeam(WrapperBase):
         self.map_bans.append(choice)
 
     def designate(self, user_id: int) -> None:
-        """Designates a player on the team as the MVP
+        """Designate a player on the team as the MVP
 
         Args:
             user_id (int): The ID of the user to be made MVP
@@ -420,22 +503,22 @@ class MatchTeam(WrapperBase):
         self.mvp_id = user_id
 
     def reset_player_draft(self) -> None:
-        """Resets the player draft state to default"""
+        """Reset the player draft state to default"""
         if self.captain_id is None:
             raise ValueError
 
         self.players = [self.captain_id]
 
     def reset_map_bans(self) -> None:
-        """Resets the map ban state to default"""
+        """Reset the map ban state to default"""
         self.map_bans = []
 
     def reset_starting_side(self) -> None:
-        """Resets the starting side state to default"""
+        """Reset the starting side state to default"""
         self.starting_side = None
 
     def reset_mvp_designation(self) -> None:
-        """Resets the team's MVP designation"""
+        """Reset the team's MVP designation"""
         self.mvp_id = None
 
     def set_rounds_won(self, rounds_won: int) -> None:
@@ -466,7 +549,7 @@ class MatchTeam(WrapperBase):
 
     @classmethod
     def create_empty(cls, a_or_b: str) -> "MatchTeam":
-        """Creates a blank MatchTeam instance
+        """Create a blank MatchTeam instance
 
         Returns:
             MatchTeam: The created blank instance

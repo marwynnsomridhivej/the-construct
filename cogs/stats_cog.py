@@ -33,6 +33,17 @@ class StatsCog(commands.Cog):
     async def _create_openskill_rating_object(
         self, guild_id: int, user_id: int, queue_type: QueueType
     ) -> PlackettLuceRating:
+        """Create an OpenSkill rating for a given player.
+
+        Args:
+            guild_id (int): The ID of the guild.
+            user_id (int): The user ID of the player.
+            queue_type (QueueType): The queue type of the stats to search.
+
+        Returns:
+            PlackettLuceRating: The OpenSkill rating object based on the
+                default PlackettLuce algorithm.
+        """
         player = await self.bot.stats_manager.get_or_create_player(
             guild_id=guild_id,
             queue_type=queue_type,
@@ -43,6 +54,12 @@ class StatsCog(commands.Cog):
         )
 
     async def calc_stats(self, payload: MatchFinalisedPayload):
+        """Calculate OpenSkill rating changes based on match outcome.
+
+        Args:
+            payload (MatchFinalisedPayload): The MatchFinalisedPayload
+                generated upon match conclusion.
+        """
         # Typehint assertions for attributes that should already have values
         assert (
             payload.winning_team.mvp_id is not None

@@ -50,6 +50,13 @@ class QueueCog(commands.GroupCog, name="queue"):
         self.bot.logger.info("[QueueCog] Successfully loaded")
 
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
+        """Send a DM to the queue owner whenever one of their queues
+        reaches maximum player capacity.
+
+        Args:
+            payload (QueueFilledPayload): The payload generated upon
+                a player joining the queue, causing it to become full.
+        """
         # Attempt to get user object of queue owner
         user = self.bot.get_user(payload.entry.owner_id)
         if user is None:

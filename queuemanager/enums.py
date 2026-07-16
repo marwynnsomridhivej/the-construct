@@ -9,11 +9,17 @@ __all__ = (
 
 
 class QueueType(StrEnum):
+    """Standard text representation of Rainbow Six Siege queue types."""
+
     R6_5V5 = "Rainbow Six Siege - 5v5"
     R6_1V1 = "Rainbow Six Siege - 1v1"
 
 
 class CaptSelect(StrEnum):
+    """Standard text representation of Rainbow Six Siege captain
+    selection modes.
+    """
+
     RANDOM = "random"
     RATING = "rating"
     MANUAL = "manual"
@@ -23,6 +29,7 @@ ALL_R6_QUEUE_TYPES = [
     QueueType.R6_5V5,
     QueueType.R6_1V1,
 ]
+"""All Rainbow Six Siege queue types"""
 
 
 ALL_CAPT_SELECT_MODES = [
@@ -30,3 +37,4 @@ ALL_CAPT_SELECT_MODES = [
     CaptSelect.RANDOM,
     CaptSelect.MANUAL,
 ]
+"""All Rainbow Six Siege captain selection modes."""

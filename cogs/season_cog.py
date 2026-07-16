@@ -31,6 +31,16 @@ class SeasonCog(commands.GroupCog, name="season"):
         self.bot.logger.info("[SeasonCog] Successfully loaded")
 
     async def _ensure_perms(self, interaction: discord.Interaction) -> bool:
+        """Ensure the user attempting to perform the command is either
+        the server owner or has been designated a bot administrator.
+
+        Args:
+            interaction (discord.Interaction): The interaction context.
+
+        Returns:
+            bool: Whether or not the user has sufficient permission
+                to perform the command.
+        """
         # Typehint assert, we know this is true anyway
         assert (
             interaction.guild_id is not None
@@ -48,6 +58,13 @@ class SeasonCog(commands.GroupCog, name="season"):
         )
 
     async def _send_season_end_dms(self, payload: SeasonEndPayload) -> None:
+        """Send end of season DM to all players that participated in
+        said season.
+
+        Args:
+            payload (SeasonEndPayload): The SeasonEndPayload generated
+                upon execution of the /season stop command.
+        """
         users_data: dict[discord.User, dict[QueueType, dict]] = {}
 
         for queue_type, players in payload.ranked_players.items():

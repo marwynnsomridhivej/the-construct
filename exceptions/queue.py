@@ -18,6 +18,10 @@ __all__ = (
 
 
 class AlreadyInQueue(Exception):
+    """Exception raised when attempting to join a user to a queue
+    they are already in.
+    """
+
     def __init__(self, user_id: int):
         self.user_id = user_id
 
@@ -26,6 +30,10 @@ class AlreadyInQueue(Exception):
 
 
 class NoListResults(Exception):
+    """Exception raised when no queue list results are found with
+    the specified member and/or queue type filters.
+    """
+
     def __init__(
         self,
         member: Optional[discord.Member | discord.User] = None,
@@ -39,6 +47,10 @@ class NoListResults(Exception):
 
 
 class NotInQueue(Exception):
+    """Exception raised when attempting to perform an operation in
+    a given queue on a user that is not a member of said queue.
+    """
+
     def __init__(self, user_id: int):
         self.user_id = user_id
 
@@ -47,6 +59,11 @@ class NotInQueue(Exception):
 
 
 class NotQueueOwner(Exception):
+    """Exception raised when attempting to perform a queue operation
+    that is reserved for the queue owner or bot administrator while
+    having neither of those permissions.
+    """
+
     def __init__(self, real: int, provided: int):
         self.real_id = real
         self.provided_id = provided
@@ -56,6 +73,10 @@ class NotQueueOwner(Exception):
 
 
 class QueueAlreadyExists(Exception):
+    """Exception raised when attempting to create a queue with the
+    same name as one that currently exists.
+    """
+
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
         self.msg = f'Queue with name "{queue_name}" already exists'
@@ -65,6 +86,10 @@ class QueueAlreadyExists(Exception):
 
 
 class QueueDoesNotExist(Exception):
+    """Exception raised when attempting to perform queue operations
+    on a queue that does not exist.
+    """
+
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
 
@@ -73,6 +98,11 @@ class QueueDoesNotExist(Exception):
 
 
 class QueueLimitReached(Exception):
+    """Exception raised when attempting to create a new queue when
+    the server has reached the maximum amount of simultaneous active
+    queues.
+    """
+
     def __init__(self, guild_id: int):
         self.guild_id = guild_id
 
@@ -81,6 +111,10 @@ class QueueLimitReached(Exception):
 
 
 class QueueIsFull(Exception):
+    """Exception raised when a user attempts to join a queue
+    that has reached its maximum occupancy.
+    """
+
     def __init__(self):
         pass
 
@@ -89,6 +123,10 @@ class QueueIsFull(Exception):
 
 
 class QueueIsLocked(Exception):
+    """Exception raised when attempting to perform a queue operation on
+    a queue that is currently locked.
+    """
+
     def __init__(self):
         pass
 
@@ -97,6 +135,10 @@ class QueueIsLocked(Exception):
 
 
 class QueueLockStateError(Exception):
+    """Exception raised when attempting to change a queue's lock
+    state to the state it is already in.
+    """
+
     def __init__(self):
         pass
 
@@ -105,6 +147,10 @@ class QueueLockStateError(Exception):
 
 
 class QueueProgressStateError(Exception):
+    """Exception raised when attempting to change a queue's in
+    progress state to the state it is already in.
+    """
+
     def __init__(self):
         pass
 
