@@ -53,19 +53,23 @@ class R6Side(StrEnum):
 
 R6_RANKED: list[R6Map] = sorted(
     [
-        R6Map.CASINO,
-        R6Map.CHALET,
         R6Map.BANK,
         R6Map.BORDER,
+        R6Map.CASINO,
+        R6Map.CHALET,
         R6Map.CLUBHOUSE,
-        R6Map.KAFE,
-        R6Map.LAIR,
-        R6Map.NIGHTHAVEN,
         R6Map.COASTLINE,
         R6Map.CONSULATE,
         R6Map.FORTRESS,
+        R6Map.KAFE,
+        R6Map.KANAL,
+        R6Map.LAIR,
+        R6Map.NIGHTHAVEN,
         R6Map.OREGON,
         R6Map.OUTBACK,
+        R6Map.SKYSCRAPER,
+        R6Map.THEMEPARK,
+        R6Map.VILLA,
     ]
 )
 """Complete list of all Rainbow Six Siege maps in the current
