@@ -218,10 +218,10 @@ class QueueGuildContainer(WrapperBase):
         return self.__data
 
     def serialise(self) -> dict:
-        """Convert QueueGuildContainer (QGC) instance representation into a dict
+        """Convert QueueGuildContainer (QGC) instance representation into a dict.
 
         Returns:
-            dict: Dictionary representation of the QGC instance
+            dict: Dictionary representation of the QGC instance.
         """
         return {name: entry.serialise() for name, entry in self.__data.items()}
 
