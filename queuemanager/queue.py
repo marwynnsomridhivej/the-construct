@@ -51,17 +51,18 @@ class QueueWrapper(WrapperBase):
     def get(self, guild_id: int) -> "QueueGuildContainer | None": ...
 
     def get(self, guild_id: int, throw: bool = False) -> "QueueGuildContainer | None":
-        """Get a QueueGuildContainer (QGC) of the specified guild
+        """Get a QueueGuildContainer (QGC) of the specified guild.
 
         Args:
-            guild_id (int): The guild ID of the guild
-            throw (bool): Whether or not to throw an exception if a QGC instance is not found
+            guild_id (int): The guild ID of the guild.
+            throw (bool): Whether or not to throw an exception if a QGC instance
+                is not found.
 
         Raises:
-            InvalidGuildID: No QGC instance exists for the specified guild
+            InvalidGuildID: No QGC instance exists for the specified guild.
 
         Returns:
-            QueueGuildContainer | None: The QGC instance of the specified guild
+            QueueGuildContainer | None: The QGC instance of the specified guild.
         """
         qgc = self.__data.get(guild_id)
         if qgc is None and throw:
@@ -69,13 +70,14 @@ class QueueWrapper(WrapperBase):
         return qgc
 
     def get_or_create(self, guild_id: int) -> "QueueGuildContainer":
-        """Get or create a QueueGuildContainer (QGC) for the specified guild
+        """Get or create a QueueGuildContainer (QGC) for the specified guild.
 
         Args:
-            guild_id (int): The ID of the guild
+            guild_id (int): The ID of the guild.
 
         Returns:
-            QueueGuildContainer: An existing QGC instance or a newly created blank instance
+            QueueGuildContainer: An existing QGC instance or a newly created blank
+                instance.
         """
         qgc = self.get(guild_id)
         if qgc is None:
@@ -121,17 +123,19 @@ class QueueGuildContainer(WrapperBase):
     def get(self, name: str) -> "QueueEntry | None": ...
 
     def get(self, name: str, throw: bool = False) -> "QueueEntry | None":
-        """Get a QueueEntry with the specified name
+        """Get a QueueEntry with the specified name.
 
         Args:
             name (str): The name of the desired QueueEntry instance
-            throw (bool): Whether or not to throw an exception if a QueueEntry instance is not found
+            throw (bool): Whether or not to throw an exception if a QueueEntry
+                instance is not found.
 
         Raises:
-            QueueDoesNotExist: No QueueEntry instance exists with the specified name
+            QueueDoesNotExist: No QueueEntry instance exists with the specified
+                name.
 
         Returns:
-            QueueEntry | None: The QueueEntry instance with the specified name
+            QueueEntry | None: The QueueEntry instance with the specified name.
         """
         data = self.__data.get(name)
         if data is None and throw:
@@ -139,33 +143,36 @@ class QueueGuildContainer(WrapperBase):
         return data
 
     def create(self, name: str, data: dict) -> None:
-        """Create a QueueEntry with specified name and data
+        """Create a QueueEntry with specified name and data.
 
         Args:
-            name (str): The name of the queue
-            data (dict): The attributes of the queue
+            name (str): The name of the queue.
+            data (dict): The attributes of the queue.
 
         Raises:
-            QueueAlreadyExists: Exception thrown when name is already in use
+            QueueAlreadyExists: Exception thrown when name is already in use.
         """
         if self.__data.get(name) is not None:
             raise QueueAlreadyExists(name)
         self.__data[name] = QueueEntry.parse(data)
 
     def delete(self, name: str, user_id: int, admin: bool = False) -> "QueueEntry":
-        """Delete a QueueEntry with the specified name
+        """Delete a QueueEntry with the specified name.
 
         Args:
             name (str): The name of the queue
-            user_id (int): The ID of the user that is attempting to delete the queue
-            admin (bool): Whether or not the user is a bot administrator. Defaults to False
+            user_id (int): The ID of the user that is attempting to delete the
+                queue.
+            admin (bool): Whether or not the user is a bot administrator.
+                Defaults to False.
 
         Raises:
-            QueueDoesNotExist: No QueueEntry instance exists with the specified name
-            NotQueueOwner: The user is not the owner of the queue
+            QueueDoesNotExist: No QueueEntry instance exists with the specified
+                name.
+            NotQueueOwner: The user is not the owner of the queue.
 
         Returns:
-            QueueEntry: QueueEntry instance that has been deleted
+            QueueEntry: QueueEntry instance that has been deleted.
         """
         queue_entry = self.__data.get(name)
         if queue_entry is None:
@@ -182,14 +189,16 @@ class QueueGuildContainer(WrapperBase):
         member: discord.Member | discord.User | None,
         queue_type: QueueType | None = None,
     ) -> dict[str, "QueueEntry"]:
-        """Filter all stored QueueEntry by user presence or queue type
+        """Filter all stored QueueEntry by user presence or queue type.
 
         Args:
-            member (discord.Member | discord.User | None): The ID of the user to filter by
-            queue_type (QueueType | None): The QueueType to filter by
+            member (discord.Member | discord.User | None): The ID of the user to
+                filter by.
+            queue_type (QueueType | None): The QueueType to filter by.
 
         Returns:
-            dict[str, QueueEntry]: dict containing queue name and QueueEntry instance
+            dict[str, QueueEntry]: dict containing queue name and QueueEntry
+                instance.
         """
         user_id = member.id if member is not None else None
         return {
@@ -242,15 +251,15 @@ class QueueEntry(WrapperBase):
         self.in_progress: bool = data["in_progress"]
 
     def add_player(self, user_id: int) -> None:
-        """Add a user ID to the player list
+        """Add a user ID to the player list.
 
         Args:
-            user_id (int): The ID of the user to add
+            user_id (int): The ID of the user to add.
 
         Raises:
-            AlreadyInQueue: The user is already in this queue
-            QueueIsFull: The queue is full and cannot accept any new users
-            QueueIsLocked: The queue is locked and cannot be modified
+            AlreadyInQueue: The user is already in this queue.
+            QueueIsFull: The queue is full and cannot accept any new users.
+            QueueIsLocked: The queue is locked and cannot be modified.
         """
         if self.locked:
             raise QueueIsLocked
@@ -264,16 +273,18 @@ class QueueEntry(WrapperBase):
         self.players.append(user_id)
 
     def remove_player(self, user_id: int, force: bool) -> None:
-        """Remove a user ID from the player list
+        """Remove a user ID from the player list.
 
         Args:
-            user_id (int): The ID of the user to remove
-            force (bool): Whether or not to force removal so long as the queue is not in progress
+            user_id (int): The ID of the user to remove.
+            force (bool): Whether or not to force removal so long as the queue
+                is not in progress.
 
         Raises:
-            QueueProgressStateError: There is currently an active match with this queue and cannot be modified
-            QueueIsLocked: The queue is locked and cannot be modified
-            NotInQueue: The user is not in this queue
+            QueueProgressStateError: There is currently an active match with
+                this queue and cannot be modified.
+            QueueIsLocked: The queue is locked and cannot be modified.
+            NotInQueue: The user is not in this queue.
         """
         if self.locked:
             if force:
@@ -288,17 +299,20 @@ class QueueEntry(WrapperBase):
         self.players.remove(user_id)
 
     def set_lock(self, user_id: int, state: bool, admin: bool = False) -> None:
-        """Set the queue's lock state
+        """Set the queue's lock state.
 
         Args:
-            user_id (int): The ID of the user attempting to modify this queue
-            state (bool): The state to set the queue's lock
-            admin (bool, optional): Whether or not the user is a bot administrator. Defaults to False.
+            user_id (int): The ID of the user attempting to modify this queue.
+            state (bool): The state to set the queue's lock.
+            admin (bool, optional): Whether or not the user is a bot
+                administrator. Defaults to False.
 
         Raises:
-            QueueProgressStateError: The queue is currently in progress and cannot be modified
-            NotQueueOwner: The user is not the owner of the queue
-            QueueLockStateError: The specified state does not change the queue's lock state
+            QueueProgressStateError: The queue is currently in progress and
+                cannot be modified.
+            NotQueueOwner: The user is not the owner of the queue.
+            QueueLockStateError: The specified state does not change the queue's
+                lock state.
         """
         if self.in_progress:
             raise QueueProgressStateError
@@ -312,13 +326,14 @@ class QueueEntry(WrapperBase):
         self.locked = state
 
     def set_progress(self, state: bool) -> None:
-        """Set the queue's in_progress flag
+        """Set the queue's in_progress flag.
 
         Args:
-            state (bool): The value to set the queue's in_progress flag
+            state (bool): The value to set the queue's in_progress flag.
 
         Raises:
-            QueueProgressStateError: The specified state does not change the queue's in_progress flag
+            QueueProgressStateError: The specified state does not change the
+                queue's in_progress flag.
         """
         if self.in_progress == state:
             raise QueueProgressStateError
@@ -335,10 +350,10 @@ class QueueEntry(WrapperBase):
         return len(self.players) >= self.max_players
 
     def serialise(self) -> dict:
-        """Convert QueueEntry instance representation into a dict
+        """Convert QueueEntry instance representation into a dict.
 
         Returns:
-            dict: Dictionary representation of the QueueEntry instance
+            dict: Dictionary representation of the QueueEntry instance.
         """
         return {
             "owner_id": self.owner_id,
