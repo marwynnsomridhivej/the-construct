@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import secrets
 from typing import TYPE_CHECKING
 
 import discord
@@ -40,7 +40,7 @@ class PrematchView(discord.ui.LayoutView):
 
         # Button actionrow
         self.button_initialised: bool = False
-        self.submit_button: "PrematchViewButtons"
+        self.submit_button: PrematchViewButtons
 
     @property
     def queue(self) -> str | None:
@@ -78,7 +78,7 @@ class PrematchView(discord.ui.LayoutView):
     def manual_captain(self) -> list[discord.Member | discord.User]:
         return self.captain_manual_select.values
 
-    def init_components(self, submit_button: "PrematchViewButtons") -> None:
+    def init_components(self, submit_button: PrematchViewButtons) -> None:
         self.submit_button = submit_button
 
         # Each element of items is a dict in the format
@@ -95,8 +95,7 @@ class PrematchView(discord.ui.LayoutView):
         # Queue select
         self.queue_select = discord.ui.Select(
             options=[
-                discord.SelectOption(label=name, value=name)
-                for name in self.queues.keys()
+                discord.SelectOption(label=name, value=name) for name in self.queues
             ],
             placeholder="Select queue",
         )
@@ -247,7 +246,6 @@ class PrematchView(discord.ui.LayoutView):
 
     async def generic_callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        return
 
 
 class PrematchViewButtons(discord.ui.ActionRow):
@@ -285,7 +283,10 @@ class PrematchViewButtons(discord.ui.ActionRow):
     ) -> tuple[int, ...]:
         match mode:
             case CaptSelect.RANDOM:
-                return tuple(random.sample(player_ids, 2))
+                c1_id = secrets.choice(player_ids)
+                player_ids.remove(c1_id)
+                c2_id = secrets.choice(player_ids)
+                return (c1_id, c2_id)
             case CaptSelect.RATING:
                 captains: list[StatsPlayer] = sorted(
                     [
@@ -331,7 +332,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 return
 
             # Ensure no bots in selected users
-            if any([user.bot for user in self.parent_view.manual_captain]):
+            if any(user.bot for user in self.parent_view.manual_captain):
                 await interaction.response.send_message(
                     Canned.ERR_PREMATCH_BOT_USER, **ephemeral()
                 )
@@ -340,7 +341,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             # Ensure the users selected are in the player pool
             player_ids = self.parent_view.queues[self.parent_view.queue].players
             if not all(
-                [user.id in player_ids for user in self.parent_view.manual_captain]
+                user.id in player_ids for user in self.parent_view.manual_captain
             ):
                 await interaction.response.send_message(
                     Canned.ERR_PREMATCH_INVALID_USER, **ephemeral()
