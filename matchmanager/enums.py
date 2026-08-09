@@ -4,6 +4,7 @@ __all__ = (
     "R6_MAX_PLAYERS_PER_TEAM",
     "R6_QUICKMATCH",
     "R6_RANKED",
+    "R6_SIDES",
     "R6Map",
     "R6Side",
 )
@@ -51,8 +52,12 @@ class R6Map(StrEnum):
 class R6Side(StrEnum):
     """Standardised text representation for Rainbow Six Siege sides."""
 
+    # fmt: off
     ATTACKER = "attacker"
     DEFENDER = "defender"
+    RANDOM   = "random"
+
+    # fmt: on
 
 
 R6_RANKED: list[R6Map] = sorted(
@@ -115,6 +120,13 @@ quickmatch rotation.
 
 R6_MAX_PLAYERS_PER_TEAM: int = 5
 """Maximum amount of players in a Rainbow Six Siege team."""
+
+R6_SIDES = [
+    R6Side.ATTACKER,
+    R6Side.DEFENDER,
+    R6Side.RANDOM,
+]
+"""Rainbow Six Siege team starting side options"""
 
 
 # Sanity checks
