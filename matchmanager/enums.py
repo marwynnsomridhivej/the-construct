@@ -1,11 +1,11 @@
 from enum import StrEnum
 
 __all__ = (
+    "R6_MAX_PLAYERS_PER_TEAM",
+    "R6_QUICKMATCH",
+    "R6_RANKED",
     "R6Map",
     "R6Side",
-    "R6_RANKED",
-    "R6_QUICKMATCH",
-    "R6_MAX_PLAYERS_PER_TEAM",
 )
 
 
@@ -13,34 +13,38 @@ class R6Map(StrEnum):
     """Standardised text representation for Rainbow Six Siege maps."""
 
     # fmt: off
-    CASINO =        "calypso_casino"
-    BORDER =        "border"
-    DISTRICT =      "district"
-    BANK =          "bank"
-    KAFE =          "kafe_dostoyevsky"
-    CHALET =        "chalet"
-    CLUBHOUSE =     "clubhouse"
-    STADIUM =       "stadium_2020"
-    BRAVO =         "stadium_bravo"
-    LAIR =          "lair"
-    NIGHTHAVEN =    "nighthaven_labs"
-    CQ =            "close_quarter"
-    EMERALD =       "emerald_plains"
-    COASTLINE =     "coastline"
-    CONSULATE =     "consulate"
-    FAVELA =        "favela"
-    FORTRESS =      "fortress"
-    HEREFORD =      "hereford_base"
-    HOUSE =         "house"
-    KANAL =         "kanal"
-    OREGON =        "oregon"
-    OUTBACK =       "outback"
-    PLANE =         "presidential_plane"
-    SKYSCRAPER =    "skyscraper"
-    THEMEPARK =     "theme_park"
-    TOWER =         "tower"
-    VILLA =         "villa"
-    YACHT =         "yacht"
+    CASINO      = "calypso_casino"
+    BORDER      = "border"
+    DISTRICT    = "district"
+    BANK        = "bank"
+    KAFE        = "kafe_dostoyevsky"
+    CHALET      = "chalet"
+    CLUBHOUSE   = "clubhouse"
+    STADIUM     = "stadium_2020"
+    BRAVO       = "stadium_bravo"
+    LAIR        = "lair"
+    NIGHTHAVEN  = "nighthaven_labs"
+    CQ          = "close_quarter"
+    EMERALD     = "emerald_plains"
+    COASTLINE   = "coastline"
+    CONSULATE   = "consulate"
+    FAVELA      = "favela"
+    FORTRESS    = "fortress"
+    HEREFORD    = "hereford_base"
+    HOUSE       = "house"
+    KANAL       = "kanal"
+    OREGON      = "oregon"
+    OUTBACK     = "outback"
+    PLANE       = "presidential_plane"
+    SKYSCRAPER  = "skyscraper"
+    THEMEPARK   = "theme_park"
+    TOWER       = "tower"
+    VILLA       = "villa"
+    YACHT       = "yacht"
+
+    # Allow skipping a map ban with this enum.
+    NO_BAN      = "no_ban"
+
     # fmt: on
 
 
