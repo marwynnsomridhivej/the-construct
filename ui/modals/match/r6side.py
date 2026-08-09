@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from matchmanager import R6Side
-from util import titlecase
+from matchmanager import R6_SIDES, R6Side
+from util import SYSTEM_RANDOM, titlecase
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -30,7 +30,7 @@ class R6SideModal(discord.ui.Modal):
             component=discord.ui.RadioGroup(
                 options=[
                     discord.RadioGroupOption(label=titlecase(side), value=side.value)
-                    for side in [R6Side.ATTACKER, R6Side.DEFENDER]
+                    for side in R6_SIDES
                 ],
                 required=True,
             ),
@@ -43,14 +43,18 @@ class R6SideModal(discord.ui.Modal):
         assert self.side_select.component.value is not None
 
         captain_id = interaction.user.id
-        choice = self.side_select.component.value
+        choice = R6Side(self.side_select.component.value)
+
+        # Pick a random side if the choice was R6Side.RANDOM
+        if choice == R6Side.RANDOM:
+            choice = SYSTEM_RANDOM.choice([R6Side.ATTACKER, R6Side.DEFENDER])
 
         # Set starting side according to selection
         await self.r6view.bot.match_manager.select_starting_side(
             interaction.guild_id,
             self.r6view.payload.match_name,
             captain_id,
-            R6Side(choice),
+            choice,
         )
 
         # Update local MatchEntry instance attached to R6View
