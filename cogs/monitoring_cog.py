@@ -112,11 +112,11 @@ class MonitoringCog(commands.Cog):
                     f"Deleted message ID {message_id} for user {player}"
                 )
             except KeyError:
-                self.bot.logger.info(
+                self.bot.logger.error(
                     f"Message does not exist for guild_id {guild_id} user_id {player}"
                 )
             except discord.NotFound:
-                self.bot.logger.info(
+                self.bot.logger.error(
                     f"Message ID {message_id} for user {player} was already deleted"
                 )
             except discord.HTTPException as e:
