@@ -45,6 +45,9 @@ class MatchCog(commands.GroupCog, name="match"):
         for user_id in payload.queue_entry.players:
             user = self.bot.get_user(user_id)
             if user is None:
+                self.bot.logger.info(
+                    f"Unable to send prematch DM to {user_id}. User is None"
+                )
                 continue
             try:
                 # Check to see if the bot can find guild based on guild id
@@ -57,8 +60,14 @@ class MatchCog(commands.GroupCog, name="match"):
                 )
                 await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
             except discord.Forbidden:
+                self.bot.logger.error(
+                    f"Unable to send prematch DM to {user_id}. FORBIDDEN"
+                )
                 continue
             except discord.HTTPException:
+                self.bot.logger.error(
+                    f"Unable to send prematch DM to {user_id}. HTTPException"
+                )
                 continue
 
     async def _perform_auto_draft(
