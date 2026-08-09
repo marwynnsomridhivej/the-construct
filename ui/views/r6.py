@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import traceback
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -19,7 +18,7 @@ from event import (
 from matchmanager import MatchEntry, MatchTeam, R6Map
 from queuemanager import QueueType
 from statsmanager import StatsPlayer
-from util import ICON, ephemeral, titlecase
+from util import ICON, SYSTEM_RANDOM, ephemeral, titlecase
 
 from ..modals import (
     ConfirmationModal,
@@ -35,8 +34,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "R6View",
-    "R6ViewButtons",
     "R6ViewAdminButtons",
+    "R6ViewButtons",
 )
 
 INIT_DISABLED = [
@@ -54,7 +53,7 @@ INIT_DISABLED_1V1 = [
 
 
 class R6ViewButtons(discord.ui.ActionRow):
-    def __init__(self, *, view: "R6View"):
+    def __init__(self, *, view: R6View):
         super().__init__()
         self.r6view = view
 
@@ -105,6 +104,9 @@ class R6ViewButtons(discord.ui.ActionRow):
             "draft": 0,
             "ban": 0,
         }
+
+        # Reset total map ban counter
+        self.r6view.total_map_bans = 0
 
     def is_captain(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id in self.r6view.match.captains
@@ -376,15 +378,14 @@ class R6ViewButtons(discord.ui.ActionRow):
         #     has an MVP designation (captain_id will be overwritten to the other team's captain ID)
         if await self.r6view.bot.settings_manager.is_admin(
             interaction.guild_id, interaction.user.id
+        ) and (
+            captain_id is None
+            or self.r6view.match.get_team_of_user(interaction.user.id).mvp_id
+            is not None
         ):
-            if (
-                captain_id is None
-                or self.r6view.match.get_team_of_user(interaction.user.id).mvp_id
-                is not None
-            ):
-                team_awaiting_mvp = self.r6view.get_team_awaiting_mvp()
-                assert team_awaiting_mvp is not None
-                captain_id = team_awaiting_mvp.captain_id
+            team_awaiting_mvp = self.r6view.get_team_awaiting_mvp()
+            assert team_awaiting_mvp is not None
+            captain_id = team_awaiting_mvp.captain_id
 
         assert captain_id is not None
 
@@ -444,7 +445,7 @@ class R6ViewButtons(discord.ui.ActionRow):
 
 
 class R6ViewAdminButtons(discord.ui.ActionRow):
-    def __init__(self, *, view, draft_row: "R6ViewButtons"):
+    def __init__(self, *, view, draft_row: R6ViewButtons):
         super().__init__()
 
         self.r6view: R6View = view
@@ -578,6 +579,7 @@ class R6View(discord.ui.LayoutView):
         # Attribute type hints
         self.map_pool: list[R6Map]
         self.map_pool_name: str
+        self.total_map_bans: int
 
         # View components
         self.about_text: discord.ui.TextDisplay
@@ -647,13 +649,16 @@ class R6View(discord.ui.LayoutView):
     async def init_components(self) -> None:
         # Pick up to 7 maps from the given map pool
         self.map_pool = sorted(
-            random.sample(
+            SYSTEM_RANDOM.sample(
                 self.payload.map_pool.maps, k=min(len(self.payload.map_pool), 7)
             )
         )
 
         # Save map pool name for display
         self.map_pool_name = titlecase(self.payload.map_pool.name)
+
+        # Set the number of map bans to zero
+        self.total_map_bans = 0
 
         # Initialise buttons first, as main text depends on referencing
         # the class index attribute
@@ -960,15 +965,14 @@ class R6View(discord.ui.LayoutView):
                     await member.move_to(team_vc, reason=Reason.TEAM_VC)
                 except discord.HTTPException:
                     pass
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     traceback.print_exception(type(e), e, e.__traceback__)
 
     def get_team_awaiting_mvp(self) -> MatchTeam | None:
         for team in self.teams:
             if team.mvp_id is None:
                 return team
-        else:
-            return None
+        return None
 
     async def update_match(self) -> None:
         self.match = await self.bot.match_manager.get_match(
