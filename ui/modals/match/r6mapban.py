@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import secrets
 import traceback
 from typing import TYPE_CHECKING
 
@@ -25,18 +25,29 @@ class R6MapBanModal(discord.ui.Modal):
             self.add_item(item)
 
     def init_components(self) -> list[discord.ui.Item]:
+        # Create RadioGroupOption for each remaining map
+        bannable_maps = [
+            discord.RadioGroupOption(
+                label=titlecase(r6map.replace("_", " ")),
+                value=r6map.value,
+            )
+            for r6map in self.r6view.map_pool
+            if r6map not in self.r6view.match.banned_maps
+        ]
+
+        # Add the no ban special map
+        bannable_maps.append(
+            discord.RadioGroupOption(
+                label=titlecase(R6Map.NO_BAN.replace("_", " ")),
+                value=R6Map.NO_BAN.value,
+            )
+        )
+
         self.map_ban = discord.ui.Label(
             text="Ban Map",
             description="Select a map to ban",
             component=discord.ui.RadioGroup(
-                options=[
-                    discord.RadioGroupOption(
-                        label=titlecase(r6map.replace("_", " ")),
-                        value=r6map.value,
-                    )
-                    for r6map in self.r6view.map_pool
-                    if r6map not in self.r6view.match.banned_maps
-                ],
+                options=bannable_maps,
                 required=True,
             ),
         )
@@ -51,36 +62,44 @@ class R6MapBanModal(discord.ui.Modal):
         map_banned = R6Map(self.map_ban.component.value)
         map_string = titlecase(map_banned.replace("_", " "))
 
-        # Use MatchManager.ban_map to write to disk
-        await self.r6view.bot.match_manager.ban_map(
-            interaction.guild_id,
-            self.r6view.payload.match_name,
-            captain_id,
-            map_banned,
-        )
+        # Use MatchManager.ban_map to write to disk if a map was banned
+        if map_banned != R6Map.NO_BAN:
+            await self.r6view.bot.match_manager.ban_map(
+                interaction.guild_id,
+                self.r6view.payload.match_name,
+                captain_id,
+                map_banned,
+            )
+
+        # Increment R6View total map ban counter
+        self.r6view.total_map_bans += 1
 
         # Update local MatchEntry instance attached to R6View
         await self.r6view.update_match()
 
-        # Check if we have banned every map but one and set it to the chosen map
-        maps_remaining = [
-            _map
-            for _map in self.r6view.map_pool
-            if _map not in self.r6view.match.banned_maps
-        ]
-
         # Detect if 4 bans were done in total (each side completed their two bans)
-        if len(maps_remaining) == len(self.r6view.map_pool) - 4:
+        if self.r6view.total_map_bans == 4:
+            maps_remaining = [
+                _map
+                for _map in self.r6view.map_pool
+                if _map not in self.r6view.match.banned_maps
+            ]
             await self.r6view.bot.match_manager.select_map(
                 interaction.guild_id,
                 self.r6view.payload.match_name,
-                random.choice(maps_remaining),
+                secrets.choice(maps_remaining),
             )
             # Need to update local MatchEntry instance again
             await self.r6view.update_match()
 
+        # Send banned map message
+        banned_msg = (
+            "chosen **not to ban** a map"
+            if map_banned == R6Map.NO_BAN
+            else f"banned **{map_string}**"
+        )
         await interaction.response.send_message(
-            f"Captain <@{captain_id}> has banned **{map_string}**", delete_after=10.0
+            f"Captain <@{captain_id}> has {banned_msg}", delete_after=10.0
         )
 
         if not self.r6view.finished_map_bans:
