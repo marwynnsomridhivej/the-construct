@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 import subprocess
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 
 import discord
 from discord.ext import commands
@@ -67,7 +67,7 @@ class Bot(commands.Bot):
                 await self.load_extension(cog)
             except Exception as e:
                 self.logger.error(f"Could not load cog {cog}: {e}")
-                raise e
+                raise
 
         # Sync slash commands
         if not self.prod:
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     # Create rotating file and stream handler
     file_handler = logging.handlers.RotatingFileHandler(
-        filename=f"{config.log_dir}/{datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}.log",
+        filename=f"{config.log_dir}/{datetime.now(tz=UTC).strftime('%d-%m-%Y_%H-%M-%S')}.log",
         maxBytes=16 * 1024 * 1024,  # 16 MiB
         backupCount=10,
         encoding="utf-8",
