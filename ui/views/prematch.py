@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import secrets
 from typing import TYPE_CHECKING
 
 import discord
@@ -11,7 +10,7 @@ from exceptions import QueueProgressStateError
 from queuemanager import ALL_CAPT_SELECT_MODES, CaptSelect, QueueEntry, QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool, MapPoolName
 from statsmanager import StatsPlayer
-from util import ephemeral, titlecase
+from util import SYSTEM_RANDOM, ephemeral, titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -283,10 +282,8 @@ class PrematchViewButtons(discord.ui.ActionRow):
     ) -> tuple[int, ...]:
         match mode:
             case CaptSelect.RANDOM:
-                c1_id = secrets.choice(player_ids)
-                player_ids.remove(c1_id)
-                c2_id = secrets.choice(player_ids)
-                return (c1_id, c2_id)
+                # Use secrets.SystemRandom.sample for "true" random
+                return tuple(SYSTEM_RANDOM.sample(player_ids, k=2))
             case CaptSelect.RATING:
                 captains: list[StatsPlayer] = sorted(
                     [
