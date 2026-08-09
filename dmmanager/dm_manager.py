@@ -53,7 +53,7 @@ class DMManager(ManagerBase):
                 self.bot.logger.error(
                     f"HTTPException when trying to delete message ID {message_id} for user {user_id}: {e}"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.bot.logger.error(
                     "An exception occurred when trying to delete "
                     + f"message ID {message_id} for user {user_id}: {e}"
@@ -69,15 +69,13 @@ class DMManager(ManagerBase):
             guild_id (int): The ID of the guild.
             user_id (int): The user ID of the player.
             message_id (int): The ID of the message to be deleted.
-
-        Raises:
-            KeyError: An entry already exists.
         """
         wrapper = await self.get_or_create_wrapper()
         if wrapper.get(guild_id, user_id) is not None:
-            raise KeyError(
+            self.bot.logger.error(
                 f"Entry already exists for guild_id {guild_id} and user_id {user_id}"
             )
+            return
         wrapper.create(guild_id, user_id, message_id)
         await self.write(wrapper)
 
