@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import secrets
 from collections.abc import Callable, Coroutine
 from string import capwords
 from typing import TYPE_CHECKING, Any
@@ -21,17 +23,20 @@ if TYPE_CHECKING:
 __all__ = (
     # Constants
     "ICON",
-    # Functions
-    "ephemeral",
-    "titlecase",
+    "SYSTEM_RANDOM",
     # Typehints
     "CoroType",
     "EventHandlerType",
+    # Functions
+    "ephemeral",
+    "titlecase",
 )
 
 
 # Constants
 ICON = "https://img.icons8.com/ios_filled/1200/rainbow-six-siege.jpg"
+
+SYSTEM_RANDOM = secrets.SystemRandom(os.urandom(256))
 
 
 # Util functions
