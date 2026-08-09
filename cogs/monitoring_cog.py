@@ -123,7 +123,7 @@ class MonitoringCog(commands.Cog):
                 self.bot.logger.error(
                     f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.bot.logger.error(
                     "An exception occurred when trying to delete "
                     + f"message ID {message_id} for user {player}: {e}"
@@ -152,7 +152,7 @@ class MonitoringCog(commands.Cog):
             message_id (int): The ID of the message containing the
                 match panel.
         """
-        if message_id in self.r6view_to_watch.keys():
+        if message_id in self.r6view_to_watch:
             del self.r6view_to_watch[message_id]
 
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
@@ -340,7 +340,7 @@ class MonitoringCog(commands.Cog):
             was_banned = isinstance(
                 await guild.fetch_ban(payload.user), discord.BanEntry
             )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         # Leave all queues the user is in, so long as it is not currently in progress (in an active match)
@@ -349,7 +349,7 @@ class MonitoringCog(commands.Cog):
                 payload.guild_id,
                 member=payload.user,
             )
-            for name in queues.keys():
+            for name in queues:
                 try:
                     await self.bot.queue_manager.leave_user_from_queue(
                         payload.guild_id, payload.user.id, name, force=True
@@ -391,7 +391,7 @@ class MonitoringCog(commands.Cog):
                 dispatched when a message is deleted.
         """
         # If the message ID isn't one that was watched, disregard
-        if event_payload.message_id not in self.r6view_to_watch.keys():
+        if event_payload.message_id not in self.r6view_to_watch:
             return
 
         # Try to get the channel the message was deleted in (should be thread)
