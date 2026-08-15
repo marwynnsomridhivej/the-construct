@@ -1,4 +1,4 @@
-__all__ = ("InvalidGuildID",)
+__all__ = ("InvalidGuildID", "MatchPanelStateException")
 
 
 class InvalidGuildID(KeyError):
@@ -9,3 +9,9 @@ class InvalidGuildID(KeyError):
 
     def __str__(self):
         return f"InvalidGuildID[guild_id={self.guild_id}]"
+
+
+class MatchPanelStateException(Exception):
+    """Exception raised when an operation is performed after the match
+    panel state has been changed.
+    """
