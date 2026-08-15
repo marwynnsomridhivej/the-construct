@@ -12,8 +12,8 @@ if TYPE_CHECKING:
     from bot import Bot
 
 __all__ = (
-    "SettingsSetAdminModal",
     "SettingsBindTextChannelModal",
+    "SettingsSetAdminModal",
 )
 
 
@@ -50,7 +50,7 @@ class SettingsSetAdminModal(discord.ui.Modal):
 
         msg = None
 
-        if any([user.bot for user in self.admin_select.component.values]):
+        if any(user.bot for user in self.admin_select.component.values):
             msg = Canned.ERR_SETTINGS_SET_ADMIN_BOT_USER
         else:
             self.admins = [user.id for user in self.admin_select.component.values]
