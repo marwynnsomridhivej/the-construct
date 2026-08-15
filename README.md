@@ -95,6 +95,38 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.2.0-beta
+
+This patch introduces a small rework of the map banning phase and addresses some
+quality of life.
+
+#### Added
+
+- Introduce new map ban system
+  - Upon clicking the "Ban Map" button, team captains are allowed to select
+  up to two unique maps to ban
+  - Neither captain can see what the other has chosen to ban until both captains
+  finalise their choices, at which bans are revealed and a map is chosen from
+  the remaining unbanned maps
+  - The same map can be banned by both teams, which is handled the same way as
+  in ranked
+  - Captains no longer need to alternate bans in sequence
+
+#### Removed
+
+- Team voice channels no longer prevent non-team connected users from speaking
+  - The original rationale was to prevent griefing and distractions in a more
+  competitive environment, but feedback indicates this restriction contributed
+  to an overall negative user experience
+
+#### Bugfixes
+
+- Fixed an edge case where a previously opened match panel modal (draft, ban,
+side, mvp, results) is submitted after a match panel reset has occurred
+- Fixed undesired title case formatting when using the standard `str.title()`
+- Use `secrets` PRNG instead of `random` to prevent cases where random
+selections of the same sample reproducibly yielded the same results
+
 ### 2.1.3-beta
 
 This patch introduces a small feature addition to the drafting process.
