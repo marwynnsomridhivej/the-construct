@@ -42,10 +42,7 @@ class R6Map(StrEnum):
     TOWER       = "tower"
     VILLA       = "villa"
     YACHT       = "yacht"
-
-    # Allow skipping a map ban with this enum.
-    NO_BAN      = "no_ban"
-
+    
     # fmt: on
 
 
