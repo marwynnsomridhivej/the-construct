@@ -102,11 +102,11 @@ class R6ViewButtons(discord.ui.ActionRow):
         # Initialise draft and ban indices to zero
         self.index = {
             "draft": 0,
-            "ban": 0,
+            "side": 0,
         }
 
-        # Reset total map ban counter
-        self.r6view.total_map_bans = 0
+        # Reset captain map ban submissions
+        self.r6view.map_bans_locked_captain_ids = []
 
     def is_captain(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id in self.r6view.match.captains
@@ -247,13 +247,16 @@ class R6ViewButtons(discord.ui.ActionRow):
             # Enable the ban map button
             await self.disable_button(interaction, label="Ban Map", disabled=False)
 
-            # Edit the view immediately, so the bot doesn't appear to freeze
-            await self.r6view.update_text_content(interaction)
-
             # Send followup message to let players know vcs are being made
             channel = interaction.channel
             assert isinstance(channel, discord.Thread)
-            await channel.send(Canned.R6DRAFT_VC_CREATION, delete_after=10)
+            await channel.send(Canned.R6DRAFT_VC_CREATION, delete_after=10.0)
+
+            # Send followup message to let captains know to select map bans
+            await channel.send(Canned.R6DRAFT_BAN_PHASE_START, delete_after=10.0)
+
+            # Edit the view immediately, so the bot doesn't appear to freeze
+            await self.r6view.update_text_content(interaction)
 
             # Perform potentially laggy operations here
             await self.r6view.create_team_vcs()
@@ -272,18 +275,15 @@ class R6ViewButtons(discord.ui.ActionRow):
                 Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
-        # Draft order already initialised, can jump right in
-        if self.r6view.current_map_banning_captain.id != interaction.user.id:
+        # Ensure captain hasn't already submitted their bans
+        if interaction.user.id in self.r6view.map_bans_locked_captain_ids:
             return await interaction.response.send_message(
-                Canned.ERR_R6DRAFT_BAN_TURN, **ephemeral()
+                Canned.ERR_R6DRAFT_BAN_SUBMITTED, **ephemeral()
             )
 
         map_ban_modal = R6MapBanModal(view=self.r6view)
         await interaction.response.send_modal(map_ban_modal)
         await map_ban_modal.wait()
-
-        # Increment ban index
-        self.increment_index("ban")
 
         # Reset button SHOULD be allowed from draft already, but do again anyway
         await self.disable_button(interaction, label="Reset", disabled=False)
@@ -299,9 +299,26 @@ class R6ViewButtons(discord.ui.ActionRow):
             # Edit the view immediately
             await self.r6view.update_text_content(interaction)
 
-            # Announce the selected map
+            # Announce all banned maps
             channel = interaction.channel
             assert isinstance(channel, discord.Thread)
+            for team in self.r6view.teams:
+                await channel.send(
+                    f"Captain <@{team.captain_id}> banned\n"
+                    + (
+                        "\n".join(
+                            [
+                                f"- {titlecase(map_name.replace('_', ' '))}"
+                                for map_name in sorted(team.map_bans)
+                            ]
+                        )
+                        if team.map_bans
+                        else "- No Ban"
+                    ),
+                    delete_after=10.0,
+                )
+
+            # Announce the selected map
             assert self.r6view.match.map is not None
             await channel.send(
                 f"The selected map is: **{titlecase(self.r6view.match.map.replace('_', ' '))}**",
@@ -310,7 +327,7 @@ class R6ViewButtons(discord.ui.ActionRow):
 
             # Notify captain responsible for side select
             await channel.send(
-                content=f"*It is now <@{self.r6view.current_map_banning_captain.id}>'s turn to choose what side their team starts on*",
+                content=f"*It is now <@{self.r6view.current_side_selecting_captain.id}>'s turn to choose what side their team starts on*",
                 delete_after=10.0,
             )
         else:
@@ -327,7 +344,7 @@ class R6ViewButtons(discord.ui.ActionRow):
                 Canned.ERR_R6DRAFT_CAPTAIN, **ephemeral()
             )
 
-        if self.r6view.current_map_banning_captain.id != interaction.user.id:
+        if self.r6view.current_side_selecting_captain.id != interaction.user.id:
             return await interaction.response.send_message(
                 Canned.ERR_R6DRAFT_SIDE, **ephemeral()
             )
@@ -579,7 +596,7 @@ class R6View(discord.ui.LayoutView):
         # Attribute type hints
         self.map_pool: list[R6Map]
         self.map_pool_name: str
-        self.total_map_bans: int
+        self.map_bans_locked_captain_ids: list[int]
 
         # View components
         self.about_text: discord.ui.TextDisplay
@@ -601,8 +618,8 @@ class R6View(discord.ui.LayoutView):
         return self.draft_order[self.view_buttons.index["draft"]]
 
     @property
-    def current_map_banning_captain(self) -> StatsPlayer:
-        return self.op_draft_order[self.view_buttons.index["ban"]]
+    def current_side_selecting_captain(self) -> StatsPlayer:
+        return self.op_draft_order[self.view_buttons.index["side"]]
 
     @property
     def finished_draft(self) -> bool:
@@ -657,8 +674,8 @@ class R6View(discord.ui.LayoutView):
         # Save map pool name for display
         self.map_pool_name = titlecase(self.payload.map_pool.name)
 
-        # Set the number of map bans to zero
-        self.total_map_bans = 0
+        # Set the list of captains that submitted map bans to an empty list
+        self.map_bans_locked_captain_ids = []
 
         # Initialise buttons first, as main text depends on referencing
         # the class index attribute
@@ -687,13 +704,11 @@ class R6View(discord.ui.LayoutView):
         #   DO NOT REVERSE (we want lower points in index 0)
         #   For EVEN number of players in lobby:
         #       Player Draft    --> LOWEST points goes first
-        #       Map Ban         --> HIGHEST points bans first
         #       Starting Side   --> HIGHEST points goes first (use draft[0])
         #
         #   REVERSE (we want higher points in index 0)
         #   For ODD number of players in lobby:
         #       Player Draft    --> -1 goes first (HIGHEST points)
-        #       Map Ban         --> -1 goes first (HIGHEST points)
         #       Starting Side   --> -1 goes first (HIGHEST points)
         self.draft_order = sorted(
             [
@@ -820,29 +835,17 @@ class R6View(discord.ui.LayoutView):
 
         # Show map ban order if not done, otherwise show selected map
         if not self.finished_map_bans:
-            # Display map ban order, with *(banning...)* next to the name of
-            # the captain that is currently map banning
-            ban_order = "\n".join(
-                [
-                    "### Map Ban Order",
-                    f"1. <@{self.op_draft_order[0].id}>"
-                    + (
-                        " *(banning)*"
-                        if self.finished_draft
-                        and self.op_draft_order[0].id
-                        == self.current_map_banning_captain.id
-                        else ""
-                    ),
-                    f"2. <@{self.op_draft_order[1].id}>"
-                    + (
-                        " *(banning)*"
-                        if self.finished_draft
-                        and self.op_draft_order[1].id
-                        == self.current_map_banning_captain.id
-                        else ""
-                    ),
-                ]
-            )
+            # Display captains that need to submit their bans only if the
+            # current phase is map ban phase
+            if self.finished_draft:
+                awaiting_bans = "### Awaiting Map Bans\n" + "\n".join(
+                    [
+                        f"- <@{captain_id}>"
+                        for captain_id in self.match.captains
+                        if captain_id not in self.map_bans_locked_captain_ids
+                    ]
+                )
+                items.append(awaiting_bans)
 
             # Display the 5-7 maps randomly selected from the larger map pool
             # where banned maps are denoted by strikethrough
@@ -852,7 +855,6 @@ class R6View(discord.ui.LayoutView):
                     for r6map in self.map_pool
                 ]
             )
-            items.append(ban_order)
             items.append(pool)
         else:
             assert self.match.map is not None
@@ -904,7 +906,7 @@ class R6View(discord.ui.LayoutView):
         assert guild is not None
 
         exclude_ids = self.match.captains + [self.payload.queue_entry.owner_id]
-        for offset, team in enumerate(self.teams):
+        for offset, team in enumerate(self.teams, start=1):
             # Create and set team voice channel if it isn't already set
             # This should not be redone after a reset
             if team.voice_channel_id is None:
@@ -919,8 +921,9 @@ class R6View(discord.ui.LayoutView):
                     position=parent_vc.position + offset,
                 )
 
+                # TEMPORARILY DISABLED THIS. @everyone CAN SPEAK.
                 # Set @everyone perms to no speaking
-                await vc.set_permissions(guild.default_role, speak=False)
+                # await vc.set_permissions(guild.default_role, speak=False)
 
                 # Set perms for members of enemy team to not be able to join
                 # Does not apply to team captains and the queue owner
