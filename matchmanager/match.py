@@ -16,10 +16,10 @@ from queuemanager import QueueType
 from .enums import R6Map, R6Side
 
 __all__ = (
-    "MatchWrapper",
-    "MatchGuildContainer",
     "MatchEntry",
+    "MatchGuildContainer",
     "MatchTeam",
+    "MatchWrapper",
 )
 
 
@@ -194,11 +194,11 @@ class MatchEntry(WrapperBase):
 
     __slots__ = (
         "created_timestamp",
-        "type",
-        "voice_channel_id",
+        "map",
         "team_a",
         "team_b",
-        "map",
+        "type",
+        "voice_channel_id",
     )
 
     def __init__(self, data: dict):
@@ -257,13 +257,7 @@ class MatchEntry(WrapperBase):
         Args:
             captain_id (int): The ID of the captain of the team
             choice (R6Map): The map to ban
-
-        Raises:
-            MapAlreadyBanned: The specified map has already been banned by one of the teams
         """
-        if choice in self.banned_maps:
-            raise MapAlreadyBanned
-
         self.get_team_of_user(captain_id).ban_map(choice)
 
     def set_map(self, choice: R6Map) -> None:
@@ -326,7 +320,7 @@ class MatchEntry(WrapperBase):
         Returns:
             list[R6Map]: The maps banned by either team.
         """
-        return self.team_a.map_bans + self.team_b.map_bans
+        return sorted(set(self.team_a.map_bans + self.team_b.map_bans))
 
     @property
     def has_map(self) -> bool:
@@ -427,15 +421,15 @@ class MatchTeam(WrapperBase):
     """
 
     __slots__ = (
-        "name",
-        "voice_channel_id",
         "captain_id",
-        "players",
         "map_bans",
-        "starting_side",
-        "win",
         "mvp_id",
+        "name",
+        "players",
         "rounds_won",
+        "starting_side",
+        "voice_channel_id",
+        "win",
     )
 
     def __init__(self, data: dict):
