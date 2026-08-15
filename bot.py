@@ -16,7 +16,7 @@ from statsmanager import StatsManager
 
 
 class Bot(commands.Bot):
-    __version__ = "2.1.3-beta"
+    __version__ = "2.2.0-beta"
     __commit__ = (
         subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
         .decode("ascii")
