@@ -142,7 +142,7 @@ class Canned(StrEnum):
     ERR_R6DRAFT_CAPTAIN = "ERROR - Only a team captain can execute this"
     ERR_R6DRAFT_NO_DRAFT = "ERROR - There are no players available to draft"
     ERR_R6DRAFT_DRAFT_TURN = "ERROR - It is not your turn to draft players"
-    ERR_R6DRAFT_BAN_TURN = "ERROR - It is not your turn to ban maps"
+    ERR_R6DRAFT_BAN_SUBMITTED = "ERROR - Your team has already submitted map bans"
     ERR_R6DRAFT_SIDE = "ERROR - Your team cannot select the starting sides"
     ERR_R6DRAFT_MVP_EXISTS = "ERROR - You have already designated an MVP for your team"
     ERR_R6DRAFT_FINAL = (
@@ -152,6 +152,7 @@ class Canned(StrEnum):
         "ERROR - Rounds won must be two unique integers greater than or equal to zero"
     )
     ERR_R6DRAFT_ROUNDS_WON_MISMATCH = "ERROR - Please ensure the rounds won for the winning team is greater than that of the losing team"
+    R6DRAFT_BAN_PHASE_START = "Team captains may now submit their map bans"
     R6DRAFT_MATCH_CANCEL = "This match has been canceled by the queue owner. Your rankings remain unchanged"
     R6DRAFT_RESET_DEFAULT = (
         "Player draft, map bans, and starting side selection have been reset"
@@ -169,4 +170,7 @@ class Canned(StrEnum):
     ERR_R6DRAFT_GEN_MVP = "ERROR - An error has occurred. Unable to designate team MVP"
     ERR_R6DRAFT_GEN_RES = (
         "ERROR - An error has occurred. Unable to report match results"
+    )
+    ERR_R6DRAFT_GEN_STATE = (
+        "ERROR - The operation could not be performed after a match panel state reset"
     )
