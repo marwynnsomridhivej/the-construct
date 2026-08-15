@@ -83,7 +83,7 @@ class R6DraftModal(discord.ui.Modal):
 
         captain_id = interaction.user.id
         drafted_id = int(self.draft.component.value)
-        remaining_player_ids = remaining_player_ids = [
+        remaining_player_ids = [
             int(player_id)
             for _, player_id in self.r6view.draftable_players
             if int(player_id) != drafted_id
