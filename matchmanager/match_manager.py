@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from base import ManagerBase
 from event import AutoDraftPayload, MatchPayload
@@ -82,7 +82,7 @@ class MatchManager(ManagerBase):
 
         # Craft entry data
         match_entry_data = {
-            "created_timestamp": int(datetime.now().timestamp()),
+            "created_timestamp": int(datetime.now(tz=UTC).timestamp()),
             "type": payload.queue_entry.type,
             "voice_channel_id": payload.voice_channel_id,
             "team_a": team_a.serialise(),
@@ -156,22 +156,23 @@ class MatchManager(ManagerBase):
         ).draft_player(player_id)
         await self.write(wrapper)
 
-    async def ban_map(
-        self, guild_id: int, name: str, captain_id: int, choice: R6Map
+    async def ban_maps(
+        self, guild_id: int, name: str, captain_id: int, choices: set[R6Map]
     ) -> None:
-        """Ban a map.
+        """Ban selected maps.
 
         Args:
             guild_id (int): The ID of the guild the match is taking place in.
             name (str): The name of the match.
             captain_id (int): The user ID of the captain selecting the map
                 to ban.
-            choice (R6Map): The selected map to be banned.
+            choices (set[R6Map]): The selected maps to be banned.
         """
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get(guild_id, throw=True).get(name, throw=True).ban_map(
-            captain_id, choice
-        )
+        for choice in choices:
+            wrapper.get(guild_id, throw=True).get(name, throw=True).ban_map(
+                captain_id, choice
+            )
         await self.write(wrapper)
 
     async def select_map(self, guild_id: int, name: str, choice: R6Map) -> None:
