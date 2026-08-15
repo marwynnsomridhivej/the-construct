@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
+from exceptions import MatchPanelStateException
 from matchmanager import R6_SIDES, R6Side
-from util import SYSTEM_RANDOM, titlecase
+from util import SYSTEM_RANDOM, ephemeral, titlecase
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -42,6 +43,11 @@ class R6SideModal(discord.ui.Modal):
         assert interaction.guild_id is not None
         assert self.side_select.component.value is not None
 
+        # Prevent condition where a starting side selection can go through when
+        # the match panel is reset
+        if not self.r6view.finished_map_bans:
+            raise MatchPanelStateException
+
         captain_id = interaction.user.id
         choice = R6Side(self.side_select.component.value)
 
@@ -66,6 +72,12 @@ class R6SideModal(discord.ui.Modal):
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
+        if isinstance(error, MatchPanelStateException):
+            await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_GEN_STATE, **ephemeral()
+            )
+            return
+
         self.r6view.bot.logger.error(
             f"An exception occurred when trying to select starting side: {error}"
         )

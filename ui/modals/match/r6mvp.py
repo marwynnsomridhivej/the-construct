@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from exceptions import MVPAlreadyAssigned
+from exceptions import MatchPanelStateException, MVPAlreadyAssigned
 from util import ephemeral
 
 if TYPE_CHECKING:
@@ -52,6 +52,11 @@ class R6MVPModal(discord.ui.Modal):
         assert self.mvp_select.component.value is not None
         assert interaction.guild_id is not None
 
+        # Prevent condition where an MVP designation can go through when the
+        # match panel is reset
+        if not self.r6view.finished_side_select:
+            raise MatchPanelStateException
+
         captain_id = interaction.user.id
         mvp_id = int(self.mvp_select.component.value)
 
@@ -76,6 +81,11 @@ class R6MVPModal(discord.ui.Modal):
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
+        if isinstance(error, MatchPanelStateException):
+            await interaction.response.send_message(
+                Canned.ERR_R6DRAFT_GEN_STATE, **ephemeral()
+            )
+            return
         self.r6view.bot.logger.error(
             f"An exception occurred when trying to designate MVP: {error}"
         )

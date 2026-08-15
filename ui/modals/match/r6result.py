@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from exceptions import RoundsWonTeamWonMismatch
+from exceptions import MatchPanelStateException, RoundsWonTeamWonMismatch
 from matchmanager import MatchTeam
+from util import ephemeral
 
 if TYPE_CHECKING:
     from ...views import R6View
@@ -87,12 +88,10 @@ class R6ResultModal(discord.ui.Modal):
 
         # Ensure no decimal points
         if any(
-            [
-                "." in component.value
-                for component in [
-                    self.team_a_rounds_won.component,
-                    self.team_b_rounds_won.component,
-                ]
+            "." in component.value
+            for component in [
+                self.team_a_rounds_won.component,
+                self.team_b_rounds_won.component,
             ]
         ):
             raise ValueError
@@ -112,10 +111,13 @@ class R6ResultModal(discord.ui.Modal):
         assert winning_team is not None
 
         # Ensure winning team won more rounds
-        if self.r6view.teams.index(winning_team) == 0 and rounds_won_a <= rounds_won_b:
-            raise RoundsWonTeamWonMismatch
-        elif (
-            self.r6view.teams.index(winning_team) == 1 and rounds_won_a >= rounds_won_b
+        if (
+            self.r6view.teams.index(winning_team) == 0
+            and rounds_won_a <= rounds_won_b
+            or (
+                self.r6view.teams.index(winning_team) == 1
+                and rounds_won_a >= rounds_won_b
+            )
         ):
             raise RoundsWonTeamWonMismatch
 
@@ -125,6 +127,11 @@ class R6ResultModal(discord.ui.Modal):
         assert isinstance(self.result.component, discord.ui.RadioGroup)
         assert self.result.component.value is not None
         assert interaction.guild_id is not None
+
+        # Prevent condition where reporting results can go through when the
+        # match panel is reset
+        if not self.r6view.finished_side_select:
+            raise MatchPanelStateException
 
         # Get the winning team captain ID
         winning_team_captain_id = int(self.result.component.value)
@@ -164,10 +171,12 @@ class R6ResultModal(discord.ui.Modal):
         self.stop()
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        ephemeral = True
+        eph = ephemeral()
 
         if isinstance(error, RoundsWonTeamWonMismatch):
             msg = Canned.ERR_R6DRAFT_ROUNDS_WON_MISMATCH
+        elif isinstance(error, MatchPanelStateException):
+            msg = Canned.ERR_R6DRAFT_GEN_STATE
         elif isinstance(error, ValueError):
             msg = Canned.ERR_R6DRAFT_ROUNDS_WON_TYPE
         else:
@@ -176,8 +185,8 @@ class R6ResultModal(discord.ui.Modal):
             )
             traceback.print_exception(type(error), error, error.__traceback__)
             msg = Canned.ERR_R6DRAFT_GEN_RES
-            ephemeral = False
+            eph = {}
 
-        await interaction.response.send_message(msg, ephemeral=ephemeral)
+        await interaction.response.send_message(msg, **eph)
         self.is_valid = False
         self.stop()
