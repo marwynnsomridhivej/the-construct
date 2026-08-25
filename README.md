@@ -95,6 +95,23 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.2.1-beta
+
+This patch addresses a few uncaught bugs introduced in the previous release.
+
+#### Bugfixes
+
+- Do not display which maps were banned in the match panel UI after a team
+submits their bans
+- Do not remove banned maps from the map ban modal, since a map can be banned
+by both teams now
+- Set the correct position of created team voice channels so they are next to
+each other in the channel list
+- Create team voice channels and move players to the appropriate team voice
+channel upon match panel initialisation if autodraft was used
+- Fix text formatting issues in the prematch DM sent to all players after a
+match has been started
+
 ### 2.2.0-beta
 
 This patch introduces a small rework of the map banning phase and addresses some
