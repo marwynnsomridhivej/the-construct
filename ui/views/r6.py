@@ -698,6 +698,11 @@ class R6View(discord.ui.LayoutView):
         )
         self.add_item(container)
 
+        # If autodraft was enabled, set up team voice channels now
+        if self.payload.auto_draft:
+            await self.create_team_vcs()
+            await self.move_to_team_vcs()
+
     async def set_order(self) -> None:
         #   sorted() will sort ascending by default (low to high)
         #
@@ -850,10 +855,7 @@ class R6View(discord.ui.LayoutView):
             # Display the 5-7 maps randomly selected from the larger map pool
             # where banned maps are denoted by strikethrough
             pool = f"### Map Pool [{self.map_pool_name}]\n" + "\n".join(
-                [
-                    f"- {'~~' if r6map in self.match.banned_maps else ''}{titlecase(r6map.replace('_', ' '))}{'~~' if r6map in self.match.banned_maps else ''}"
-                    for r6map in self.map_pool
-                ]
+                [f"- {titlecase(r6map.replace('_', ' '))}" for r6map in self.map_pool]
             )
             items.append(pool)
         else:
@@ -906,7 +908,7 @@ class R6View(discord.ui.LayoutView):
         assert guild is not None
 
         exclude_ids = self.match.captains + [self.payload.queue_entry.owner_id]
-        for offset, team in enumerate(self.teams, start=1):
+        for team in self.teams:
             # Create and set team voice channel if it isn't already set
             # This should not be redone after a reset
             if team.voice_channel_id is None:
@@ -918,7 +920,7 @@ class R6View(discord.ui.LayoutView):
                 vc = await coro(
                     name=f"{self.payload.match_name} - Team {team.name}",
                     reason=f"Automated team voice channel creation for match {self.payload.match_name}",
-                    position=parent_vc.position + offset,
+                    position=parent_vc.position,
                 )
 
                 # TEMPORARILY DISABLED THIS. @everyone CAN SPEAK.
