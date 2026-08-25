@@ -37,7 +37,6 @@ class R6MapBanModal(discord.ui.Modal):
                         value=r6map.value,
                     )
                     for r6map in self.r6view.map_pool
-                    if r6map not in self.r6view.match.banned_maps
                 ],
                 min_values=0,
                 max_values=2,
