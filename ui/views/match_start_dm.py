@@ -42,8 +42,8 @@ class MatchStartDMView(discord.ui.LayoutView):
                     "  - -# The higher rated captain will get to ban first",
                     "1. The bot will randomly select a map from the three remaining maps "
                     + "as the map this match is to be played on",
-                    "1. The higher rated captain will select what side their team will start first"
-                    "1. The queue owner will create a custom lobby and invite all players"
+                    "1. The higher rated captain will select what side their team will start first",
+                    "1. The queue owner will create a custom lobby and invite all players",
                     "  - -# Players will arrange themselves according to the draft",
                 ]
             )
