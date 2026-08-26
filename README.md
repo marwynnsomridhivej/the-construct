@@ -111,6 +111,7 @@ each other in the channel list
 channel upon match panel initialisation if autodraft was used
 - Fix text formatting issues in the prematch DM sent to all players after a
 match has been started
+- Truncate length of captain name to prevent report results modal from breaking
 
 ### 2.2.0-beta
 
