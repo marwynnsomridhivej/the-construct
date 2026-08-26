@@ -52,7 +52,7 @@ class R6ResultModal(discord.ui.Modal):
         # Enter how many rounds each team won throughout the match
         self.team_a_rounds_won, self.team_b_rounds_won = [
             discord.ui.Label(
-                text=f"Rounds Won - Team {self.get_captain_name(team)}",
+                text=f"Rounds Won - Team {self.get_captain_name(team)[:26]}",
                 description="Enter how many rounds this team won",
                 component=discord.ui.TextInput(
                     min_length=1,
