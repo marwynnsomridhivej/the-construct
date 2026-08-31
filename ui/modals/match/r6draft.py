@@ -125,7 +125,7 @@ class R6DraftModal(discord.ui.Modal):
             )
 
         # Send draft notificatoin
-        await interaction.response.send_message("\n".join(msg), delete_after=10)
+        await interaction.response.send_message("\n".join(msg))
 
         # If team draft finalised, return early (no need to check if players remain in the pool)
         if self.team_draft_finalised:
@@ -139,8 +139,7 @@ class R6DraftModal(discord.ui.Modal):
         # If there is more than one player left, notify the other captain they can draft.
         if len(self.r6view.draftable_players) > 1:
             await interaction.channel.send(
-                f"*It is now <@{self.r6view.other_captain_id(captain_id)}>'s turn to draft*",
-                delete_after=10.0,
+                f"*It is now <@{self.r6view.other_captain_id(captain_id)}>'s turn to draft*"
             )
             return
 
@@ -162,7 +161,7 @@ class R6DraftModal(discord.ui.Modal):
 
         # Notify
         await interaction.channel.send(
-            f"Captain <@{captain_id}> has drafted <@{drafted_id}>", delete_after=10.0
+            f"Captain <@{captain_id}> has drafted <@{drafted_id}>"
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):

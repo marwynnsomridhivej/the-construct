@@ -76,8 +76,7 @@ class R6MVPModal(discord.ui.Modal):
         await self.r6view.update_match()
 
         await interaction.response.send_message(
-            f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP",
-            delete_after=10.0,
+            f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP"
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):

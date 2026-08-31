@@ -67,8 +67,7 @@ class R6SideModal(discord.ui.Modal):
         await self.r6view.update_match()
 
         await interaction.response.send_message(
-            f"Captain <@{captain_id}>'s team will start as **{choice.lower()}s**.",
-            delete_after=10.0,
+            f"Captain <@{captain_id}>'s team will start as **{choice.lower()}s**."
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
