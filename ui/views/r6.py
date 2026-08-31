@@ -160,8 +160,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         )
         await self.r6view.update_match()
         await channel.send(
-            content="Player draft, map bans, and starting side selection have been reset",
-            delete_after=10.0,
+            content="Player draft, map bans, and starting side selection have been reset"
         )
 
         # Set view buttons to default state
@@ -250,10 +249,10 @@ class R6ViewButtons(discord.ui.ActionRow):
             # Send followup message to let players know vcs are being made
             channel = interaction.channel
             assert isinstance(channel, discord.Thread)
-            await channel.send(Canned.R6DRAFT_VC_CREATION, delete_after=10.0)
+            await channel.send(Canned.R6DRAFT_VC_CREATION)
 
             # Send followup message to let captains know to select map bans
-            await channel.send(Canned.R6DRAFT_BAN_PHASE_START, delete_after=10.0)
+            await channel.send(Canned.R6DRAFT_BAN_PHASE_START)
 
             # Edit the view immediately, so the bot doesn't appear to freeze
             await self.r6view.update_text_content(interaction)
@@ -299,36 +298,40 @@ class R6ViewButtons(discord.ui.ActionRow):
             # Edit the view immediately
             await self.r6view.update_text_content(interaction)
 
-            # Announce all banned maps
+            # Acquire thread channel
             channel = interaction.channel
             assert isinstance(channel, discord.Thread)
-            for team in self.r6view.teams:
-                await channel.send(
-                    f"Captain <@{team.captain_id}> banned\n"
-                    + (
-                        "\n".join(
-                            [
-                                f"- {titlecase(map_name.replace('_', ' '))}"
-                                for map_name in sorted(team.map_bans)
-                            ]
+
+            # If a gentleman's agreement is in place, announce it
+            if self.r6view.match.gentleman_map:
+                await channel.send("**A gentleman's agreement has been reached**")
+
+            # Otherwise, announce all banned maps
+            else:
+                for team in self.r6view.teams:
+                    await channel.send(
+                        f"Captain <@{team.captain_id}> banned\n"
+                        + (
+                            "\n".join(
+                                [
+                                    f"- {titlecase(map_name.replace('_', ' '))}"
+                                    for map_name in sorted(team.map_bans)
+                                ]
+                            )
+                            if team.map_bans
+                            else "- No Ban"
                         )
-                        if team.map_bans
-                        else "- No Ban"
-                    ),
-                    delete_after=10.0,
-                )
+                    )
 
             # Announce the selected map
             assert self.r6view.match.map is not None
             await channel.send(
-                f"The selected map is: **{titlecase(self.r6view.match.map.replace('_', ' '))}**",
-                delete_after=10.0,
+                f"The selected map is: **{titlecase(self.r6view.match.map.replace('_', ' '))}**"
             )
 
             # Notify captain responsible for side select
             await channel.send(
-                content=f"*It is now <@{self.r6view.current_side_selecting_captain.id}>'s turn to choose what side their team starts on*",
-                delete_after=10.0,
+                content=f"*It is now <@{self.r6view.current_side_selecting_captain.id}>'s turn to choose what side their team starts on*"
             )
         else:
             # Only update the text on the R6View
@@ -864,7 +867,7 @@ class R6View(discord.ui.LayoutView):
             # Display final selected map once bans are done
             selected_map = (
                 "### Selected Map\n" + f"{titlecase(self.match.map.replace('_', ' '))}"
-            )
+            ) + (" *(Gentleman's Agreement)*" if self.match.gentleman_map else "")
             items.append(selected_map)
 
         # Show who gets to select the starting side if not done, otherwise show side assignments
