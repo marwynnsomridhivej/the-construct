@@ -95,6 +95,31 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.3.0-beta
+
+This patch adds a new feature during the map ban phase, alongside minor match
+panel QoL improvements.
+
+#### Added
+
+- Introduce "Gentleman's Agreement" selector in the map ban modal
+  - Captains can designate up to one map in the unranked pool as their
+  gentleman's agreement map
+  - Should the other team also designate the same map, any bans are disregarded
+  and the gentleman's agreement map is chosen, regardless of its presence in the
+  match's map pool
+  - Designating different maps or not designating one at all will fall back to
+  the normal ban and random selection
+
+#### Removed
+
+- Match panel messages no longer automatically delete themselves after 10
+seconds
+  - This behavior was not a bug, but was intentionally created this way in an
+  earlier version
+  - The self-deleting messages raised timeline clarity issues, as well as
+  removing any ability to log events as they happen
+
 ### 2.2.1-beta
 
 This patch addresses a few uncaught bugs introduced in the previous release.
