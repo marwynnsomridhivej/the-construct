@@ -249,7 +249,7 @@ class MatchEntry(WrapperBase):
         if self.mvps_set:
             raise MatchFinalised
 
-        self.get_team_of_user(mvp_id).designate(mvp_id)
+        self.get_team_of_user(mvp_id).designate_mvp(mvp_id)
 
     def ban_map(self, captain_id: int, choice: R6Map) -> None:
         """Ban a map and add it to the respective team's map banned list
@@ -260,6 +260,15 @@ class MatchEntry(WrapperBase):
         """
         self.get_team_of_user(captain_id).ban_map(choice)
 
+    def add_gentleman(self, captain_id: int, choice: R6Map) -> None:
+        """Add a gentleman's agreement map to the corresponding team
+
+        Args:
+            captain_id (int): The ID of the captain of the team
+            choice (R6Map): The map to designate as gentleman's agreement
+        """
+        self.get_team_of_user(captain_id).designate_gentleman(choice)
+
     def set_map(self, choice: R6Map) -> None:
         """Sets the match's map to the choice provided
 
@@ -269,7 +278,7 @@ class MatchEntry(WrapperBase):
         Raises:
             MapAlreadyBanned: The specified map was banned by one of the teams
         """
-        if choice in self.banned_maps:
+        if choice in self.banned_maps and not self.gentleman_map:
             raise MapAlreadyBanned
 
         self.map = choice if isinstance(choice, R6Map) else R6Map(choice)
@@ -285,8 +294,10 @@ class MatchEntry(WrapperBase):
             if not auto_draft:
                 team.reset_player_draft()
 
-            # Reset map bans, starting sides, and MVP designation
+            # Reset map bans, gentleman's agreement, starting sides, and
+            # MVP designation
             team.reset_map_bans()
+            team.reset_gentleman_map()
             team.reset_starting_side()
             team.reset_mvp_designation()
 
@@ -321,6 +332,19 @@ class MatchEntry(WrapperBase):
             list[R6Map]: The maps banned by either team.
         """
         return sorted(set(self.team_a.map_bans + self.team_b.map_bans))
+
+    @property
+    def gentleman_map(self) -> R6Map | None:
+        """The gentleman's agreement selected map, if applicable.
+
+        Returns:
+            R6Map | None: The selected gentleman's agreement map.
+        """
+        return (
+            self.team_a.gentleman_map
+            if self.team_a.gentleman_map == self.team_b.gentleman_map
+            else None
+        )
 
     @property
     def has_map(self) -> bool:
@@ -422,6 +446,7 @@ class MatchTeam(WrapperBase):
 
     __slots__ = (
         "captain_id",
+        "gentleman_map",
         "map_bans",
         "mvp_id",
         "name",
@@ -440,6 +465,7 @@ class MatchTeam(WrapperBase):
         self.captain_id: int | None = data["captain_id"]
         self.players: list[int] = data["players"]
         self.map_bans: list[R6Map] = data["map_bans"]
+        self.gentleman_map: R6Map | None = data["gentleman_map"]
         self.starting_side: R6Side | None = data["starting_side"]
         self.win: bool | None = data["win"]
         self.mvp_id: int | None = data["mvp_id"]
@@ -482,7 +508,15 @@ class MatchTeam(WrapperBase):
         """
         self.map_bans.append(choice)
 
-    def designate(self, user_id: int) -> None:
+    def designate_gentleman(self, choice: R6Map) -> None:
+        """Designate a map as the team's gentleman's agreement map
+
+        Args:
+            choice (R6Map): The map to designate as gentleman's agreement map
+        """
+        self.gentleman_map = choice
+
+    def designate_mvp(self, user_id: int) -> None:
         """Designate a player on the team as the MVP
 
         Args:
@@ -506,6 +540,10 @@ class MatchTeam(WrapperBase):
     def reset_map_bans(self) -> None:
         """Reset the map ban state to default"""
         self.map_bans = []
+
+    def reset_gentleman_map(self) -> None:
+        """Reset the gentleman's agreement map state to default"""
+        self.gentleman_map = None
 
     def reset_starting_side(self) -> None:
         """Reset the starting side state to default"""
@@ -535,6 +573,7 @@ class MatchTeam(WrapperBase):
             "captain_id": self.captain_id,
             "players": self.players,
             "map_bans": self.map_bans,
+            "gentleman_map": self.gentleman_map,
             "starting_side": self.starting_side,
             "win": self.win,
             "mvp_id": self.mvp_id,
@@ -555,6 +594,7 @@ class MatchTeam(WrapperBase):
                 "captain_id": None,
                 "players": [],
                 "map_bans": [],
+                "gentleman_map": None,
                 "starting_side": None,
                 "win": None,
                 "mvp_id": None,

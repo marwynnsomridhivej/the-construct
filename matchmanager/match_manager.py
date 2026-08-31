@@ -175,6 +175,23 @@ class MatchManager(ManagerBase):
             )
         await self.write(wrapper)
 
+    async def add_gentleman(
+        self, guild_id: int, name: str, captain_id: int, choice: R6Map
+    ) -> None:
+        """Add a gentleman's agreement map for a given team.
+
+        Args:
+            guild_id (int): The ID of the guild the match is taking place in.
+            name (str): The name of the match.
+            captain_id (int): The user ID of the captain selecting the map.
+            choice (R6Map): The selected gentleman's agreement map.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True).get(name, throw=True).add_gentleman(
+            captain_id, choice
+        )
+        await self.write(wrapper)
+
     async def select_map(self, guild_id: int, name: str, choice: R6Map) -> None:
         """Set the map the match will be played on.
 
