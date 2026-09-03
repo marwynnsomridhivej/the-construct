@@ -21,7 +21,7 @@ class R6Map(StrEnum):
     KAFE        = "kafe_dostoyevsky"
     CHALET      = "chalet"
     CLUBHOUSE   = "clubhouse"
-    STADIUM     = "stadium_2020"
+    ALPHA       = "stadium_alpha"
     BRAVO       = "stadium_bravo"
     LAIR        = "lair"
     NIGHTHAVEN  = "nighthaven_labs"
@@ -42,7 +42,7 @@ class R6Map(StrEnum):
     TOWER       = "tower"
     VILLA       = "villa"
     YACHT       = "yacht"
-    
+
     # fmt: on
 
 
@@ -68,11 +68,8 @@ R6_RANKED: list[R6Map] = sorted(
         R6Map.CONSULATE,
         R6Map.FORTRESS,
         R6Map.KAFE,
-        R6Map.KANAL,
         R6Map.LAIR,
         R6Map.NIGHTHAVEN,
-        R6Map.OREGON,
-        R6Map.OUTBACK,
         R6Map.SKYSCRAPER,
         R6Map.THEMEPARK,
         R6Map.VILLA,
@@ -108,7 +105,7 @@ R6_QUICKMATCH: list[R6Map] = sorted(
         R6Map.BRAVO,
         R6Map.NIGHTHAVEN,
         R6Map.LAIR,
-        R6Map.STADIUM,
+        R6Map.ALPHA,
     ]
 )
 """Complete list of all Rainbow Six Siege maps in the current
