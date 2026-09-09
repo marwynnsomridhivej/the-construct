@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         PlayerStatsResetPayload,
         PrematchDMPayload,
         QueueFilledPayload,
+        QueueNotifyPayload,
         SeasonEndPayload,
         VCResetPayload,
     )
@@ -40,7 +41,7 @@ SYSTEM_RANDOM = secrets.SystemRandom(os.urandom(256))
 
 
 # Util functions
-def ephemeral(*, seconds: int = 5) -> dict:
+def ephemeral(*, seconds: int | None = 5) -> dict:
     return {
         "ephemeral": True,
         "delete_after": seconds,
@@ -64,6 +65,7 @@ type EventHandlerType = (
     | Callable[[PlayerStatsResetPayload], CoroType]
     | Callable[[PrematchDMPayload], CoroType]
     | Callable[[QueueFilledPayload], CoroType]
+    | Callable[[QueueNotifyPayload], CoroType]
     | Callable[[SeasonEndPayload], CoroType]
     | Callable[[VCResetPayload], CoroType]
 )
