@@ -3,6 +3,7 @@ db
 logs
 venv
 __pycache__
+.ruff_cache
 
 # File extensions
 .log
