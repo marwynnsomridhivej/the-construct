@@ -1,8 +1,8 @@
 from enum import StrEnum
 
 __all__ = (
-    "FeedbackType",
     "FEEDBACK_TYPES",
+    "FeedbackType",
 )
 
 
