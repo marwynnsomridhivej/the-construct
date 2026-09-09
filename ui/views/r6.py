@@ -795,7 +795,10 @@ class R6View(discord.ui.LayoutView):
         items = []
 
         # Always put title
-        view_title = f"## {self.payload.match_name.upper()} [{self.match.type.upper()}]"
+        view_title = (
+            f"## {self.payload.match_name.upper()} "
+            + f"[{self.match.type.upper()}{' FRIENDLY' if self.match.friendly else ''}]"
+        )
         items.append(view_title)
 
         # If canceled, show cancellation message
@@ -1000,6 +1003,7 @@ class R6View(discord.ui.LayoutView):
                     guild_id=self.payload.guild_id,
                     name=self.payload.match_name,
                     queue_type=self.match.type,
+                    friendly=self.match.friendly,
                     owner_id=self.payload.queue_entry.owner_id,
                     match_entry=self.match,
                     r6view_message_id=self.payload.r6view_message_id,
