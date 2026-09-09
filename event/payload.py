@@ -6,15 +6,16 @@ import discord
 
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
-from queuemanager import QueueEntry, QueueType
+from queuemanager import QueueEntry, QueueNotifyAction, QueueType
 from settingsmanager import CustomMapPool
 from statsmanager import StatsPlayer, StatsSeason
 
 if TYPE_CHECKING:
     from ui import R6View
 
-__all__ = (
+__all__ = (  # noqa: RUF022
     # Queue
+    "QueueNotifyPayload",
     "QueueFilledPayload",
     # R6 Match
     "MatchPayload",
@@ -30,15 +31,65 @@ __all__ = (
 )
 
 
+class QueueNotifyPayload(WrapperBase):
+    """A wrapped payload containing data needed for functions and
+    operations that occur when a player joins or leaves a queue.
+    """
+
+    __slots__ = (
+        "__action",
+        "__entry",
+        "__guild",
+        "__name",
+        "__user",
+    )
+
+    def __init__(self, data: dict):
+        self.__guild: discord.Guild = data["guild"]
+        self.__name: str = data["name"]
+        self.__entry: QueueEntry = data["entry"]
+        self.__action: QueueNotifyAction = data["action"]
+        self.__user: discord.User | list[discord.User] = data["user"]
+
+    @property
+    def guild(self) -> discord.Guild:
+        return self.__guild
+
+    @property
+    def name(self) -> str:
+        return self.__name
+
+    @property
+    def entry(self) -> QueueEntry:
+        return self.__entry
+
+    @property
+    def action(self) -> QueueNotifyAction:
+        return self.__action
+
+    @property
+    def user(self) -> discord.User | list[discord.User]:
+        return self.__user
+
+    def serialise(self) -> dict:
+        return {
+            "guild": self.__guild,
+            "name": self.__name,
+            "entry": self.__entry,
+            "action": self.__action,
+            "user": self.__user,
+        }
+
+
 class QueueFilledPayload(WrapperBase):
     """A wrapped payload containing data needed for functions and
     operations that occur when a queue has reached maximum capacity.
     """
 
-    slots = (
+    __slots__ = (
+        "__entry",
         "__guild_id",
         "__name",
-        "__entry",
     )
 
     def __init__(self, data: dict):
@@ -68,17 +119,18 @@ class QueueFilledPayload(WrapperBase):
 
 class MatchPayload(WrapperBase):
     __slots__ = (
-        "__guild_id",
-        "__voice_channel_id",
-        "__text_channel_id",
-        "__r6view_message_id",
-        "__r6view",
-        "__match_name",
-        "__map_pool",
         "__auto_draft",
         "__captains",
-        "__queue_entry",
+        "__friendly",
+        "__guild_id",
+        "__map_pool",
         "__match_entry",
+        "__match_name",
+        "__queue_entry",
+        "__r6view",
+        "__r6view_message_id",
+        "__text_channel_id",
+        "__voice_channel_id",
     )
 
     def __init__(self, data: dict):
@@ -88,6 +140,7 @@ class MatchPayload(WrapperBase):
         self.__r6view_message_id: int | None = data.get("r6view_message_id")
         self.__r6view: R6View | None = data.get("r6view")
         self.__match_name: str = data["match_name"]
+        self.__friendly: bool = data["friendly"]
         self.__map_pool: CustomMapPool = CustomMapPool.parse(data["map_pool"])
         self.__auto_draft: bool = data["auto_draft"]
         self.__captains: tuple[int, int] = data["captains"]
@@ -125,6 +178,10 @@ class MatchPayload(WrapperBase):
         return self.__match_name
 
     @property
+    def friendly(self) -> bool:
+        return self.__friendly
+
+    @property
     def map_pool(self) -> CustomMapPool:
         return self.__map_pool
 
@@ -156,7 +213,7 @@ class MatchPayload(WrapperBase):
     def attach_match_entry(self, match_entry: MatchEntry) -> None:
         self.__match_entry = match_entry
 
-    def set_auto_draft_captains(self, payload: "AutoDraftPayload") -> None:
+    def set_auto_draft_captains(self, payload: AutoDraftPayload) -> None:
         self.__captains = (payload.team_a_captain, payload.team_b_captain)
 
     def serialise(self) -> dict:
@@ -167,6 +224,7 @@ class MatchPayload(WrapperBase):
             "r6view_message_id": self.r6view_message_id,
             "r6view": self.__r6view,
             "match_name": self.__match_name,
+            "friendly": self.__friendly,
             "map_pool": self.__map_pool.serialise(),
             "auto_draft": self.__auto_draft,
             "captains": self.__captains,
@@ -194,7 +252,7 @@ class PrematchDMPayload(MatchPayload):
     @classmethod
     def from_prematch_payload(
         cls, payload: MatchPayload, message: discord.Message
-    ) -> "PrematchDMPayload":
+    ) -> PrematchDMPayload:
         data = payload.serialise()
         data["message"] = message
         return cls(data)
@@ -203,8 +261,8 @@ class PrematchDMPayload(MatchPayload):
 class AutoDraftPayload(WrapperBase):
     __slots__ = (
         "__team_a_captain",
-        "__team_b_captain",
         "__team_a_players",
+        "__team_b_captain",
         "__team_b_players",
     )
 
@@ -233,7 +291,7 @@ class AutoDraftPayload(WrapperBase):
     @classmethod
     def create(
         cls, captains: tuple[int, ...], players: tuple[list[int], ...]
-    ) -> "AutoDraftPayload":
+    ) -> AutoDraftPayload:
         return cls(
             {
                 "team_a_captain": captains[0],
@@ -277,7 +335,7 @@ class DMDeletePayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, players: list[int]) -> "DMDeletePayload":
+    def create(cls, *, guild_id: int, players: list[int]) -> DMDeletePayload:
         return cls(
             {
                 "guild_id": guild_id,
@@ -290,8 +348,8 @@ class VCResetPayload(WrapperBase):
     __slots__ = (
         "__guild_id",
         "__lobby_vc_id",
-        "__teams",
         "__queue_type",
+        "__teams",
     )
 
     def __init__(self, data: dict):
@@ -331,7 +389,7 @@ class VCResetPayload(WrapperBase):
         lobby_vc_id: int,
         teams: list[MatchTeam],
         queue_type: QueueType,
-    ) -> "VCResetPayload":
+    ) -> VCResetPayload:
         return cls(
             {
                 "guild_id": guild_id,
@@ -344,20 +402,22 @@ class VCResetPayload(WrapperBase):
 
 class MatchFinalisedPayload(WrapperBase):
     __slots__ = (
+        "__friendly",
         "__guild_id",
-        "__name",
-        "__queue_type",
-        "__owner_id",
         "__lobby_vc_id",
-        "__winning_team",
         "__losing_team",
+        "__name",
+        "__owner_id",
+        "__queue_type",
         "__r6view_message_id",
+        "__winning_team",
     )
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__name: str = data["name"]
         self.__queue_type: QueueType = data["queue_type"]
+        self.__friendly: bool = data["friendly"]
         self.__owner_id: int = data["owner_id"]
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__winning_team: MatchTeam = data["winning_team"]
@@ -375,6 +435,10 @@ class MatchFinalisedPayload(WrapperBase):
     @property
     def queue_type(self) -> QueueType:
         return self.__queue_type
+
+    @property
+    def friendly(self) -> bool:
+        return self.__friendly
 
     @property
     def owner_id(self) -> int:
@@ -405,6 +469,7 @@ class MatchFinalisedPayload(WrapperBase):
             "guild_id": self.__guild_id,
             "name": self.__name,
             "queue_type": self.__queue_type,
+            "friendly": self.__friendly,
             "owner_id": self.__owner_id,
             "lobby_vc_id": self.__lobby_vc_id,
             "winning_team": self.__winning_team,
@@ -419,15 +484,17 @@ class MatchFinalisedPayload(WrapperBase):
         guild_id: int,
         name: str,
         queue_type: QueueType,
+        friendly: bool,
         owner_id: int,
         match_entry: MatchEntry,
         r6view_message_id: int,
-    ) -> "MatchFinalisedPayload":
+    ) -> MatchFinalisedPayload:
         return cls(
             {
                 "guild_id": guild_id,
                 "name": name,
                 "queue_type": queue_type,
+                "friendly": friendly,
                 "owner_id": owner_id,
                 "lobby_vc_id": match_entry.voice_channel_id,
                 "winning_team": match_entry.winning_team,
@@ -440,8 +507,8 @@ class MatchFinalisedPayload(WrapperBase):
 class SeasonEndPayload(WrapperBase):
     __slots__ = (
         "__guild_id",
-        "__season",
         "__ranked_players",
+        "__season",
     )
 
     def __init__(self, data: dict):
@@ -477,7 +544,7 @@ class SeasonEndPayload(WrapperBase):
         guild_id: int,
         season: StatsSeason,
         ranked_players: dict[QueueType, list[tuple[int, StatsPlayer]]],
-    ) -> "SeasonEndPayload":
+    ) -> SeasonEndPayload:
         return cls(
             {
                 "guild_id": guild_id,
@@ -489,9 +556,9 @@ class SeasonEndPayload(WrapperBase):
 
 class PlayerStatsResetPayload(WrapperBase):
     __slots__ = (
-        "__user_id",
         "__guild_id",
         "__queue_type",
+        "__user_id",
     )
 
     def __init__(self, data: dict):
@@ -521,7 +588,7 @@ class PlayerStatsResetPayload(WrapperBase):
     @classmethod
     def create(
         cls, *, user_id: int, guild_id: int, queue_type: QueueType
-    ) -> "PlayerStatsResetPayload":
+    ) -> PlayerStatsResetPayload:
         return cls(
             {
                 "user_id": user_id,
