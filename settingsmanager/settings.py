@@ -1,5 +1,6 @@
-from datetime import datetime
-from typing import Any, Generator
+from collections.abc import Generator
+from datetime import UTC, datetime
+from typing import Any
 
 import discord
 
@@ -8,9 +9,9 @@ from exceptions import InvalidGuildID, MapPoolAlreadyExists, MapPoolNotFound
 from matchmanager import R6Map
 
 __all__ = (
-    "SettingsWrapper",
-    "SettingsEntry",
     "CustomMapPool",
+    "SettingsEntry",
+    "SettingsWrapper",
 )
 
 
@@ -88,8 +89,8 @@ class SettingsEntry(WrapperBase):
 
     __slots__ = (
         "__admins",
-        "__text_channel_id",
         "__map_pools",
+        "__text_channel_id",
     )
 
     def __init__(self, data: dict):
@@ -135,7 +136,7 @@ class SettingsEntry(WrapperBase):
         self.__text_channel_id = _id
 
     def create_map_pool(
-        self, owner_id: int, name: str, maps: list[R6Map] = []
+        self, owner_id: int, name: str, maps: list[R6Map] | None = None
     ) -> "CustomMapPool":
         """Create a custom map pool.
 
@@ -153,7 +154,9 @@ class SettingsEntry(WrapperBase):
         Returns:
             CustomMapPool: The newly created custom map pool.
         """
-        name_taken = any([pool.name == name for pool in self.__map_pools])
+        if maps is None:
+            maps = []
+        name_taken = any(pool.name == name for pool in self.__map_pools)
         if name_taken:
             raise MapPoolAlreadyExists(name)
         pool = CustomMapPool.create(owner_id, name, maps)
@@ -251,11 +254,11 @@ class CustomMapPool(WrapperBase):
     """
 
     __slots__ = (
-        "__owner_id",
-        "__name",
-        "__maps",
         "__created_timestamp",
+        "__maps",
         "__modified_timestamp",
+        "__name",
+        "__owner_id",
     )
 
     def __init__(self, data: dict):
@@ -327,7 +330,7 @@ class CustomMapPool(WrapperBase):
 
     def update_modified_timestamp(self) -> None:
         """Update the modified timestamp to the current UNIX timestamp."""
-        self.__modified_timestamp = int(datetime.now().timestamp())
+        self.__modified_timestamp = int(datetime.now(tz=UTC).timestamp())
 
     def serialise(self) -> dict:
         """Convert CustomMapPool instance representation into a dict.
@@ -357,7 +360,7 @@ class CustomMapPool(WrapperBase):
         Returns:
             CustomMapPool: The newly created CustomMapPool instance.
         """
-        timestamp = int(datetime.now().timestamp())
+        timestamp = int(datetime.now(tz=UTC).timestamp())
         return cls(
             {
                 "owner_id": owner_id,
