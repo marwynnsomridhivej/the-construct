@@ -1,18 +1,17 @@
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
 import discord
 
 from base import ManagerBase
-from exceptions import NoListResults, QueueLimitReached, QueueLockStateError
+from exceptions import (
+    NoListResults,
+    QueueIsFull,
+    QueueLimitReached,
+    QueueLockStateError,
+)
 
-from .enums import QueueType
+from .enums import MAX_ENQUEUED_PLAYERS, QueueType
 from .queue import QueueEntry, QueueWrapper
-
-MAX_PLAYERS = {
-    QueueType.R6_5V5: 10,
-    QueueType.R6_1V1: 2,
-}
 
 
 class QueueManager(ManagerBase):
@@ -46,7 +45,13 @@ class QueueManager(ManagerBase):
         return len(wrapper.get_or_create(guild_id).data.values()) < 20
 
     async def create_queue(
-        self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType
+        self,
+        *,
+        guild_id: int,
+        owner_id: int,
+        name: str,
+        queue_type: QueueType,
+        notify: bool,
     ) -> None:
         """Create a queue.
 
@@ -56,6 +61,8 @@ class QueueManager(ManagerBase):
             creation of the queue.
             name (str): The name of the queue to be created.
             queue_type (QueueType): The queue type of the queue to be created.
+            notify (bool): Whether or not the queue owner will be notified upon
+                players joining or leaving the queue.
 
         Raises:
             QueueLimitReached: The guild has reached its maximum amount of
@@ -69,12 +76,14 @@ class QueueManager(ManagerBase):
 
         queue_entry_data = {
             "owner_id": owner_id,
-            "created_timestamp": int(datetime.now().timestamp()),
+            "created_timestamp": int(datetime.now(tz=UTC).timestamp()),
             "type": queue_type,
             "players": [],
-            "max_players": MAX_PLAYERS.get(queue_type),
+            "max_players": MAX_ENQUEUED_PLAYERS.get(queue_type),
+            "invites": [],
             "locked": False,
             "in_progress": False,
+            "notify": notify,
         }
         wrapper.get_or_create(guild_id).create(name.lower(), queue_entry_data)
         await self.write(wrapper)
@@ -111,14 +120,14 @@ class QueueManager(ManagerBase):
             QueueEntry: The corresponding entry of the queue the player joined.
         """
         wrapper = await self.get_or_create_wrapper()
-        q = wrapper.get_or_create(guild_id).get(name.lower(), throw=True)
-        q.add_player(user_id)
+        queue = wrapper.get_or_create(guild_id).get(name.lower(), throw=True)
+        queue.add_player(user_id)
         await self.write(wrapper)
-        return q
+        return queue
 
     async def leave_user_from_queue(
         self, guild_id: int, user_id: int, name: str, force: bool = False
-    ) -> None:
+    ) -> QueueEntry:
         """Leave a user from a queue.
 
         Args:
@@ -128,10 +137,71 @@ class QueueManager(ManagerBase):
             name (str): The name of the queue.
             force (bool, optional): Whether or not this action should happen
                 regardless of queue lock state. Defaults to False.
+
+        Returns:
+            QueueEntry: The corresponding entry of the queue the player left.
         """
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).get(name.lower(), throw=True).remove_player(
-            user_id, force
+        queue = wrapper.get_or_create(guild_id).get(name.lower(), throw=True)
+        queue.remove_player(user_id, force)
+        await self.write(wrapper)
+        return queue
+
+    async def check_can_invite_users_to_queue(
+        self, guild_id: int, users: list[discord.User | discord.Member], name: str
+    ) -> tuple[list[discord.User], list[discord.User]]:
+        """Check if certain users can be invited to a queue.
+
+        Args:
+            guild_id (int): The ID of the guild the queue is in.
+            users (list[discord.User | discord.Member]): The users to check.
+            name (str): The name of the queue.
+
+        Raises:
+            QueueIsFull: The queue is full and cannot accept any more players.
+
+        Returns:
+            tuple[list[discord.User], list[discord.User]]: Users that can be
+                invited and users that cannot be invited.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        entry = wrapper.get_or_create(guild_id).get(name.lower(), throw=True)
+        if entry.full:
+            raise QueueIsFull
+
+        invitable, non_invitable = [], []
+        for user in users:
+            if user.id in entry.players or user.id in entry.invites:
+                non_invitable.append(user)
+            else:
+                invitable.append(user)
+        return invitable, non_invitable
+
+    async def add_invite(self, guild_id: int, user_id: int, name: str) -> None:
+        """Add a user ID to the invites list for a queue.
+
+        Args:
+            guild_id (int): The ID of the guild.
+            user_id (int): The ID of the user.
+            name (str): The name of the queue.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        wrapper.get_or_create(guild_id).get(name.lower(), throw=True).add_invite(
+            user_id
+        )
+        await self.write(wrapper)
+
+    async def remove_invite(self, guild_id: int, user_id: int, name: str) -> None:
+        """Remove a user ID to the invites list for a queue.
+
+        Args:
+            guild_id (int): The ID of the guild.
+            user_id (int): The ID of the user.
+            name (str): The name of the queue.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        wrapper.get_or_create(guild_id).get(name.lower(), throw=True).remove_invite(
+            user_id
         )
         await self.write(wrapper)
 
@@ -168,6 +238,31 @@ class QueueManager(ManagerBase):
             state
         )
         await self.write(wrapper)
+
+    async def set_notify_state(self, guild_id: int, name: str, state: bool) -> None:
+        """Set the queue's notify state.
+
+        Args:
+            guild_id (int): The ID of the guild the queue is in.
+            name (str): The name of the queue.
+            state (bool): The desired queue notify state.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        wrapper.get_or_create(guild_id).get(name.lower(), throw=True).set_notify(state)
+        await self.write(wrapper)
+
+    async def get_queue(self, guild_id: int, name: str) -> QueueEntry | None:
+        """Get an individual queue entry matching the specified name.
+
+        Args:
+            guild_id (int): The ID of the guild to search.
+            name (str): The name of the queue.
+
+        Returns:
+            QueueEntry | None: A queue entry, if found.
+        """
+        wrapper = await self.get_or_create_wrapper()
+        return wrapper.get_or_create(guild_id).get(name)
 
     async def get_all_queues(self, guild_id: int) -> dict[str, QueueEntry]:
         """Get a dictionary containing all queues in a guild.
@@ -207,8 +302,8 @@ class QueueManager(ManagerBase):
     async def list_queues(
         self,
         guild_id: int,
-        member: Optional[discord.Member | discord.User] = None,
-        queue_type: Optional[QueueType] = None,
+        member: discord.Member | discord.User | None = None,
+        queue_type: QueueType | None = None,
     ) -> dict[str, QueueEntry]:
         """List all queues in the guild that match the provided filters.
 

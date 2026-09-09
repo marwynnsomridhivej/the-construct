@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from event import Event, QueueFilledPayload
+from event import Event, QueueFilledPayload, QueueNotifyPayload
 from exceptions import (
+    AlreadyInQueue,
+    AlreadyInvited,
     NoListResults,
     QueueAlreadyExists,
     QueueDoesNotExist,
@@ -18,15 +20,21 @@ from exceptions import (
     QueueLockStateError,
     QueueProgressStateError,
 )
-from queuemanager import QueueEntry, QueueOperationResult, QueueType
+from queuemanager import QueueEntry, QueueNotifyAction, QueueOperationResult, QueueType
 from ui import (
     QueueCreateModal,
     QueueDeleteModal,
     QueueFilledDMView,
+    QueueInviteDMView,
+    QueueInviteModal,
     QueueJoinModal,
+    QueueKickView,
+    QueueKickViewButtons,
     QueueLeaveModal,
     QueueListView,
     QueueLockModal,
+    QueueNotifyDMView,
+    QueueNotifyModal,
     QueueUnlockModal,
 )
 from util import EventHandlerType, ephemeral, titlecase
@@ -43,11 +51,39 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def cog_load(self):
         _handlers: dict[EventHandlerType, Event] = {
             self._notify_queue_owner_full: Event.QUEUE_FILLED,
+            self._notify_queue_owner_membership: Event.QUEUE_MEMBERSHIP_CHANGE,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
         self.bot.logger.info("[QueueCog] Successfully loaded")
+
+    async def _notify_queue_owner_membership(self, payload: QueueNotifyPayload) -> None:
+        """Send a DM to the queue owner whenever a player joins or leaves
+            one of their queues where notifications are enabled.
+
+        Args:
+            payload (QueueNotifyPayload): The payload generated upon a player
+                joining or leaving the queue.
+        """
+        # Notify only if notifications are on
+        if not payload.entry.notify:
+            return
+
+        # Get queue owner
+        queue_owner = self.bot.get_user(payload.entry.owner_id)
+        if not queue_owner:
+            return
+
+        # Attempt to send queue notification
+        try:
+            await queue_owner.send(
+                view=QueueNotifyDMView(payload=payload),
+                allowed_mentions=discord.AllowedMentions.none(),
+                delete_after=300,
+            )
+        except (discord.Forbidden, discord.NotFound, discord.HTTPException):
+            pass
 
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
         """Send a DM to the queue owner whenever one of their queues
@@ -118,6 +154,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 owner_id=interaction.user.id,
                 name=queue_create_modal.queue_name,
                 queue_type=queue_create_modal.queue_type,
+                notify=queue_create_modal.notify,
             )
         except QueueAlreadyExists:
             return await interaction.followup.send(
@@ -173,7 +210,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 queue_delete_modal.queue_name,
                 interaction.user.id,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return await interaction.followup.send(
                 f"An error has occurred: {e}", ephemeral=True
             )
@@ -186,6 +223,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _join_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
         assert interaction.guild_id is not None
+        assert interaction.guild is not None
 
         # Check if any queues are joinable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
@@ -224,11 +262,25 @@ class QueueCog(commands.GroupCog, name="queue"):
                     interaction.user.id,
                     name,
                 )
+
+                # Dispatch queue join event
+                self.bot.dispatch(
+                    Event.QUEUE_MEMBERSHIP_CHANGE,
+                    QueueNotifyPayload.parse(
+                        {
+                            "guild": interaction.guild,
+                            "name": name,
+                            "entry": joined_queue,
+                            "action": QueueNotifyAction.JOIN,
+                            "user": interaction.user,
+                        }
+                    ),
+                )
             except QueueIsFull:
                 msg = Canned.ERR_QUEUE_FULL
             except QueueIsLocked:
                 msg = Canned.ERR_QUEUE_LOCKED_JOIN
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"An error has occurred: {e}"
             else:
                 # If the queue is full after joining, notify queue owner
@@ -295,6 +347,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _leave_queue(self, interaction: discord.Interaction):
         # Typehint assert, we know this is true anyway
         assert interaction.guild_id is not None
+        assert interaction.guild is not None
 
         # Check if any queues are leaveable
         queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
@@ -325,16 +378,30 @@ class QueueCog(commands.GroupCog, name="queue"):
         for name in queue_leave_modal.selected_queue_names:
             msg = None
             try:
-                await self.bot.queue_manager.leave_user_from_queue(
+                left_queue = await self.bot.queue_manager.leave_user_from_queue(
                     interaction.guild_id,
                     interaction.user.id,
                     name,
+                )
+
+                # Dispatch queue join event
+                self.bot.dispatch(
+                    Event.QUEUE_MEMBERSHIP_CHANGE,
+                    QueueNotifyPayload.parse(
+                        {
+                            "guild": interaction.guild,
+                            "name": name,
+                            "entry": left_queue,
+                            "action": QueueNotifyAction.LEAVE,
+                            "user": interaction.user,
+                        }
+                    ),
                 )
             except QueueDoesNotExist:
                 msg = Canned.ERR_QUEUE_NO_EXISTS
             except QueueIsLocked:
                 msg = Canned.ERR_QUEUE_LOCKED_LEAVE
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
@@ -372,6 +439,176 @@ class QueueCog(commands.GroupCog, name="queue"):
 
         # Send queue leave summary message
         return await interaction.followup.send("\n".join(content), ephemeral=True)
+
+    @app_commands.command(name="kick", description="Kick players in an existing queue")
+    async def _kick_queue(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+
+        # Check if the user owns any open queues
+        is_admin = await self.bot.settings_manager.is_admin(
+            interaction.guild_id, interaction.user.id
+        )
+        queues = await self.bot.queue_manager.get_queues_owned_by(
+            interaction.guild_id,
+            interaction.user.id,
+            admin=is_admin,
+        )
+        if not queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_OWNERSHIP, **ephemeral()
+            )
+
+        # Send ephemeral queue kick view
+        queue_kick_view = QueueKickView(
+            self.bot,
+            guild=interaction.guild,
+            queues=queues,
+            original_interaction=interaction,
+        )
+        queue_kick_view.init_components(
+            QueueKickViewButtons(
+                view=queue_kick_view,
+                original_interaction=interaction,
+            )
+        )
+        await interaction.response.send_message(
+            view=queue_kick_view,
+            ephemeral=True,
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+
+    @app_commands.command(
+        name="invite", description="Invite players to join an existing queue"
+    )
+    async def _invite_queue(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert interaction.guild is not None
+        assert interaction.guild_id is not None
+
+        # Check if the user owns any open queues
+        is_admin = await self.bot.settings_manager.is_admin(
+            interaction.guild_id, interaction.user.id
+        )
+        queues = await self.bot.queue_manager.get_queues_owned_by(
+            interaction.guild_id,
+            interaction.user.id,
+            admin=is_admin,
+        )
+        if not queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_OWNERSHIP, **ephemeral()
+            )
+
+        # Send queue invite modal
+        queue_invite_modal = QueueInviteModal(
+            self.bot, sorted([name for name in queues])
+        )
+        await interaction.response.send_modal(queue_invite_modal)
+
+        # Wait until interaction has finished
+        await queue_invite_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_invite_modal.is_valid:
+            return
+
+        # Typehint assert
+        assert isinstance(interaction.channel, (discord.TextChannel, discord.Thread))
+
+        # Attempt to invite selected users for the selected queue
+        try:
+            (
+                invitable,
+                non_invitable,
+            ) = await self.bot.queue_manager.check_can_invite_users_to_queue(
+                interaction.guild_id,
+                queue_invite_modal.invited_users,
+                queue_invite_modal.queue_name,
+            )
+        except QueueIsFull:
+            return await interaction.followup.send(
+                Canned.ERR_QUEUE_FULL, ephemeral=True
+            )
+
+        # Store successful and failed invites
+        success: list[discord.User] = []
+        fail: list[tuple[discord.User, str]] = []
+
+        # Attempt to invite invitable users
+        for user in invitable:
+            # Get length of failed invites list
+            prev_length = len(fail)
+
+            # Attempt to add to the invite list first.
+            # If this fails, do not proceed
+            try:
+                await self.bot.queue_manager.add_invite(
+                    interaction.guild_id, user.id, queue_invite_modal.queue_name
+                )
+            except QueueIsLocked:
+                fail.append((user, "queue is locked"))
+            except AlreadyInQueue:
+                fail.append((user, "already in queue"))
+            except AlreadyInvited:
+                fail.append((user, "already invited"))
+
+            # Do not proceed after an exception was raised
+            if len(fail) > prev_length:
+                continue
+
+            # Attempt to send the user a DM. If this fails, the invite is
+            # to be removed, even if adding it to the database was successful,
+            # since it is functionally equivalent of never being invited for
+            # the end user
+            try:
+                invite_dm_view = QueueInviteDMView(
+                    bot=self.bot,
+                    guild=interaction.guild,
+                    name=queue_invite_modal.queue_name,
+                )
+                msg = await user.send(view=invite_dm_view)
+                invite_dm_view.parent_message = msg
+                invite_dm_view.user_id = user.id
+            except discord.Forbidden:
+                fail.append((user, "user blocked DMs"))
+            except discord.NotFound:
+                fail.append((user, "user was not found"))
+            except discord.HTTPException:
+                fail.append((user, "could not send DM"))
+
+            # Do not proceed after an exception was raised
+            if len(fail) > prev_length:
+                await self.bot.queue_manager.remove_invite(
+                    interaction.guild_id, user.id, queue_invite_modal.queue_name
+                )
+                continue
+
+            # Should both steps go without issue, consider it a success
+            success.append(user)
+
+        # Send message confirming all invites have been sent
+        msg = []
+        if success:
+            msg.append(
+                "### Invites Sent\nInvites were successfully sent to the following players:\n"
+                + "\n".join([f"- {user.mention}" for user in success])
+            )
+        if non_invitable:
+            msg.append(
+                "### Could Not Invite\nInvites could not be sent to the following "
+                + "players due to them having already joined the queue or have an invite pending:\n"
+                + "\n".join([f"- {user.mention}" for user in non_invitable])
+            )
+        if fail:
+            msg.append(
+                "### Error\nAn error occurred while sending invites to the following players:\n"
+                + "\n".join(
+                    [f"- {user.mention} *({reason})*" for (user, reason) in fail]
+                )
+            )
+        return await interaction.followup.send("\n".join(msg), ephemeral=True)
 
     @app_commands.command(name="lock", description="Lock an existing queue")
     async def _lock_queue(self, interaction: discord.Interaction):
@@ -424,7 +661,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 msg = Canned.ERR_QUEUE_LOCKSTATE_L
             except QueueProgressStateError:
                 msg = Canned.ERR_QUEUE_PROGSTATE
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
@@ -516,7 +753,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 msg = Canned.ERR_QUEUE_LOCKSTATE_U
             except QueueProgressStateError:
                 msg = Canned.ERR_QUEUE_PROGSTATE
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"An error has occurred: {e}"
             finally:
                 results.append(
@@ -555,6 +792,63 @@ class QueueCog(commands.GroupCog, name="queue"):
         # Send queue unlock summary message
         return await interaction.followup.send("\n".join(content), ephemeral=True)
 
+    @app_commands.command(
+        name="notify", description="Set queue notifications for queues you own"
+    )
+    async def _notify_queue(self, interaction: discord.Interaction):
+        # Typehint assert, we know this is true anyway
+        assert interaction.guild_id is not None
+
+        # Check for owned queues
+        owned_queues = await self.bot.queue_manager.get_queues_owned_by(
+            interaction.guild_id, interaction.user.id
+        )
+        if not owned_queues:
+            return await interaction.response.send_message(
+                Canned.ERR_QUEUE_OWNERSHIP, **ephemeral()
+            )
+
+        # Send queue notify modal
+        queue_notify_modal = QueueNotifyModal(self.bot, owned_queues)
+        await interaction.response.send_modal(queue_notify_modal)
+
+        # Wait until interaction has finished
+        await queue_notify_modal.wait()
+
+        # If an invalid response was received, do not proceed
+        if not queue_notify_modal.is_valid:
+            return
+
+        # If no changes were made, confirm and exit
+        if not queue_notify_modal.diff:
+            return await interaction.followup.send(
+                "## No Changes Made\nThere have been no modifications made to "
+                + "the notification statuses for your queues.",
+            )
+
+        # Set notify for the queues according to user specification
+        notify_to_text = lambda n: "ON" if n else "OFF"
+        changes: list[str] = []
+        for name, notify_value in queue_notify_modal.diff:
+            await self.bot.queue_manager.set_notify_state(
+                interaction.guild_id, name, notify_value
+            )
+            changes.append(
+                f"- **`{name}`** (`{notify_to_text(not notify_value)}` → `{notify_to_text(notify_value)}`)"
+            )
+
+        # Send confirmation message
+        await interaction.followup.send(
+            "\n".join(
+                [
+                    "## Queue Notification Status Changes",
+                    "The following changes have been made:",
+                    *changes,
+                ]
+            ),
+            ephemeral=True,
+        )
+
     @app_commands.command(name="list", description="List all queues with filters")
     @app_commands.rename(queue_type="type")
     @app_commands.describe(
@@ -564,8 +858,8 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _list_queue(
         self,
         interaction: discord.Interaction,
-        member: Optional[discord.Member] = None,
-        queue_type: Optional[QueueType] = None,
+        member: discord.Member | None = None,
+        queue_type: QueueType | None = None,
     ):
         # Typehint assert, we know this is true anyway
         assert interaction.guild_id is not None
@@ -608,7 +902,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
         except NoListResults:
             msg = Canned.ERR_QUEUE_NO_LIST_RESULTS
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"An error has occurred: {e}"
             self.bot.logger.error(
                 f"An exception occurred when trying to list queue: {e}"

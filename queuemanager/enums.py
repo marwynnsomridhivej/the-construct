@@ -1,10 +1,12 @@
 from enum import StrEnum
 
 __all__ = (
-    "CaptSelect",
-    "QueueType",
-    "ALL_R6_QUEUE_TYPES",
     "ALL_CAPT_SELECT_MODES",
+    "ALL_R6_QUEUE_TYPES",
+    "MAX_ENQUEUED_PLAYERS",
+    "CaptSelect",
+    "QueueNotifyAction",
+    "QueueType",
 )
 
 
@@ -13,6 +15,13 @@ class QueueType(StrEnum):
 
     R6_5V5 = "Rainbow Six Siege - 5v5"
     R6_1V1 = "Rainbow Six Siege - 1v1"
+
+
+class QueueNotifyAction(StrEnum):
+    """Standard text representation of notifiable queue actions."""
+
+    JOIN = "joined"
+    LEAVE = "left"
 
 
 class CaptSelect(StrEnum):
@@ -38,3 +47,10 @@ ALL_CAPT_SELECT_MODES = [
     CaptSelect.MANUAL,
 ]
 """All Rainbow Six Siege captain selection modes."""
+
+
+MAX_ENQUEUED_PLAYERS = {
+    QueueType.R6_5V5: 10,
+    QueueType.R6_1V1: 2,
+}
+"""The maximum number of players in a queue for a given queue type."""

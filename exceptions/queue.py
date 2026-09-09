@@ -1,18 +1,19 @@
-from typing import Optional
-
 import discord
 
 __all__ = (
     "AlreadyInQueue",
+    "AlreadyInvited",
     "NoListResults",
     "NotInQueue",
+    "NotInvited",
     "NotQueueOwner",
     "QueueAlreadyExists",
     "QueueDoesNotExist",
-    "QueueLimitReached",
     "QueueIsFull",
     "QueueIsLocked",
+    "QueueLimitReached",
     "QueueLockStateError",
+    "QueueNotifyStateError",
     "QueueProgressStateError",
 )
 
@@ -29,6 +30,30 @@ class AlreadyInQueue(Exception):
         return f"AlreadyInQueue[user_id={self.user_id}]"
 
 
+class AlreadyInvited(Exception):
+    """Exception raised when attempting to invite a user to a queue
+    they are already invited to.
+    """
+
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+
+    def __str__(self):
+        return f"AlreadyInvited[user_id={self.user_id}]"
+
+
+class NotInvited(Exception):
+    """Exception raised when attempting to remove a user's invite from a queue
+    they are not invited to.
+    """
+
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+
+    def __str__(self):
+        return f"NotInvited[user_id={self.user_id}]"
+
+
 class NoListResults(Exception):
     """Exception raised when no queue list results are found with
     the specified member and/or queue type filters.
@@ -36,8 +61,8 @@ class NoListResults(Exception):
 
     def __init__(
         self,
-        member: Optional[discord.Member | discord.User] = None,
-        queue_type: Optional[str] = None,
+        member: discord.Member | discord.User | None = None,
+        queue_type: str | None = None,
     ):
         self.member = member
         self.queue_type = queue_type
@@ -156,3 +181,15 @@ class QueueProgressStateError(Exception):
 
     def __str__(self):
         return "QueueProgressStateError"
+
+
+class QueueNotifyStateError(Exception):
+    """Exception raised when attempting to change a queue's notification
+    state to the state it is already in.
+    """
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return "QueueNotifyStateError"

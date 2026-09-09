@@ -5,24 +5,27 @@ import discord
 from base import WrapperBase
 from exceptions import (
     AlreadyInQueue,
+    AlreadyInvited,
     InvalidGuildID,
     NotInQueue,
+    NotInvited,
     NotQueueOwner,
     QueueAlreadyExists,
     QueueDoesNotExist,
     QueueIsFull,
     QueueIsLocked,
     QueueLockStateError,
+    QueueNotifyStateError,
     QueueProgressStateError,
 )
 
 from .enums import QueueType
 
 __all__ = (
-    "QueueWrapper",
-    "QueueGuildContainer",
     "QueueEntry",
+    "QueueGuildContainer",
     "QueueOperationResult",
+    "QueueWrapper",
 )
 
 
@@ -232,13 +235,15 @@ class QueueEntry(WrapperBase):
     """
 
     __slots__ = (
-        "owner_id",
         "created_timestamp",
-        "type",
-        "players",
-        "max_players",
-        "locked",
         "in_progress",
+        "invites",
+        "locked",
+        "max_players",
+        "notify",
+        "owner_id",
+        "players",
+        "type",
     )
 
     def __init__(self, data: dict):
@@ -247,8 +252,10 @@ class QueueEntry(WrapperBase):
         self.type: QueueType = data["type"]
         self.players: list[int] = data["players"]
         self.max_players: int = data["max_players"]
+        self.invites: list[int] = data["invites"]
         self.locked: bool = data["locked"]
         self.in_progress: bool = data["in_progress"]
+        self.notify: bool = data["notify"]
 
     def add_player(self, user_id: int) -> None:
         """Add a user ID to the player list.
@@ -271,6 +278,10 @@ class QueueEntry(WrapperBase):
             raise QueueIsFull
 
         self.players.append(user_id)
+
+        # Remove user ID from invites, if present
+        if user_id in self.invites:
+            self.remove_invite(user_id)
 
     def remove_player(self, user_id: int, force: bool) -> None:
         """Remove a user ID from the player list.
@@ -297,6 +308,42 @@ class QueueEntry(WrapperBase):
             raise NotInQueue(user_id)
 
         self.players.remove(user_id)
+
+    def add_invite(self, user_id: int) -> None:
+        """Add a user ID to the invites list.
+
+        Args:
+            user_id (int): The ID of the user to add.
+
+        Raises:
+            QueueIsLocked: The queue is locked and cannot be modified.
+            AlreadyInQueue: The user ID is already in the players list.
+            AlreadyInvited: The user ID is already in the invites list.
+        """
+        if self.locked:
+            raise QueueIsLocked
+
+        if user_id in self.players:
+            raise AlreadyInQueue(user_id)
+
+        if user_id in self.invites:
+            raise AlreadyInvited(user_id)
+
+        self.invites.append(user_id)
+
+    def remove_invite(self, user_id: int) -> None:
+        """Remove a user ID from the invites list.
+
+        Args:
+            user_id (int): The ID of the user to remove.
+
+        Raises:
+            NotInvited: The user ID is not in the invites list.
+        """
+        if user_id not in self.invites:
+            raise NotInvited(user_id)
+
+        self.invites.remove(user_id)
 
     def set_lock(self, user_id: int, state: bool, admin: bool = False) -> None:
         """Set the queue's lock state.
@@ -340,6 +387,21 @@ class QueueEntry(WrapperBase):
 
         self.in_progress = state
 
+    def set_notify(self, state: bool) -> None:
+        """Set the queue's notify state.
+
+        Args:
+            state (bool): The value to set the queue's notify state.
+
+        Raises:
+            QueueNotifyStateError: The specified state does not change the
+                queue's notify state.
+        """
+        if self.notify == state:
+            raise QueueNotifyStateError
+
+        self.notify = state
+
     @property
     def full(self) -> bool:
         """Check if the queue has reached maximum capacity.
@@ -361,8 +423,10 @@ class QueueEntry(WrapperBase):
             "type": self.type,
             "players": self.players,
             "max_players": self.max_players,
+            "invites": self.invites,
             "locked": self.locked,
             "in_progress": self.in_progress,
+            "notify": self.notify,
         }
 
 
