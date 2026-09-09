@@ -55,8 +55,11 @@ queue entry is destroyed.
 | `/queue delete` | Opens an interactive panel for individual queue deletion             | Only the queue owner or bot administrators may perform this operation                                                       |
 | `/queue join`   | Opens an interactive panel for multiple simultaneous queue joining   | This operation may only be done while no match is in progress or locked for the selected queues                             |
 | `/queue leave`  | Opens an interactive panel for multiple simultaneous queue leaving   | This operation may only be done while no match is in progress or locked for the selected queues                             |
+| `/queue kick`   | Opens an interactive panel for player management in queues           | Only the queue owner or bot administrators may perform this operation while no match is in progress for the selected queues |
+| `/queue invite` | Opens an interactive panel for sending queue join invitations        | Only the queue owner or bot administrators may perform this operation                                                       |
 | `/queue lock`   | Opens an interactive panel for multiple simultaneous queue locking   | Only the queue owner or bot administrators may perform this operation while no match is in progress for the selected queues |
 | `/queue unlock` | Opens an interactive panel for multiple simultaneous queue unlocking | Only the queue owner or bot administrators may perform this operation while no match is in progress for the selected queues |
+| `/queue notify` | Opens an interactive panel for configuring queue notification status | You may only configure notification statuses for queues you own                                                             |
 | `/queue list`   | Lists all active queues in the server                                |                                                                                                                             |
 
 ### Match Management
@@ -94,6 +97,34 @@ Give feedback directly to the developers.
 | `/feedback` | Submit feedback via the feedback modal | There is a per-user cooldown of `300`s between uses |
 
 ## Changelog
+
+### 2.4.0-beta
+
+This patch adds several new commands, features, and QoL improvements aimed at
+making the bot more flexible and informative for players and administrators.
+
+#### Added
+
+- Using `/queue notify` or during queue creation, queue owners can enable/disable
+notifications for when players join or leave their queue
+  - Notifications are sent via DM
+- Using `/queue invite`, queue owners and bot administrators can send invites to
+players for a queue they own or have permission to manage
+  - Invites are sent via DM
+  - These invites work the same as if the invitee used `/queue join` to join queue
+- Using `/queue kick`, queue owners and bot administrators can select players to
+kick from a queue they own or have permission to manage
+- Matches can now be designated as friendly during their creation in the
+interactive prematch configuration panel
+  - Ratings will NOT be updated after match conclusion
+  - All features in the match panel will work as usual
+
+#### Bugfixes
+
+- Prevented excessively long player or server names from causing certain UI
+components to exceed their supported text lengths
+  - This would cause silent fails from the perspective of the end user and would
+  render the affected feature unusable in that particular instance
 
 ### 2.3.0-beta
 
