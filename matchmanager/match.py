@@ -193,6 +193,7 @@ class MatchEntry(WrapperBase):
     """
 
     __slots__ = (
+        "__friendly",
         "created_timestamp",
         "map",
         "team_a",
@@ -209,6 +210,8 @@ class MatchEntry(WrapperBase):
         self.team_a: MatchTeam = MatchTeam.parse(data["team_a"])
         self.team_b: MatchTeam = MatchTeam.parse(data["team_b"])
         self.map: R6Map | None = data["map"]
+
+        self.__friendly: bool = data["friendly"]
 
     def get_team_of_user(self, user_id: int) -> "MatchTeam":
         """Finds the team the specified user ID belongs to
@@ -309,6 +312,15 @@ class MatchEntry(WrapperBase):
             rounds_won (int): The amount of rounds won.
         """
         self.get_team_of_user(captain_id).set_rounds_won(rounds_won)
+
+    @property
+    def friendly(self) -> bool:
+        """Whether or not this match is considered a friendly match.
+
+        Returns:
+            bool: If the match is friendly or not.
+        """
+        return self.__friendly
 
     @property
     def captains(self) -> list[int]:
@@ -436,6 +448,7 @@ class MatchEntry(WrapperBase):
             "team_a": self.team_a.serialise(),
             "team_b": self.team_b.serialise(),
             "map": self.map,
+            "friendly": self.__friendly,
         }
 
 

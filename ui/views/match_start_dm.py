@@ -72,6 +72,9 @@ class MatchStartDMView(discord.ui.LayoutView):
                     "### Details",
                     f"- Draft Panel Message: {self._payload.message.jump_url}",
                     f"- Mode: `{self._entry.type}`",
+                    f"- Friendly: `{'YES' if self._payload.friendly else 'NO'}` "
+                    + f"*(ratings WILL {'NOT' if self._payload.friendly else ''} "
+                    + "be adjusted based on match outcome)*",
                     f"- Players: `{len(self._entry.players)}/{self._entry.max_players}`",
                     "\n".join([f"  - <@{player}>" for player in self._entry.players]),
                     f"- Captains: {' and '.join([f'<@{capt_id}>' for capt_id in self._payload.captains])}",

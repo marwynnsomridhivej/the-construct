@@ -32,6 +32,7 @@ class PrematchView(discord.ui.LayoutView):
         # Component attributes
         self.queue_select: discord.ui.Select
         self.vc_select: discord.ui.ChannelSelect
+        self.friendly_match_select: discord.ui.Select
         self.map_pool_select: discord.ui.Select
         self.auto_draft_select: discord.ui.Select
         self.captain_mode_select: discord.ui.Select
@@ -48,6 +49,14 @@ class PrematchView(discord.ui.LayoutView):
     @property
     def voice_channel_id(self) -> int | None:
         return self.vc_select.values[0].id if self.vc_select.values else None
+
+    @property
+    def friendly(self) -> bool:
+        return (
+            self.friendly_match_select.values[0] == "yes"
+            if self.friendly_match_select.values
+            else False
+        )
 
     @property
     def map_pool_name(self) -> str | None:
@@ -116,6 +125,26 @@ class PrematchView(discord.ui.LayoutView):
                 "text": "Voice Channel",
                 "description": "What voice channel should players connec to BEFORE team draft occurs?",
                 "component": self.vc_select,
+            }
+        )
+
+        # Friendly match toggle
+        self.friendly_match_select = discord.ui.Select(
+            options=[
+                discord.SelectOption(
+                    label=titlecase(opt),
+                    value=opt,
+                    default=opt.lower() == "no",
+                )
+                for opt in ["yes", "no"]
+            ],
+        )
+        items.append(
+            {
+                "text": "Friendly Match",
+                "description": "Should this be considered a friendly match? "
+                + "If so, ratings are not affected.",
+                "component": self.friendly_match_select,
             }
         )
 
@@ -431,6 +460,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
                 "match_name": self.parent_view.queue,
                 "voice_channel_id": self.parent_view.voice_channel_id,
                 "text_channel_id": bound_text_channel_id,
+                "friendly": self.parent_view.friendly,
                 "map_pool": map_pool.serialise(),
                 "auto_draft": self.parent_view.auto_draft,
                 "captains": captains,

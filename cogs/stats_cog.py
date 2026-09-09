@@ -60,6 +60,10 @@ class StatsCog(commands.Cog):
             payload (MatchFinalisedPayload): The MatchFinalisedPayload
                 generated upon match conclusion.
         """
+        # If the match was friendly, do not adjust ratings.
+        if payload.friendly:
+            return
+
         # Typehint assertions for attributes that should already have values
         assert (
             payload.winning_team.mvp_id is not None

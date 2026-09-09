@@ -88,6 +88,7 @@ class MatchManager(ManagerBase):
             "team_a": team_a.serialise(),
             "team_b": team_b.serialise(),
             "map": None,
+            "friendly": payload.friendly,
         }
 
         # Create match entry
