@@ -24,7 +24,6 @@ class ManagerBase(ABC):
         """Initialiser, will create necessary directories if they don't
         already exist. Must be overridden by subclasses.
         """
-        pass
 
     async def _load(self, *, name: str):
         """Initialiser, will create necessary directories. Subclasses
@@ -73,7 +72,6 @@ class ManagerBase(ABC):
         Returns:
             WrapperBase: The instantiated wrapper class.
         """
-        pass
 
     async def _get_or_create_wrapper(
         self, *, cls: type[WrapperBaseType]
