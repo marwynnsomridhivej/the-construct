@@ -26,6 +26,7 @@ class QueueCreateModal(discord.ui.Modal):
         # Attributes with user input data
         self.queue_name_input: discord.ui.Label
         self.queue_type_select: discord.ui.Label
+        self.queue_notification_group: discord.ui.Label
 
         self.init_components()
 
@@ -39,16 +40,23 @@ class QueueCreateModal(discord.ui.Modal):
         assert isinstance(self.queue_type_select.component, discord.ui.Select)
         return QueueType(self.queue_type_select.component.values[0])
 
+    @property
+    def notify(self) -> bool:
+        assert isinstance(
+            self.queue_notification_group.component, discord.ui.RadioGroup
+        )
+        return self.queue_notification_group.component.value == "yes"
+
     def init_components(self) -> None:
         # Get queue name
         self.queue_name_input = discord.ui.Label(
             text="Queue Name",
-            description="Enter the name you would like to use for the queue (up to 100 characters)",
+            description="Enter the name you would like to use for the queue (up to 60 characters)",
             component=discord.ui.TextInput(
                 style=discord.TextStyle.short,
                 placeholder="Enter the name here",
                 min_length=1,
-                max_length=100,
+                max_length=60,
                 required=True,
             ),
         )
@@ -70,7 +78,29 @@ class QueueCreateModal(discord.ui.Modal):
             ),
         )
 
-        for item in [self.queue_name_input, self.queue_type_select]:
+        # Get notification setting
+        self.queue_notification_group = discord.ui.Label(
+            text="Notifications",
+            description="Would you like to be notified whenever players join "
+            + "or leave this queue?",
+            component=discord.ui.RadioGroup(
+                options=[
+                    discord.RadioGroupOption(
+                        label=titlecase(opt),
+                        value=opt,
+                        default=opt.lower() == "no",
+                    )
+                    for opt in ["yes", "no"]
+                ],
+                required=True,
+            ),
+        )
+
+        for item in [
+            self.queue_name_input,
+            self.queue_type_select,
+            self.queue_notification_group,
+        ]:
             self.add_item(item)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
