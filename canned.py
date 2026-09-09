@@ -23,6 +23,9 @@ class Canned(StrEnum):
     ERR_COOLDOWN = "ERROR - The command is on cooldown for another `{}`s"
 
     # Queues
+    QUEUE_KICK_NO_SPEC = (
+        "**No players were specified, so no changes were made to the queue**"
+    )
     ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
     ERR_QUEUE_NO_EXISTS = "ERROR - No queue exists with the specified name"
     ERR_QUEUE_LIMIT = "ERROR - This server has reached the 20 simultaneous queues limit and cannot create more queues at this time"
@@ -31,9 +34,7 @@ class Canned(StrEnum):
     )
     ERR_QUEUE_ALREADY_IN = "ERROR - You are already in the specified queue"
     ERR_QUEUE_NOT_IN = "ERROR - You are not in the specified queue"
-    ERR_QUEUE_FULL = (
-        "ERROR - The queue you are attempting to join is full, unable to join"
-    )
+    ERR_QUEUE_FULL = "ERROR - The queue is full and cannot be joined at this time"
     ERR_QUEUE_LOCKED_JOIN = "ERROR - The queue you are attempting to join is locked and cannot accept new players at this time"
     ERR_QUEUE_LOCKED_LEAVE = "ERROR - The queue you are attempting to leave is locked. You cannot leave at this time"
     ERR_QUEUE_LOCKSTATE_L = "ERROR - The specified queue is already locked"
@@ -54,8 +55,13 @@ class Canned(StrEnum):
     ERR_QUEUE_NO_UNLOCKABLE = "ERROR - There are no queues you can unlock"
     ERR_QUEUE_JOIN = "ERROR - Could not join queue"
     ERR_QUEUE_LEAVE = "ERROR - Could not leave queue"
+    ERR_QUEUE_INVITE = "ERROR - Could not invite players to queue"
     ERR_QUEUE_LOCK = "ERROR - Could not lock queue"
     ERR_QUEUE_UNLOCK = "ERROR - Could not unlock queue"
+    ERR_QUEUE_NOTIFY = "ERROR - Could not configure queue notifications"
+    ERR_QUEUE_OWNERSHIP = (
+        "ERROR - There are no open queues you own or have permission to manage"
+    )
 
     # R6 Prematch
     ERR_PREMATCH_NO_QUEUE = "ERROR - Please specify a queue"
