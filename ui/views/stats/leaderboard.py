@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import discord
 
 from util import titlecase
 
-from .paginator import Paginator, PaginatorButtonRow
+from ..paginator import Paginator, PaginatorButtonRow
 
 if TYPE_CHECKING:
     from queuemanager import QueueType
@@ -29,7 +29,7 @@ class LeaderboardView(Paginator):
         self._season: StatsSeason = season
         self._data: list[tuple[int, StatsPlayer]] = rankings
         self.queue_type: QueueType = queue_type
-        self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
+        self.created_time = f"<t:{int(datetime.now(tz=UTC).timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
     def _get_rating_text(self, player: StatsPlayer) -> str:
         # Refer to appropriate rating metrics

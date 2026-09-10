@@ -6,7 +6,7 @@ import discord
 
 from util import titlecase
 
-from .paginator import Paginator, PaginatorButtonRow
+from ..paginator import Paginator, PaginatorButtonRow
 
 if TYPE_CHECKING:
     from queuemanager import QueueEntry
