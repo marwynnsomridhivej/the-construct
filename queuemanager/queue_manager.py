@@ -149,7 +149,7 @@ class QueueManager(ManagerBase):
 
     async def check_can_invite_users_to_queue(
         self, guild_id: int, users: list[discord.User | discord.Member], name: str
-    ) -> tuple[list[discord.User], list[discord.User]]:
+    ) -> tuple[list[discord.User], list[discord.User], list[discord.User]]:
         """Check if certain users can be invited to a queue.
 
         Args:
@@ -169,13 +169,17 @@ class QueueManager(ManagerBase):
         if entry.full:
             raise QueueIsFull
 
-        invitable, non_invitable = [], []
+        invitable, non_invitable, bot = [], [], []
         for user in users:
-            if user.id in entry.players or user.id in entry.invites:
-                non_invitable.append(user)
-            else:
-                invitable.append(user)
-        return invitable, non_invitable
+            _list = (
+                bot
+                if user.bot
+                else non_invitable
+                if user.id in entry.players or user.id in entry.invites
+                else invitable
+            )
+            _list.append(user)
+        return invitable, non_invitable, bot
 
     async def add_invite(self, guild_id: int, user_id: int, name: str) -> None:
         """Add a user ID to the invites list for a queue.
