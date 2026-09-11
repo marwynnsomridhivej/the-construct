@@ -28,6 +28,7 @@ from ui import (
     QueueInviteDMView,
     QueueInviteModal,
     QueueJoinModal,
+    QueueKickDMView,
     QueueKickView,
     QueueKickViewButtons,
     QueueLeaveModal,
@@ -52,6 +53,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         _handlers: dict[EventHandlerType, Event] = {
             self._notify_queue_owner_full: Event.QUEUE_FILLED,
             self._notify_queue_owner_membership: Event.QUEUE_MEMBERSHIP_CHANGE,
+            self._notify_queue_kicked_member: Event.QUEUE_KICKED,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
@@ -84,6 +86,27 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
         except (discord.Forbidden, discord.NotFound, discord.HTTPException):
             pass
+
+    async def _notify_queue_kicked_member(self, payload: QueueNotifyPayload) -> None:
+        """Send a DM to the members that were kicked from a queue.
+
+        Args:
+            payload (QueueNotifyPayload): The payload generated upon a player
+                joining or leaving the queue.
+        """
+        # Ensure payload.user is a list
+        assert isinstance(payload.user, list)
+
+        # Send a DM to each individual user
+        for user in payload.user:
+            try:
+                queue_kicked_dm_view = QueueKickDMView(
+                    guild=payload.guild,
+                    name=payload.name,
+                )
+                await user.send(view=queue_kicked_dm_view)
+            except (discord.Forbidden, discord.NotFound, discord.HTTPException):
+                pass
 
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
         """Send a DM to the queue owner whenever one of their queues
@@ -503,7 +526,8 @@ class QueueCog(commands.GroupCog, name="queue"):
 
         # Send queue invite modal
         queue_invite_modal = QueueInviteModal(
-            self.bot, sorted([name for name in queues])
+            bot=self.bot,
+            invitable_queues=sorted([name for name in queues]),
         )
         await interaction.response.send_modal(queue_invite_modal)
 
@@ -522,6 +546,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             (
                 invitable,
                 non_invitable,
+                bot_invite,
             ) = await self.bot.queue_manager.check_can_invite_users_to_queue(
                 interaction.guild_id,
                 queue_invite_modal.invited_users,
@@ -588,6 +613,10 @@ class QueueCog(commands.GroupCog, name="queue"):
             # Should both steps go without issue, consider it a success
             success.append(user)
 
+        # Add selected bot users to the failed list with reason
+        for user in bot_invite:
+            fail.append((user, "cannot invite bot users"))
+
         # Send message confirming all invites have been sent
         msg = []
         if success:
@@ -608,7 +637,11 @@ class QueueCog(commands.GroupCog, name="queue"):
                     [f"- {user.mention} *({reason})*" for (user, reason) in fail]
                 )
             )
-        return await interaction.followup.send("\n".join(msg), ephemeral=True)
+        return await interaction.followup.send(
+            "\n".join(msg),
+            ephemeral=True,
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
 
     @app_commands.command(name="lock", description="Lock an existing queue")
     async def _lock_queue(self, interaction: discord.Interaction):
