@@ -202,8 +202,8 @@ class QueueKickView(discord.ui.LayoutView):
             discord.ui.TextDisplay("## Queue Kick"),
             discord.ui.TextDisplay(
                 "The interactive queue kick panel allows queue owners and "
-                + "bot administrators manage player membership in any queues "
-                + "they are allowed to administer."
+                + "bot administrators to manage player membership in any"
+                + "queues they are allowed to administer."
             ),
             accessory=discord.ui.Thumbnail(
                 self.guild.icon.url if self.guild.icon else ICON
@@ -287,22 +287,31 @@ class QueueKickViewButtons(discord.ui.ActionRow):
                 success.append(user_id)
 
         if success:
+            # Craft data payload
+            payload = QueueNotifyPayload.parse(
+                {
+                    "guild": self.parent_view.guild,
+                    "name": self.parent_view.selected_queue_name,
+                    "entry": left_queue,
+                    "action": QueueNotifyAction.LEAVE,
+                    "user": [
+                        user
+                        for user_id in success
+                        if (user := self.parent_view.bot.get_user(user_id))
+                    ],
+                }
+            )
+
             # Dispatch queue leave event in bulk
             self.parent_view.bot.dispatch(
                 Event.QUEUE_MEMBERSHIP_CHANGE,
-                QueueNotifyPayload.parse(
-                    {
-                        "guild": self.parent_view.guild,
-                        "name": self.parent_view.selected_queue_name,
-                        "entry": left_queue,
-                        "action": QueueNotifyAction.LEAVE,
-                        "user": [
-                            user
-                            for user_id in success
-                            if (user := self.parent_view.bot.get_user(user_id))
-                        ],
-                    }
-                ),
+                payload,
+            )
+
+            # Dispatch queue kick event
+            self.parent_view.bot.dispatch(
+                Event.QUEUE_KICKED,
+                payload,
             )
 
         # Edit view to display summary and edit original view in the message
