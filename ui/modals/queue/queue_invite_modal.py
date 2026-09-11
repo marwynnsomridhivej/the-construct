@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from canned import Canned
-from util import ephemeral, titlecase
+from util import titlecase
 
 if TYPE_CHECKING:
     from bot import Bot
@@ -16,7 +16,7 @@ __all__ = ("QueueInviteModal",)
 
 
 class QueueInviteModal(discord.ui.Modal):
-    def __init__(self, bot: Bot, invitable_queues: list[str]):
+    def __init__(self, *, bot: Bot, invitable_queues: list[str]):
         super().__init__(title="Invite Players")
 
         self.bot = bot
@@ -76,27 +76,17 @@ class QueueInviteModal(discord.ui.Modal):
         # Immediately defer interaction response
         await interaction.response.defer()
 
-        # Check if any bots were selected
-        for user in self.invited_users:
-            if user.bot:
-                raise ValueError
-
-        # Set is_valid flag to true when no bots are detected
-        self.is_valid = True
+        # Set is_valid flag to true if at least one user was specified
+        self.is_valid = bool(self.invited_users)
         self.stop()
 
     async def on_error(
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
-        if isinstance(error, ValueError):
-            await interaction.response.send_message(Canned.ERR_BOT_USER, **ephemeral())
-        else:
-            self.bot.logger.error(
-                f"An exception occurred while selecting players to invite: {error}"
-            )
-            traceback.print_exception(type(error), error, error.__traceback__)
-            await interaction.response.send_message(
-                Canned.ERR_QUEUE_INVITE, **ephemeral()
-            )
+        self.bot.logger.error(
+            f"An exception occurred while selecting players to invite: {error}"
+        )
+        traceback.print_exception(type(error), error, error.__traceback__)
+        await interaction.followup.send(Canned.ERR_QUEUE_INVITE, ephemeral=True)
 
         self.stop()
