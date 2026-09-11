@@ -53,7 +53,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         _handlers: dict[EventHandlerType, Event] = {
             self._notify_queue_owner_full: Event.QUEUE_FILLED,
             self._notify_queue_owner_membership: Event.QUEUE_MEMBERSHIP_CHANGE,
-            self._notify_queue_kicked_member: Event.QUEUE_KICKED,
+            self._notify_queue_kicked_player: Event.QUEUE_KICKED,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
@@ -87,7 +87,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         except (discord.Forbidden, discord.NotFound, discord.HTTPException):
             pass
 
-    async def _notify_queue_kicked_member(self, payload: QueueNotifyPayload) -> None:
+    async def _notify_queue_kicked_player(self, payload: QueueNotifyPayload) -> None:
         """Send a DM to the members that were kicked from a queue.
 
         Args:
