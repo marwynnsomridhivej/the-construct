@@ -114,6 +114,7 @@ players for a queue they own or have permission to manage
   - These invites work the same as if the invitee used `/queue join` to join queue
 - Using `/queue kick`, queue owners and bot administrators can select players to
 kick from a queue they own or have permission to manage
+  - Players that were kicked are notified of their removal from the queue
 - Matches can now be designated as friendly during their creation in the
 interactive prematch configuration panel
   - Ratings will NOT be updated after match conclusion
