@@ -12,8 +12,12 @@ class Event(StrEnum):
     handlers should listen to `on_{EVENT_NAME}` in order to perform
     actions upon a custom event dispatch.
     """
+
     # Dispatched after a player joins or leaves a queue
     QUEUE_MEMBERSHIP_CHANGE = "queue_membership_change"
+
+    # Dispatched after a player is kicked from a queue
+    QUEUE_KICKED = "queue_kicked"
 
     # Dispatched after a queue is filled to maximum occupancy
     QUEUE_FILLED = "queue_filled"
